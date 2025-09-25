@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TSH • Mini-ERP Produksi & Pengiriman</title>
+  <!-- Tailwind via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* Spreadsheet-like table */
+    table.grid { border-collapse: separate; border-spacing: 0; }
+    table.grid th, table.grid td { border: 1px solid #e5e7eb; padding: .5rem; font-size: 0.9rem; }
+    table.grid th { background:#f8fafc; position: sticky; top: 0; z-index: 1; }
+    td[contenteditable="true"]:focus { outline: 2px solid #3b82f6; background:#eff6ff; }
+    .badge { padding:.15rem .5rem; border-radius: 9999px; font-size:.75rem; }
+    .status-chip{border:1px solid #d1d5db;}
+    @media print{
+      .no-print{ display:none !important; }
+      .print\:block{ display:block !important; }
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+  <!-- Top Bar -->
+  <header class="bg-white border-b sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4">
+      <img src="tsh.png" alt="TSH" class="h-10 w-auto" />
+      <div class="font-semibold text-lg">Mini-ERP Produksi & Pengiriman</div>
+      <nav class="ml-auto flex items-center gap-2 no-print">
+        <button id="btnDashboard" class="px-3 py-1.5 rounded-lg bg-indigo-600 text-white">Dashboard</button>
+        <button id="btnPlan" class="px-3 py-1.5 rounded-lg bg-slate-200">Rencana Produksi</button>
+        <button id="btnShipping" class="px-3 py-1.5 rounded-lg bg-slate-200">Rencana Pengiriman</button>
+        <button id="btnExport" class="px-3 py-1.5 rounded-lg bg-emerald-600 text-white">Export CSV</button>
+        <button onclick="window.print()" class="px-3 py-1.5 rounded-lg bg-slate-800 text-white">Print</button>
+        <div class="flex items-center gap-2">
+          <input id="userName" class="px-3 py-1.5 rounded-lg border" placeholder="Nama user…"/>
+          <button id="btnLogin" class="px-3 py-1.5 rounded-lg bg-sky-600 text-white">Login</button>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto p-4 space-y-6">
+    <!-- DASHBOARD -->
+    <section id="pageDashboard" class="space-y-4">
+      <div class="grid md:grid-cols-3 gap-4">
+        <div class="bg-white rounded-2xl p-4 shadow">
+          <h3 class="font-semibold mb-3">Proses Produksi Saat Ini</h3>
+          <div id="nowList" class="space-y-2 text-sm"></div>
+        </div>
+        <div class="bg-white rounded-2xl p-4 shadow">
+          <h3 class="font-semibold mb-3">Barang Ada di Mana?</h3>
+          <canvas id="byProcessChart" height="200"></canvas>
+        </div>
+        <div class="bg-white rounded-2xl p-4 shadow">
+          <h3 class="font-semibold mb-3">Rencana Pengiriman Hari Ini</h3>
+          <div id="shipToday" class="space-y-2 text-sm"></div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl p-4 shadow">
+        <h3 class="font-semibold mb-3">Stok Barang Jadi</h3>
+        <div class="text-sm text-slate-600 mb-2">Stok = Qty Jadi − Qty 出荷済</div>
+        <table class="w-full grid table-auto grid grid-cols-12 grid-flow-row">
+          <thead class="contents">
+            <tr class="contents bg-slate-50">
+              <th class="col-span-3 p-2 border">Barang</th>
+              <th class="col-span-2 p-2 border">Nomor Barang</th>
+              <th class="col-span-2 p-2 border">Qty Jadi</th>
+              <th class="col-span-2 p-2 border">Qty 出荷済</th>
+              <th class="col-span-3 p-2 border">Stok</th>
+            </tr>
+          </thead>
+          <tbody id="stockBody" class="contents"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- RENCANA PRODUKSI -->
+    <section id="pagePlan" class="hidden space-y-4">
+      <div class="bg-white rounded-2xl p-4 shadow">
+        <div class="flex items-center justify-between">
+          <h3 class="font-semibold">Rencana Produksi Baru</h3>
+          <button id="btnAddPlan" class="no-print px-3 py-1.5 rounded-lg bg-indigo-600 text-white">+ Tambah</button>
+        </div>
+        <p class="text-sm text-slate-600">Saat di-print, baris akan diformat sebagai <em>生産現品票</em>.</p>
+        <div class="overflow-auto max-h-[60vh] mt-3">
+          <table class="w-full grid table-auto grid-cols-[200px_150px_200px_160px_140px_200px_160px_160px_200px] grid-flow-row grid border">
+            <thead class="contents">
+              <tr class="contents bg-slate-50">
+                <th class="p-2 border">Customer</th>
+                <th class="p-2 border">No. Produksi</th>
+                <th class="p-2 border">Nama Barang</th>
+                <th class="p-2 border">No. Barang</th>
+                <th class="p-2 border">Mulai</th>
+                <th class="p-2 border">Proses Saat Ini</th>
+                <th class="p-2 border">Lokasi</th>
+                <th class="p-2 border">Status</th>
+                <th class="p-2 border">Update (jam & user)</th>
+              </tr>
+            </thead>
+            <tbody id="planBody" class="contents"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl p-4 shadow">
+        <h3 class="font-semibold mb-3">Alur Proses Produksi</h3>
+        <ol class="list-decimal pl-6 text-sm leading-7">
+          <li>レーザ工程</li>
+          <li>曲げ工程</li>
+          <li>外枠組立工程</li>
+          <li>シャッター組立工程</li>
+          <li>シャッター溶接工程</li>
+          <li>コーキング工程</li>
+          <li>外枠塗装工程</li>
+          <li>組立工程</li>
+          <li>検査工程 (KENSA) → jika NG: kembali ke produksi (検査保留 / repair)</li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- RENCANA PENGIRIMAN -->
+    <section id="pageShipping" class="hidden space-y-4">
+      <div class="bg-white rounded-2xl p-4 shadow">
+        <div class="flex items-center justify-between">
+          <h3 class="font-semibold">Rencana Pengiriman</h3>
+          <div class="no-print flex items-center gap-2">
+            <button id="btnAddShip" class="px-3 py-1.5 rounded-lg bg-indigo-600 text-white">+ Tambah</button>
+            <button id="btnMarkShipped" class="px-3 py-1.5 rounded-lg bg-emerald-600 text-white">Tandai 出荷済</button>
+          </div>
+        </div>
+        <p class="text-sm text-slate-600">Kolom mengikuti format file <em>出荷予定フォーム.xlsx</em> (dapat disesuaikan).</p>
+        <div class="overflow-auto max-h-[60vh] mt-3">
+          <table class="w-full grid table-auto grid-cols-[150px_180px_220px_140px_120px_120px_220px_180px] grid-flow-row grid border">
+            <thead class="contents">
+              <tr class="contents bg-slate-50">
+                <th class="p-2 border">出荷日</th>
+                <th class="p-2 border">得意先</th>
+                <th class="p-2 border">品名</th>
+                <th class="p-2 border">品番</th>
+                <th class="p-2 border">数量</th>
+                <th class="p-2 border">ステータス</th>
+                <th class="p-2 border">備考</th>
+                <th class="p-2 border">Update (jam & user)</th>
+              </tr>
+            </thead>
+            <tbody id="shipBody" class="contents"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Print template for 生産現品票 (minimal header only) -->
+  <section class="print:block hidden p-6">
+    <h2 class="text-xl font-bold">生産現品票 (Auto Generated)</h2>
+    <p class="text-sm text-slate-600">Dibuat otomatis dari Rencana Produksi (PPIC).</p>
+  </section>
+
+  <script>
+    // ====== CONFIG ======
+    const PROCESS_LIST = [
+      "レーザ工程","曲げ工程","外枠組立工程","シャッター組立工程","シャッター溶接工程","コーキング工程","外枠塗装工程","組立工程","検査工程"
+    ];
+
+    // ENDPOINT Google Apps Script (ganti setelah deploy Apps Script)
+    // Lihat bagian "INTEGRASI GOOGLE SHEETS" di bawah
+    const SHEET_ENDPOINT = {
+      PLAN_POST: "",    // doPost untuk simpan/ubah produksi
+      PLAN_GET:  "",    // doGet untuk list produksi
+      SHIP_POST: "",    // doPost untuk simpan/ubah pengiriman
+      SHIP_GET:  ""     // doGet untuk list pengiriman
+    };
+
+    // ====== STATE ======
+    let STATE = {
+      user: localStorage.getItem('tsh_user') || "",
+      plan: JSON.parse(localStorage.getItem('tsh_plan')||"[]"),
+      ship: JSON.parse(localStorage.getItem('tsh_ship')||"[]"),
+    };
+
+    // ====== UTIL ======
+    const $ = (q)=>document.querySelector(q);
+    const $$ = (q)=>Array.from(document.querySelectorAll(q));
+    const nowHHMM = ()=>new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    const todayStr = ()=>new Date().toISOString().slice(0,10);
+    function saveLocal(){
+      localStorage.setItem('tsh_plan', JSON.stringify(STATE.plan));
+      localStorage.setItem('tsh_ship', JSON.stringify(STATE.ship));
+    }
+    function stamp(){ return `${new Date().toLocaleString()} | ${STATE.user||'-'}` }
+
+    // ====== LOGIN ======
+    const userName = $('#userName');
+    const btnLogin  = $('#btnLogin');
+    userName.value = STATE.user;
+    btnLogin.onclick = ()=>{
+      STATE.user = userName.value.trim();
+      localStorage.setItem('tsh_user', STATE.user);
+      alert('Login sebagai: '+ (STATE.user||'-'));
+      renderAll();
+    }
+
+    // ====== NAV ======
+    $('#btnDashboard').onclick = ()=>showPage('Dashboard');
+    $('#btnPlan').onclick      = ()=>showPage('Plan');
+    $('#btnShipping').onclick  = ()=>showPage('Shipping');
+    function showPage(name){
+      ['Dashboard','Plan','Shipping'].forEach(p=>{
+        $('#page'+p).classList.toggle('hidden', p!==name);
+        $('#btn'+p).classList.toggle('bg-indigo-600', p===name);
+        $('#btn'+p).classList.toggle('text-white', p===name);
+        $('#btn'+p).classList.toggle('bg-slate-200', p!==name);
+      });
+    }
+
+    // ====== RENCANA PRODUKSI ======
+    const planBody = $('#planBody');
+    $('#btnAddPlan').onclick = ()=>{
+      STATE.plan.unshift({
+        customer:"", prodNo:"", itemName:"", itemNo:"", start: todayStr(),
+        process: PROCESS_LIST[0], location: "PPIC", status:"計画", updated: stamp(), qtyDone:0, qtyShip:0
+      });
+      saveLocal(); renderPlan();
+    }
+    function planRow(p, idx){
+      return `<tr class="contents">
+        ${cell(idx,'customer',p.customer)}
+        ${cell(idx,'prodNo',p.prodNo)}
+        ${cell(idx,'itemName',p.itemName)}
+        ${cell(idx,'itemNo',p.itemNo)}
+        ${cell(idx,'start',p.start,'date')}
+        ${selectCell(idx,'process',PROCESS_LIST,p.process)}
+        ${cell(idx,'location',p.location)}
+        ${selectCell(idx,'status',['計画','進行中','検査保留','完了'],p.status)}
+        <td class="p-2 border text-xs">${p.updated||''}</td>
+      </tr>`
+    }
+    function cell(idx,key,val,type='text'){
+      return `<td class="p-2 border" contenteditable="true" data-idx="${idx}" data-key="${key}" data-type="${type}">${val||''}</td>`
+    }
+    function selectCell(idx,key,options,val){
+      const opts = options.map(o=>`<option ${o===val?'selected':''}>${o}</option>`).join('');
+      return `<td class="p-2 border"><select class="w-full border rounded p-1" data-idx="${idx}" data-key="${key}">${opts}</select></td>`
+    }
+    planBody.addEventListener('input', e=>{
+      const td = e.target.closest('td');
+      const sel = e.target.closest('select');
+      const idx = (td||sel)?.dataset.idx; const key = (td||sel)?.dataset.key;
+      if(idx==null) return;
+      let v = sel? sel.value : td.innerText.trim();
+      STATE.plan[idx][key]=v; STATE.plan[idx].updated = stamp();
+      saveLocal(); renderDashboard();
+      // Optional push to Google Sheets
+      pushToSheet('PLAN_POST', STATE.plan[idx]);
+    });
+
+    function renderPlan(){
+      planBody.innerHTML = STATE.plan.map(planRow).join('');
+    }
+
+    // ====== PENGIRIMAN ======
+    const shipBody = $('#shipBody');
+    $('#btnAddShip').onclick = ()=>{
+      STATE.ship.unshift({
+        date: todayStr(), customer:"", itemName:"", itemNo:"", qty:0, status:"出荷準備", note:"", updated: stamp()
+      }); saveLocal(); renderShip(); renderDashboard();
+    }
+    $('#btnMarkShipped').onclick = ()=>{
+      STATE.ship.forEach(s=>{ if(s.status==='出荷準備'){ s.status='出荷済'; s.updated=stamp(); }});
+      saveLocal(); renderShip(); renderDashboard();
+      STATE.plan.forEach(p=>{ // update qtyShip mock (1 per record with same itemNo)
+        const shipped = STATE.ship.filter(s=>s.itemNo===p.itemNo && s.status==='出荷済').reduce((a,b)=>a+Number(b.qty||0),0);
+        p.qtyShip = shipped; p.updated = stamp();
+      }); saveLocal(); renderPlan();
+    }
+
+    function shipRow(s, idx){
+      return `<tr class="contents">
+        ${cellShip(idx,'date',s.date,'date')}
+        ${cellShip(idx,'customer',s.customer)}
+        ${cellShip(idx,'itemName',s.itemName)}
+        ${cellShip(idx,'itemNo',s.itemNo)}
+        ${cellShip(idx,'qty',s.qty,'number')}
+        ${selectShip(idx,'status',['出荷準備','出荷済'],s.status)}
+        ${cellShip(idx,'note',s.note)}
+        <td class="p-2 border text-xs">${s.updated||''}</td>
+      </tr>`
+    }
+    function cellShip(idx,key,val,type='text'){
+      return `<td class="p-2 border" contenteditable="true" data-sidx="${idx}" data-skey="${key}" data-type="${type}">${val||''}</td>`
+    }
+    function selectShip(idx,key,options,val){
+      const opts = options.map(o=>`<option ${o===val?'selected':''}>${o}</option>`).join('');
+      return `<td class="p-2 border"><select class="w-full border rounded p-1" data-sidx="${idx}" data-skey="${key}">${opts}</select></td>`
+    }
+    shipBody.addEventListener('input', e=>{
+      const td = e.target.closest('td');
+      const sel = e.target.closest('select');
+      const idx = (td||sel)?.dataset.sidx; const key = (td||sel)?.dataset.skey;
+      if(idx==null) return;
+      let v = sel? sel.value : td.innerText.trim();
+      if(key==='qty') v = Number(v||0);
+      STATE.ship[idx][key]=v; STATE.ship[idx].updated = stamp();
+      saveLocal(); renderDashboard();
+      // Optional push to Google Sheets
+      pushToSheet('SHIP_POST', STATE.ship[idx]);
+    });
+    function renderShip(){ shipBody.innerHTML = STATE.ship.map(shipRow).join(''); }
+
+    // ====== DASHBOARD & STOCK ======
+    let chartByProcess;
+    function renderDashboard(){
+      // Proses saat ini (top 8)
+      const now = STATE.plan.slice(0,8).map(p=>{
+        return `<div class="flex items-center justify-between border rounded-lg p-2">
+          <div>
+            <div class="font-medium">${p.itemName||'-'} <span class="text-slate-500">(${p.itemNo||''})</span></div>
+            <div class="text-xs text-slate-500">Cust: ${p.customer||'-'} • No: ${p.prodNo||'-'} • Mulai: ${p.start||'-'}</div>
+          </div>
+          <div class="text-right">
+            <div class="badge status-chip">${p.process||'-'} / ${p.status||'-'}</div>
+            <div class="text-xs text-slate-500">${p.updated||''}</div>
+          </div>
+        </div>`
+      }).join('');
+      $('#nowList').innerHTML = now || '<div class="text-sm text-slate-500">Belum ada data.</div>';
+
+      // Chart lokasi barang by process
+      const counts = PROCESS_LIST.map(proc=>STATE.plan.filter(p=>p.process===proc).length);
+      const ctx = document.getElementById('byProcessChart').getContext('2d');
+      if(chartByProcess) chartByProcess.destroy();
+      chartByProcess = new Chart(ctx, {
+        type:'bar', data:{ labels: PROCESS_LIST, datasets:[{ label:'Jumlah', data: counts }] }, options:{ plugins:{legend:{display:false}}, scales:{x:{ticks:{font:{size:10}}}} }
+      });
+
+      // Ship today
+      const today = todayStr();
+      const todayList = STATE.ship.filter(s=>s.date===today).map(s=>`<div class="flex items-center justify-between border rounded-lg p-2"><div><div class="font-medium">${s.itemName||'-'}</div><div class="text-xs text-slate-500">${s.customer||'-'} • Qty: ${s.qty||0}</div></div><div><span class="badge status-chip">${s.status}</span><div class="text-xs text-slate-500 text-right">${s.updated||''}</div></div></div>`).join('');
+      $('#shipToday').innerHTML = todayList || '<div class="text-sm text-slate-500">Tidak ada rencana pengiriman hari ini.</div>';
+
+      // Stock table
+      const stock = Object.values(STATE.plan.reduce((acc,p)=>{
+        const key = p.itemNo||p.itemName;
+        acc[key] ||= { itemName:p.itemName, itemNo:p.itemNo, qtyDone:0, qtyShip:0 };
+        acc[key].qtyDone += Number(p.qtyDone||0);
+        acc[key].qtyShip = STATE.ship.filter(s=>s.itemNo===p.itemNo && s.status==='出荷済').reduce((a,b)=>a+Number(b.qty||0),0);
+        return acc;
+      },{}));
+      $('#stockBody').innerHTML = stock.map(r=>`<tr class="contents">
+        <td class="p-2 border col-span-3">${r.itemName||'-'}</td>
+        <td class="p-2 border col-span-2">${r.itemNo||'-'}</td>
+        <td class="p-2 border col-span-2 text-right">${r.qtyDone||0}</td>
+        <td class="p-2 border col-span-2 text-right">${r.qtyShip||0}</td>
+        <td class="p-2 border col-span-3 text-right font-semibold">${(r.qtyDone||0)-(r.qtyShip||0)}</td>
+      </tr>`).join('');
+    }
+
+    // ====== EXPORT CSV ======
+    document.getElementById('btnExport').onclick = ()=>{
+      const data = { plan: STATE.plan, ship: STATE.ship };
+      const csv = toCSV(data);
+      downloadFile(`TSH-export-${todayStr()}.csv`, csv);
+    };
+    function toCSV(obj){
+      const planCols = ['customer','prodNo','itemName','itemNo','start','process','location','status','updated','qtyDone','qtyShip'];
+      const shipCols = ['date','customer','itemName','itemNo','qty','status','note','updated'];
+      const head = '#PLAN\n'+planCols.join(',')+'\n'+STATE.plan.map(r=>planCols.map(k=>`"${(r[k]??'').toString().replaceAll('"','""')}"`).join(',')).join('\n')+
+                   '\n\n#SHIP\n'+shipCols.join(',')+'\n'+STATE.ship.map(r=>shipCols.map(k=>`"${(r[k]??'').toString().replaceAll('"','""')}"`).join(',')).join('\n');
+      return head;
+    }
+    function downloadFile(name, content){
+      const blob = new Blob([content], {type:'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href=url; a.download=name; a.click(); URL.revokeObjectURL(url);
+    }
+
+    // ====== GOOGLE SHEETS INTEGRATION (optional) ======
+    async function pushToSheet(which, payload){
+      const url = SHEET_ENDPOINT[which];
+      if(!url) return; // skip if not configured
+      try{
+        await fetch(url, {method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'}, body: JSON.stringify({...payload, user: STATE.user})});
+      }catch(e){ console.warn('Sheet push skipped', e); }
+    }
+    async function loadFromSheet(){
+      if(SHEET_ENDPOINT.PLAN_GET){
+        const res = await fetch(SHEET_ENDPOINT.PLAN_GET); const j = await res.json(); STATE.plan = j.plan||STATE.plan;
+      }
+      if(SHEET_ENDPOINT.SHIP_GET){
+        const res2 = await fetch(SHEET_ENDPOINT.SHIP_GET); const j2 = await res2.json(); STATE.ship = j2.ship||STATE.ship;
+      }
+      saveLocal(); renderAll();
+    }
+
+    function renderAll(){ renderPlan(); renderShip(); renderDashboard(); }
+
+    // INIT
+    renderAll();
+    lucide.createIcons();
+    // loadFromSheet(); // <- aktifkan setelah endpoint siap
+  </script>
+
+  <!-- ================== PETUNJUK BACKEND (Google Apps Script) ==================
+  1) Buat Google Sheet dengan dua sheet: PLAN dan SHIP.
+  2) AppScript (Extensions > Apps Script), paste kode di bawah, Deploy sebagai Web App (Anyone with the link).
+  3) Isi URL ke variabel SHEET_ENDPOINT di atas.
+
+  // ======= Apps Script (Code.gs) =======
+  const SPREADSHEET_ID = 'GANTI_ID_SHEET';
+  const HEAD_PLAN = ['得意先','製造番号','品名','品番','開始','プロセス','場所','ステータス','更新','完成数量','出荷数量','ユザー'];
+  const HEAD_SHIP = ['日付','得意先','品名','品番','数量','ステータス','備考','更新','ユザー'];
+
+  function doPost(e){
+    const body = JSON.parse(e.postData.contents);
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    if(body.date){ // SHIP
+      const sh = ss.getSheetByName('SHIP');
+      sh.appendRow(HEAD_SHIP.map(h=> body[h] ?? ''));
+    } else { // PLAN
+      const sh = ss.getSheetByName('PLAN');
+      sh.appendRow(HEAD_PLAN.map(h=> body[h] ?? ''));
+    }
+    return ContentService.createTextOutput('ok').setMimeType(ContentService.MimeType.TEXT);
+  }
+
+  function doGet(e){
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const plan = (ss.getSheetByName('PLAN').getDataRange().getValues().slice(1) || []).map(r=>({
+      customer:r[0], prodNo:r[1], itemName:r[2], itemNo:r[3], start:r[4], process:r[5], location:r[6], status:r[7], updated:r[8], qtyDone:Number(r[9]||0), qtyShip:Number(r[10]||0), user:r[11]
+    }));
+    const ship = (ss.getSheetByName('SHIP').getDataRange().getValues().slice(1) || []).map(r=>({
+      date:r[0], customer:r[1], itemName:r[2], itemNo:r[3], qty:Number(r[4]||0), status:r[5], note:r[6], updated:r[7], user:r[8]
+    }));
+    return ContentService.createTextOutput(JSON.stringify({plan, ship})).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // =====================================
+  -->
+</body>
+</html>
