@@ -1,13 +1,14 @@
-/test-erp/
- ├── index.html        … ダッシュボード
- ├── plan.html         … 生産計画
- ├── ship.html         … 出荷計画
- ├── confirm.html      … 出荷確認書（Excel出力）
- ├── scan.html         … QRスキャン（＋手入力）
- ├── ticket.html       … 生産現品票（印刷＆QR）
- ├── app.js            … ロジック（login/CRUD/同期/QR/描画）
- ├── style.css         … 共通デザイン
- └── （Apps Script）Code.gs  … Sheets API (PLAN/SHIP/USERS/MASTER/PICS)
+/erp/
+ ├─ index.html         (Dashboard)
+ ├─ plan.html          (生産計画)
+ ├─ ship.html          (出荷計画)
+ ├─ confirm.html       (出荷予定／出荷確認書 ＝ print layout)
+ ├─ scan.html          (QRスキャン＋NG登録)
+ ├─ ticket.html        (生産現品票 ＝ print layout)
+ ├─ charts.html        (統計チャート：在庫、NG、出荷 顧客別 月次/年次 ＋ Pie & Pareto)
+ ├─ app.js
+ └─ style.css
+
 
 11) Alur Pemakaian (operasional)
 A. Login & Role
