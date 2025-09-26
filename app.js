@@ -9,11 +9,11 @@ const App = (function () {
 
   // ISI semua dengan URL Web App kamu
   var SHEET_ENDPOINT = {
-    PLAN_POST: "https://script.google.com/macros/s/AKfycbwlSzA-9aT_9OPvgcuyq8CDG-exBuuTSICY5q4gQXYTR-Won5mcquGCLLNcci7aWGo5/exec",   // https://script.google.com/macros/s/XXXXX/exec
-    PLAN_GET:  "https://script.google.com/macros/s/AKfycbwlSzA-9aT_9OPvgcuyq8CDG-exBuuTSICY5q4gQXYTR-Won5mcquGCLLNcci7aWGo5/exec",
-    SHIP_POST: "https://script.google.com/macros/s/AKfycbwlSzA-9aT_9OPvgcuyq8CDG-exBuuTSICY5q4gQXYTR-Won5mcquGCLLNcci7aWGo5/exec",
-    SHIP_GET:  "https://script.google.com/macros/s/AKfycbwlSzA-9aT_9OPvgcuyq8CDG-exBuuTSICY5q4gQXYTR-Won5mcquGCLLNcci7aWGo5/exec",
-    AUTH:      "https://script.google.com/macros/s/AKfycbwlSzA-9aT_9OPvgcuyq8CDG-exBuuTSICY5q4gQXYTR-Won5mcquGCLLNcci7aWGo5/exec"
+    PLAN_POST: "https://script.google.com/macros/s/AKfycbxmpC6UA1ixJLLDy3kCa6RPT9D-s2pV4L2UEsvy21gR5klqLpGGQbfSbYkNqWaHnRId/exec",   // https://script.google.com/macros/s/XXXXX/exec
+    PLAN_GET:  "https://script.google.com/macros/s/AKfycbxmpC6UA1ixJLLDy3kCa6RPT9D-s2pV4L2UEsvy21gR5klqLpGGQbfSbYkNqWaHnRId/exec",
+    SHIP_POST: "https://script.google.com/macros/s/AKfycbxmpC6UA1ixJLLDy3kCa6RPT9D-s2pV4L2UEsvy21gR5klqLpGGQbfSbYkNqWaHnRId/exec",
+    SHIP_GET:  "https://script.google.com/macros/s/AKfycbxmpC6UA1ixJLLDy3kCa6RPT9D-s2pV4L2UEsvy21gR5klqLpGGQbfSbYkNqWaHnRId/exec",
+    AUTH:      "https://script.google.com/macros/s/AKfycbxmpC6UA1ixJLLDy3kCa6RPT9D-s2pV4L2UEsvy21gR5klqLpGGQbfSbYkNqWaHnRId/exec"
   };
 
   var state = {
