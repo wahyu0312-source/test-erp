@@ -1,52 +1,67 @@
-<!doctype html><html lang="ja"><head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>TSH - 生産現品票</title>
-<link rel="stylesheet" href="style.css"/>
-<style>
-.ticket{background:#fff;border:2px solid #000;padding:12mm}
-.ticket h2{margin:0 0 8px;font-size:18px}
-.ticket table{width:100%;border-collapse:collapse}
-.ticket th,.ticket td{border:1px solid #000;padding:6px;font-size:12px}
-</style>
-</head><body>
-<div class="nav no-print">
-  <img src="tsh.png" style="height:24px;margin-right:10px">
-  <a href="index.html">ダッシュボード</a>
-  <a href="plan.html">生産計画</a>
-  <a href="ship.html">出荷計画</a>
-  <a href="scan.html">QRスキャン</a>
-  <a class="active" href="ticket.html">生産現品票</a>
-  <button id="btnPrint" class="btn" style="margin-left:auto">印刷</button>
-</div>
-
-<div class="container">
-  <div class="card no-print" style="display:flex;gap:8px">
-    <input id="ticketProdNo" class="inp" placeholder="製造番号">
-    <input id="ticketItemNo" class="inp" placeholder="品番">
-    <button id="btnLoadTicket" class="btn primary">計画からロード</button>
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>TSH｜生産現品票</title>
+  <link rel="stylesheet" href="style.css"/>
+  <!-- QRCode -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+  <div class="nav no-print">
+    <img src="tsh.png" class="logo" alt="TSH"/>
+    <a href="index.html">ダッシュボード</a>
+    <a href="plan.html">生産計画</a>
+    <a href="ship.html">出荷計画</a>
+    <a href="scan.html">QRスキャン</a>
+    <a class="active" href="ticket.html">生産現品票</a>
+    <span class="ml-auto">
+      <button id="btnLoadTicket" class="btn">読込</button>
+      <button id="btnPrint" class="btn">印刷</button>
+    </span>
   </div>
 
-  <div class="ticket">
-    <h2>生産現品票</h2>
-    <table>
-      <tr><th>得意先</th><td id="tCustomer"></td><th>製造番号</th><td id="tProdNo"></td><th>開始</th><td id="tStart"></td><th rowspan="3" style="width:90px;text-align:center"><div id="tQR"></div></th></tr>
-      <tr><th>品番</th><td id="tItemNo"></td><th>品名</th><td id="tItemName" colspan="3"></td></tr>
-      <tr><th>発行者</th><td id="tUser"></td><th>備考</th><td colspan="3"></td></tr>
+  <div id="loginBar" class="login-overlay"></div>
+
+  <div class="container no-print">
+    <div class="card">
+      <div class="grid two">
+        <label>製造番号<input id="ticketProdNo" class="inp"></label>
+        <label>品番<input id="ticketItemNo" class="inp"></label>
+      </div>
+    </div>
+  </div>
+
+  <!-- 票：印刷領域 -->
+  <div class="ticket A4">
+    <div class="row between">
+      <div><b>生産現品票</b></div>
+      <div id="tQR"></div>
+    </div>
+    <table class="ticket-tbl">
+      <tr><th>得意先</th><td id="tCustomer"></td><th>製造番号</th><td id="tProdNo"></td></tr>
+      <tr><th>品名</th><td id="tItemName"></td><th>品番</th><td id="tItemNo"></td></tr>
+      <tr><th>開始</th><td id="tStart"></td><th>担当</th><td id="tUser"></td></tr>
     </table>
 
-    <h3 style="margin:10px 0 6px">工程チェック</h3>
-    <table>
-      <thead><tr><th>工程</th><th>重要点</th><th>開始</th><th>完了</th><th>担当</th><th>検査</th><th>備考</th></tr></thead>
+    <table class="ticket-grid">
+      <thead>
+        <tr>
+          <th>工程名</th>
+          <th>重要ポイント</th>
+          <th>作業者</th>
+          <th>着手</th>
+          <th>完了</th>
+          <th>判定</th>
+          <th>不合格理由/処置/修正内容</th>
+        </tr>
+      </thead>
       <tbody id="tProcessRows"></tbody>
     </table>
-
-    <h3 style="margin:10px 0 6px">不合格理由 / 処置 / 修正内容</h3>
-    <table><tr><td style="height:80px"></td></tr></table>
   </div>
-</div>
 
-<div id="loginBar"></div>
-<script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
-<script src="app.js"></script>
-<script>App.initPage('ticket');</script>
-</body></html>
+  <script src="app.js"></script>
+  <script>App.initPage('ticket');</script>
+</body>
+</html>
