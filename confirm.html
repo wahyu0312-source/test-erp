@@ -1,64 +1,44 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>ERPシステム 東京精密発條株式会社 • 出荷確認書</title>
-  <link rel="stylesheet" href="style.css"/>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-</head>
-<body class="bg-slate-50 text-slate-800">
-  <div id="loginBar" class="login-bar"></div>
-  <header class="topbar">
-    <div class="flex items-center gap-2">
-      <img src="tsh.png" class="logo" alt="TSH"/>
-      <div class="brand"><div class="brand-title">ERPシステム</div><div class="brand-sub">東京精密発條株式会社</div></div>
+<!DOCTYPE html><html lang="ja"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>ERPシステム • 出荷確認書</title>
+<link rel="stylesheet" href="style.css"/>
+</head><body>
+<div id="loginBar" class="login-bar"></div>
+<header class="topbar">
+  <div class="brand"><img src="tsh.png" class="logo"><div><div class="brand-title">ERPシステム</div><div class="brand-sub">東京精密発條株式会社</div></div></div>
+  <nav class="nav">
+    <a href="index.html">ダッシュボード</a>
+    <a href="plan.html">生産計画</a>
+    <a href="ship.html">出荷計画</a>
+    <a href="confirm.html" class="active">出荷確認書</a>
+    <a href="scan.html">QRスキャン</a>
+    <a href="ticket.html">生産現品票</a>
+  </nav>
+  <div class="actions"><button id="btnLogout" class="btn btn-outline">ログアウト</button></div>
+</header>
+
+<main class="container">
+  <section class="card">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <input id="cDate" type="date" class="inp"/>
+      <select id="cCustomer" class="inp"><option value="">（空白＝全て）</option></select>
+      <button id="btnBuildConfirm" class="btn btn-primary">作成</button>
+      <button id="btnPrintConfirm" class="btn btn-outline">印刷</button>
+      <button id="btnExportXlsx" class="btn btn-outline">Excel出力</button>
     </div>
-    <nav class="nav">
-      <a href="index.html">ダッシュボード</a>
-      <a href="plan.html">生産計画</a>
-      <a href="ship.html">出荷計画</a>
-      <a class="active" href="confirm.html">出荷確認書</a>
-      <a href="scan.html">QRスキャン</a>
-      <a href="ticket.html">生産現品票</a>
-    </nav>
-    <div class="ml-auto"><button id="btnLogout" class="btn btn-ghost">ログアウト</button></div>
-  </header>
+  </section>
 
-  <main class="container space-y-4">
-    <section class="card no-print">
-      <div class="flex gap-2 items-end flex-wrap">
-        <label>日付 <input id="cDate" type="date" class="inp"></label>
-        <label>得意先 <input id="cCustomer" class="inp" placeholder="（空白=全て）"></label>
-        <button id="btnMakeConfirm" class="btn btn-primary">作成</button>
-        <button id="btnExport" class="btn btn-outline">Excel出力</button>
-        <button id="btnPrint" class="btn btn-ghost">印刷</button>
-      </div>
-    </section>
+  <section class="card" id="confirmBox">
+    <h3>出荷確認書</h3>
+    <table class="gridtbl" id="confirmTable">
+      <thead><tr><th>No</th><th>得意先</th><th>品名</th><th>品番</th><th>数量</th><th>備考</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <div style="margin-top:8px">担当：<span id="confirmUser"></span>　　確認印：</div>
+  </section>
+</main>
 
-    <section class="confirm A4">
-      <div class="confirm-head">
-        <div>
-          <div class="confirm-title">出荷確認書</div>
-          <div class="confirm-sub">東京精密発條株式会社</div>
-        </div>
-        <div id="cInfo" class="confirm-info"></div>
-      </div>
-      <table class="gridtbl tight" id="confirmTable">
-        <thead>
-          <tr><th>No</th><th>得意先</th><th>品名</th><th>品番</th><th>数量</th><th>備考</th></tr>
-        </thead>
-        <tbody id="cBody"><tr><td colspan="6" class="text-center text-slate-500">作成してください。</td></tr></tbody>
-      </table>
-      <div class="confirm-foot">
-        <div>担当：<span id="cUser"></span></div>
-        <div>確認印：</div>
-      </div>
-    </section>
-  </main>
-
-  <script src="app.js"></script>
-  <script>App.initPage('confirm');</script>
-</body>
-</html>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="app.js"></script>
+<script>App.initPage('confirm')</script>
+</body></html>
