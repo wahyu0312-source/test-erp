@@ -1,40 +1,45 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>TSH｜生産現品票</title>
+  <title>ERPシステム 東京精密発條株式会社 • 生産現品票</title>
   <link rel="stylesheet" href="style.css"/>
+  <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
-<body>
-  <div class="nav no-print">
-    <img src="tsh.png" class="logo" alt="TSH"/>
-    <a href="index.html">ダッシュボード</a>
-    <a href="plan.html">生産計画</a>
-    <a href="ship.html">出荷計画</a>
-    <a href="scan.html">QRスキャン</a>
-    <a class="active" href="ticket.html">生産現品票</a>
-    <span class="ml-auto" id="syncLog"></span>
-    <button id="btnLogout" class="btn ml">ログアウト</button>
-  </div>
+<body class="bg-slate-50 text-slate-800">
+  <div id="loginBar" class="login-bar"></div>
+  <header class="topbar no-print">
+    <div class="flex items-center gap-2">
+      <img src="tsh.png" class="logo" alt="TSH"/>
+      <div class="brand"><div class="brand-title">ERPシステム</div><div class="brand-sub">東京精密発條株式会社</div></div>
+    </div>
+    <nav class="nav">
+      <a href="index.html">ダッシュボード</a>
+      <a href="plan.html">生産計画</a>
+      <a href="ship.html">出荷計画</a>
+      <a href="confirm.html">出荷確認書</a>
+      <a href="scan.html">QRスキャン</a>
+      <a class="active" href="ticket.html">生産現品票</a>
+    </nav>
+    <div class="ml-auto"><button id="btnLogout" class="btn btn-ghost">ログアウト</button></div>
+  </header>
 
-  <div id="loginBar" class="login-overlay"></div>
-
-  <div class="container no-print">
-    <div class="card">
+  <main class="container no-print">
+    <section class="card">
       <div class="grid two">
         <label>製造番号<input id="ticketProdNo" class="inp"></label>
         <label>品番<input id="ticketItemNo" class="inp"></label>
       </div>
-      <div class="mt">
-        <button id="btnLoadTicket" class="btn">読込</button>
-        <button id="btnPrint" class="btn">印刷</button>
+      <div class="mt-3">
+        <button id="btnLoadTicket" class="btn btn-outline">読込</button>
+        <button id="btnPrint" class="btn btn-primary">印刷</button>
       </div>
-    </div>
-  </div>
+    </section>
+  </main>
 
-  <div class="ticket A4">
+  <section class="ticket A4">
     <div class="row between">
       <div><b>生産現品票</b></div>
       <div id="tQR"></div>
@@ -44,7 +49,6 @@
       <tr><th>品名</th><td id="tItemName"></td><th>品番</th><td id="tItemNo"></td></tr>
       <tr><th>開始</th><td id="tStart"></td><th>担当</th><td id="tUser"></td></tr>
     </table>
-
     <table class="ticket-grid">
       <thead>
         <tr>
@@ -59,7 +63,7 @@
       </thead>
       <tbody id="tProcessRows"></tbody>
     </table>
-  </div>
+  </section>
 
   <script src="app.js"></script>
   <script>App.initPage('ticket');</script>
