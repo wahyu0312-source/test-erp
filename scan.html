@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TSH • QRスキャン</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+</head>
+<body class="bg-slate-50 text-slate-800">
+  <div id="loginBar" class="login-bar"></div>
+  <header class="topbar">
+    <img src="tsh.png" class="logo" alt="TSH"/>
+    <nav class="nav">
+      <a href="index.html">ダッシュボード</a>
+      <a href="plan.html">生産計画</a>
+      <a href="ship.html">出荷計画</a>
+      <a href="scan.html" class="active">QRスキャン</a>
+      <a href="ticket.html">生産現品票</a>
+    </nav>
+  </header>
+
+  <main class="container space-y-4">
+    <section class="card">
+      <h3>QRスキャン（製造番号|品番）</h3>
+      <div id="reader" style="width:320px"></div>
+      <div class="grid grid-cols-2 gap-3 mt-3">
+        <div>
+          <label class="lbl">工程</label>
+          <select id="scanProcess" class="inp"></select>
+        </div>
+        <div>
+          <label class="lbl">ステータス</label>
+          <select id="scanStatus" class="inp"><option>進行中</option><option>検査保留</option><option>完了</option></select>
+        </div>
+      </div>
+      <div class="mt-3 flex gap-2">
+        <button id="btnApplyScan" class="btn primary">更新</button>
+        <span id="scanInfo" class="text-sm text-slate-500"></span>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    App.initPage('scan');
+  </script>
+</body>
+</html>
+
