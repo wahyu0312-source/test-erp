@@ -1,24 +1,30 @@
 <!DOCTYPE html><html lang="ja"><head>
 <meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>ERPシステム • 出荷確認書</title>
+<title>ERPシステム • 出荷予定</title>
 <link rel="stylesheet" href="style.css"/>
 </head><body>
 <div id="loginBar" class="login-bar"></div>
+
+<!-- TOPBAR -->
 <header class="topbar">
-  <div class="brand"><img src="tsh.png" class="logo"><div><div class="brand-title">ERPシステム</div><div class="brand-sub">東京精密発條株式会社</div></div></div>
-  <nav class="nav">
+  <div class="brand">
+    <button class="burger no-print" id="burger"><span></span><span></span><span></span></button>
+    <img src="tsh.png" class="logo" alt="TSH"/><div><div class="brand-title">ERPシステム</div><div class="brand-sub">東京精密発條株式会社</div></div>
+  </div>
+  <nav class="nav" id="mainNav">
     <a href="index.html">ダッシュボード</a>
     <a href="plan.html">生産計画</a>
     <a href="ship.html">出荷計画</a>
-    <a href="confirm.html" class="active">出荷確認書</a>
+    <a href="confirm.html" class="active">出荷予定</a>
     <a href="scan.html">QRスキャン</a>
     <a href="ticket.html">生産現品票</a>
+    <a href="charts.html">チャート</a>
   </nav>
   <div class="actions"><button id="btnLogout" class="btn btn-outline">ログアウト</button></div>
 </header>
 
 <main class="container">
-  <section class="card">
+  <section class="card no-print">
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
       <input id="cDate" type="date" class="inp"/>
       <select id="cCustomer" class="inp"><option value="">（空白＝全て）</option></select>
@@ -28,13 +34,31 @@
     </div>
   </section>
 
-  <section class="card" id="confirmBox">
-    <h3>出荷確認書</h3>
-    <table class="gridtbl" id="confirmTable">
-      <thead><tr><th>No</th><th>得意先</th><th>品名</th><th>品番</th><th>数量</th><th>備考</th></tr></thead>
-      <tbody></tbody>
+  <!-- 出荷予定 紙レイアウト -->
+  <section class="shipdoc">
+    <table>
+      <tr>
+        <td colspan="6" class="title">出荷予定</td>
+        <td style="width:120px">日付</td>
+        <td id="cDateView" style="width:160px"></td>
+      </tr>
+      <tr>
+        <td style="width:80px">担当</td><td id="confirmUser" style="width:160px"></td>
+        <td style="width:80px">確認</td><td style="width:160px"></td>
+        <td style="width:80px">承認</td><td style="width:160px"></td>
+        <td style="width:80px">備考</td><td id="cNote"></td>
+      </tr>
+      <tr>
+        <th style="width:50px">No</th>
+        <th style="width:150px">得意先</th>
+        <th>品名</th>
+        <th style="width:140px">品番</th>
+        <th style="width:80px">数量</th>
+        <th style="width:120px">ステータス</th>
+        <th colspan="2">備考</th>
+      </tr>
+      <tbody id="cBody"></tbody>
     </table>
-    <div style="margin-top:8px">担当：<span id="confirmUser"></span>　　確認印：</div>
   </section>
 </main>
 
