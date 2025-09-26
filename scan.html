@@ -4,24 +4,29 @@
 <link rel="stylesheet" href="style.css"/>
 </head><body>
 <div id="loginBar" class="login-bar"></div>
+
 <header class="topbar">
-  <div class="brand"><img src="tsh.png" class="logo"><div><div class="brand-title">ERPシステム</div><div class="brand-sub">東京精密発條株式会社</div></div></div>
-  <nav class="nav">
+  <div class="brand">
+    <button class="burger no-print" id="burger"><span></span><span></span><span></span></button>
+    <img src="tsh.png" class="logo" alt="TSH"/><div><div class="brand-title">ERPシステム</div><div class="brand-sub">東京精密発條株式会社</div></div>
+  </div>
+  <nav class="nav" id="mainNav">
     <a href="index.html">ダッシュボード</a>
     <a href="plan.html">生産計画</a>
     <a href="ship.html">出荷計画</a>
-    <a href="confirm.html">出荷確認書</a>
+    <a href="confirm.html">出荷予定</a>
     <a href="scan.html" class="active">QRスキャン</a>
     <a href="ticket.html">生産現品票</a>
+    <a href="charts.html">チャート</a>
   </nav>
   <div class="actions"><button id="btnLogout" class="btn btn-outline">ログアウト</button></div>
 </header>
 
 <main class="container">
   <section class="card">
-    <h3>スキャン結果：</h3>
+    <h3>スキャン</h3>
     <div id="reader" style="max-width:480px"></div>
-    <div class="text-muted" style="margin:8px 0">※ カメラを使えない場合は手入力をご利用ください。</div>
+    <div class="text-muted" style="margin:8px 0">※ カメラ不可の場合、手入力を使用。</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <input id="manualProd" class="inp" placeholder="製造番号（手入力）">
       <input id="manualItem" class="inp" placeholder="品番（手入力）">
@@ -29,12 +34,24 @@
   </section>
 
   <section class="card">
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
       <select id="scanProcess" class="inp" style="max-width:240px"></select>
-      <select id="scanStatus" class="inp" style="max-width:200px"><option>進行中</option><option>保留</option><option>完了</option></select>
+      <select id="scanStatus" class="inp" style="max-width:200px">
+        <option>進行中</option><option>保留</option><option>完了</option>
+      </select>
       <button id="btnApplyScan" class="btn btn-primary">更新</button>
       <span id="scanInfo" class="text-muted"></span>
     </div>
+  </section>
+
+  <section class="card">
+    <h3>NG登録（検査保留）</h3>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <input id="ngQty" type="number" class="inp" placeholder="NG数量">
+      <input id="ngReason" class="inp" placeholder="不合格理由／処置／修正内容">
+      <button id="btnSaveNG" class="btn btn-outline">NG登録</button>
+    </div>
+    <div class="text-muted" style="margin-top:6px">※ 製造番号・品番は上のスキャン／手入力を使ってセットしてください。</div>
   </section>
 </main>
 
