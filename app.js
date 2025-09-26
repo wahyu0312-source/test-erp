@@ -1,10 +1,5 @@
 /* ===========================================================
-   ERP Mini-ERP (TSH) • app.js
-   - Dashboard, Plan, Ship, Confirm(Excel), Scan(manual+QR), Ticket
-   - Login (GET) + Enter + spinner
-   - Datalist dropdown & auto-fill 品名 from 得意先+図番
-   - Local cache clear button
-   - 2-way Google Sheets sync
+   ERP Mini-ERP (TSH) • app.js (Roles + MASTER)
 =========================================================== */
 const App = (function () {
   const PROCESS_LIST = [
@@ -12,13 +7,27 @@ const App = (function () {
     "シャッター溶接工程","コーキング工程","外枠塗装工程","組立工程","検査工程"
   ];
 
-  // ====== SET YOUR GAS URL ======
+  // ====== GAS URL ======
   const GAS_URL = "https://script.google.com/macros/s/AKfycbxmpC6UA1ixJLLDy3kCa6RPT9D-s2pV4L2UEsvy21gR5klqLpGGQbfSbYkNqWaHnRId/exec";
   const ENDPOINT = {
     PLAN_POST: GAS_URL, PLAN_GET: GAS_URL,
     SHIP_POST: GAS_URL, SHIP_GET: GAS_URL,
-    AUTH: GAS_URL
+    AUTH: GAS_URL, MASTER: GAS_URL+"?action=master"
   };
+
+  // ====== Permission Matrix ======
+  // action keys: view_* / edit_* / delete_* / push / pull / scan_update / confirm_export
+  const PERMS = {
+    "管理者": {all:true},
+    "PPIC":   {view_all:true, edit_plan:true, delete_plan:true, edit_ship:true, mark_shipped:true, push:true, pull:true, confirm_export:true},
+    "生産":   {view_all:true, scan_update:true},
+    "検査":   {view_all:true, scan_update:true},
+    "物流":   {view_all:true, edit_ship:true, mark_shipped:true, confirm_export:true, pull:true}
+  };
+  function can(action){
+    if(state.role && PERMS[state.role]?.all) return true;
+    return !!PERMS[state.role]?.[action];
+  }
 
   const state = {
     user:  localStorage.getItem('tsh_user')  || "",
@@ -26,6 +35,7 @@ const App = (function () {
     token: localStorage.getItem('tsh_token') || "",
     plan:  JSON.parse(localStorage.getItem('tsh_plan') || "[]"),
     ship:  JSON.parse(localStorage.getItem('tsh_ship') || "[]"),
+    master: JSON.parse(localStorage.getItem('tsh_master') || "[]"), // [{customer,itemNo,itemName}]
     masters: { customers:[], itemNos:[], itemNames:[],
                mapItemNoToName:{}, mapCustItemNoToName:{}, mapNameToItemNo:{} },
     _interval:null
@@ -34,20 +44,49 @@ const App = (function () {
   const $ = (q)=>document.querySelector(q);
   const today = ()=> new Date().toISOString().slice(0,10);
   const stamp = ()=> new Date().toLocaleString()+" | "+(state.user||"-");
-  function save(){ localStorage.setItem('tsh_plan',JSON.stringify(state.plan)); localStorage.setItem('tsh_ship',JSON.stringify(state.ship)); }
+  function save(){ localStorage.setItem('tsh_plan',JSON.stringify(state.plan)); localStorage.setItem('tsh_ship',JSON.stringify(state.ship)); localStorage.setItem('tsh_master',JSON.stringify(state.master)); }
   function logSync(m){ const el=$("#syncLog"); if(el) el.textContent=m; }
-  function clearLocal(){ ['tsh_user','tsh_role','tsh_token','tsh_plan','tsh_ship'].forEach(k=>localStorage.removeItem(k)); alert('ローカルデータを削除しました'); location.reload(); }
+  function clearLocal(){ ['tsh_user','tsh_role','tsh_token','tsh_plan','tsh_ship','tsh_master'].forEach(k=>localStorage.removeItem(k)); alert('ローカルデータを削除しました'); location.reload(); }
 
-  /* ---------- Masters + Mapping (AUTO-FILL) ---------- */
+  // ===== MASTER fetch =====
+  async function pullMasterOnly(){
+    try{
+      const r=await fetch(ENDPOINT.MASTER,{cache:'no-store'}); const j=await r.json();
+      state.master = j.master || [];
+      save(); buildMasters();
+    }catch(e){ /* ignore */ }
+  }
+
+  /* ---------- Masters + Mapping (AUTO-FILL with MASTER priority) ---------- */
   function mostFrequent(arr){ const m=new Map(); arr.forEach(v=>m.set(v,(m.get(v)||0)+1)); let best="", cnt=-1; for(const [k,v] of m){ if(v>cnt){best=k;cnt=v;} } return best; }
   function buildMasters(){
     const custSet=new Set(), noSet=new Set(), nameSet=new Set();
+
     const pairsItemNoName=[], pairsCustNoName=[], pairsNameNo=[];
-    const feed = (r)=>{ if(r.customer) custSet.add(r.customer); if(r.itemNo) noSet.add(r.itemNo); if(r.itemName) nameSet.add(r.itemName);
+    // 1) MASTER as priority source
+    state.master.forEach(m=>{
+      if(m.customer) custSet.add(m.customer);
+      if(m.itemNo)   noSet.add(m.itemNo);
+      if(m.itemName) nameSet.add(m.itemName);
+      if(m.itemNo && m.itemName){
+        pairsItemNoName.push([m.itemNo, m.itemName]);
+        pairsNameNo.push([m.itemName, m.itemNo]);
+      }
+      if(m.customer && m.itemNo && m.itemName){
+        pairsCustNoName.push([m.customer, m.itemNo, m.itemName]);
+      }
+    });
+
+    // 2) supplement from PLAN/SHIP (to learn new items)
+    const feed=(r)=>{ if(r.customer) custSet.add(r.customer); if(r.itemNo) noSet.add(r.itemNo); if(r.itemName) nameSet.add(r.itemName);
       if(r.itemNo&&r.itemName){ pairsItemNoName.push([r.itemNo,r.itemName]); pairsNameNo.push([r.itemName,r.itemNo]); }
       if(r.customer&&r.itemNo&&r.itemName){ pairsCustNoName.push([r.customer,r.itemNo,r.itemName]); } };
     state.plan.forEach(feed); state.ship.forEach(feed);
-    state.masters.customers=[...custSet].sort(); state.masters.itemNos=[...noSet].sort(); state.masters.itemNames=[...nameSet].sort();
+
+    state.masters.customers=[...custSet].sort();
+    state.masters.itemNos=[...noSet].sort();
+    state.masters.itemNames=[...nameSet].sort();
+
     const tmpNoToNames={}; pairsItemNoName.forEach(([no,nm])=>{ (tmpNoToNames[no] ||= []).push(nm); });
     state.masters.mapItemNoToName={}; Object.keys(tmpNoToNames).forEach(no=> state.masters.mapItemNoToName[no]=mostFrequent(tmpNoToNames[no]));
     const tmpCNoToNames={}; pairsCustNoName.forEach(([c,no,nm])=>{ const k=c+"||"+no; (tmpCNoToNames[k] ||= []).push(nm); });
@@ -85,7 +124,8 @@ const App = (function () {
             if(!resp.ok){ alert("ログイン失敗: "+(resp.error||"")); btn.disabled=false; btn.textContent=prev; return; }
             state.user=resp.user; state.role=resp.role; state.token=resp.token;
             localStorage.setItem('tsh_user',resp.user); localStorage.setItem('tsh_role',resp.role); localStorage.setItem('tsh_token',resp.token);
-            bar.style.display="none"; location.reload();
+            bar.style.display="none";
+            pullMasterOnly().then(()=>location.reload());
           })
           .catch(()=>{ alert("サーバー通信エラー"); btn.disabled=false; btn.textContent=prev; });
       };
@@ -94,13 +134,19 @@ const App = (function () {
   }
   function bindLogout(){ $("#btnLogout")?.addEventListener('click',()=>{ clearLocal(); }); }
 
+  function gate(action, selector){
+    if(can(action)) return;
+    const el=$(selector); if(!el) return;
+    el.style.display='none';
+  }
+
   /* =======================================================
      DASHBOARD
   ======================================================= */
   function pageDashboard(){
     ensureLogin(); bindLogout(); buildMasters();
 
-    // chart
+    // Chart
     const ctx=$("#byProcessChart");
     if(ctx && window.Chart){
       const data=PROCESS_LIST.map(proc=>state.plan.filter(p=>p.process===proc).length);
@@ -135,32 +181,42 @@ const App = (function () {
              <td class="text-right font-semibold">${(r.qtyDone||0)-(r.qtyShip||0)}</td></tr>`).join('');
     }
 
-    // sync
+    // sync + local clear
     $("#btnPull")?.addEventListener('click',pullSheet);
     $("#btnPush")?.addEventListener('click',pushSheet);
     $("#autoSync")?.addEventListener('change',e=>{
       if(e.target.checked){ state._interval=setInterval(pullSheet,30000);} else { clearInterval(state._interval); }
     });
     $("#btnClearLocal")?.addEventListener('click',clearLocal);
+
+    // gate by role
+    if(!can('pull'))  gate('pull',  '#btnPull');
+    if(!can('push'))  gate('push',  '#btnPush');
   }
 
   /* =======================================================
-     PLAN (datalist + auto-fill)
+     PLAN (datalist + auto-fill from MASTER)
   ======================================================= */
   function pagePlan(){
-    ensureLogin(); bindLogout(); buildMasters();
-    fillProcessSelect($("#fltProcess"));
-    fillDatalist("#dlCustomers", state.masters.customers);
-    fillDatalist("#dlItemNos", state.masters.itemNos);
-    fillDatalist("#dlItemNames", state.masters.itemNames);
+    ensureLogin(); bindLogout();
+    pullMasterOnly().then(()=>{ buildMasters(); renderPlanInit(); });
 
-    $("#fltStatus").value='';
-    $("#btnClearFilter")?.addEventListener('click',()=>{ $("#q").value=''; $("#fltProcess").value=''; $("#fltStatus").value=''; renderPlanTable(); });
-    $("#btnAddPlan")?.addEventListener('click',()=> openPlanModal());
-    ['#q','#fltProcess','#fltStatus'].forEach(id=> $(id)?.addEventListener('input', renderPlanTable));
-    $("#btnPull")?.addEventListener('click',pullSheet);
-    $("#btnPush")?.addEventListener('click',pushSheet);
-    renderPlanTable();
+    function renderPlanInit(){
+      fillProcessSelect($("#fltProcess"));
+      fillDatalist("#dlCustomers", state.masters.customers);
+      fillDatalist("#dlItemNos", state.masters.itemNos);
+      fillDatalist("#dlItemNames", state.masters.itemNames);
+
+      $("#fltStatus").value='';
+      $("#btnClearFilter")?.addEventListener('click',()=>{ $("#q").value=''; $("#fltProcess").value=''; $("#fltStatus").value=''; renderPlanTable(); });
+      if(can('edit_plan')) $("#btnAddPlan")?.addEventListener('click',()=> openPlanModal());
+      else gate('edit_plan', '#btnAddPlan');
+
+      ['#q','#fltProcess','#fltStatus'].forEach(id=> $(id)?.addEventListener('input', renderPlanTable));
+      if(can('pull')) $("#btnPull")?.addEventListener('click',pullSheet); else gate('pull','#btnPull');
+      if(can('push')) $("#btnPush")?.addEventListener('click',pushSheet); else gate('push','#btnPush');
+      renderPlanTable();
+    }
   }
   function filtered(){
     const q=($("#q")?.value||'').toLowerCase(), pr=$("#fltProcess")?.value||'', st=$("#fltStatus")?.value||'';
@@ -173,19 +229,19 @@ const App = (function () {
     const body=$("#planBody"); if(!body) return;
     body.innerHTML = filtered().map(p=>{
       const idx=state.plan.indexOf(p);
+      const editBtn  = can('edit_plan')   ? `<button class="btn btn-ghost" onclick="App.editPlan(${idx})">編集</button>` : '';
+      const delBtn   = can('delete_plan') ? `<button class="btn btn-ghost" onclick="App.deletePlan(${idx})">削除</button>` : '';
+      const ticket   = `<a class="btn btn-outline" href="ticket.html?prodNo=${encodeURIComponent(p.prodNo||'')}&itemNo=${encodeURIComponent(p.itemNo||'')}">票</a>`;
       return `<tr>
         <td>${p.customer||''}</td><td>${p.prodNo||''}</td><td>${p.itemName||''}</td><td>${p.itemNo||''}</td>
         <td>${p.start||''}</td><td>${p.process||''}</td><td>${p.location||''}</td><td>${p.status||''}</td>
         <td class="text-xs">${p.updated||''}</td>
-        <td>
-          <button class="btn btn-ghost" onclick="App.editPlan(${idx})">編集</button>
-          <button class="btn btn-ghost" onclick="App.deletePlan(${idx})">削除</button>
-          <a class="btn btn-outline" href="ticket.html?prodNo=${encodeURIComponent(p.prodNo||'')}&itemNo=${encodeURIComponent(p.itemNo||'')}">票</a>
-        </td>
+        <td>${editBtn} ${delBtn} ${ticket}</td>
       </tr>`;
     }).join('') || `<tr><td colspan="10" class="text-slate-500">データがありません。</td></tr>`;
   }
   function openPlanModal(idx=null){
+    if(!can('edit_plan')) return alert('権限がありません（生産計画の編集）');
     const m=$("#planModal"); if(!m) return; m.classList.remove('hidden');
     const isEdit=idx!=null; $("#planModalTitle").textContent=isEdit?'生産計画：編集':'生産計画：追加';
     const p=isEdit? state.plan[idx] : {customer:'',prodNo:'',itemName:'',itemNo:'',start:today(),process:PROCESS_LIST[0],location:'PPIC',status:'計画'};
@@ -199,7 +255,7 @@ const App = (function () {
     fillDatalist("#dlItemNos", state.masters.itemNos);
     fillDatalist("#dlItemNames", state.masters.itemNames);
 
-    // AUTO-FILL
+    // AUTO-FILL (MASTER優先)
     function suggestName(){
       const cust=$("#fCustomer").value.trim(); const no=$("#fItemNo").value.trim(); if(!no) return;
       const key=cust? (cust+"||"+no) : ""; let name = key? (state.masters.mapCustItemNoToName[key]||"") : "";
@@ -222,6 +278,7 @@ const App = (function () {
   }
   function editPlan(idx){ openPlanModal(idx); }
   function deletePlan(idx){
+    if(!can('delete_plan')) return alert('権限がありません（削除）');
     const p=state.plan[idx]; if(!p) return;
     if(!confirm(`この計画を削除しますか？\n製造番号: ${p.prodNo}\n品番: ${p.itemNo}`)) return;
     const rec={...p,status:'取消',updated:stamp()};
@@ -233,13 +290,15 @@ const App = (function () {
   ======================================================= */
   function pageShip(){
     ensureLogin(); bindLogout(); buildMasters();
-    $("#btnAddShip")?.addEventListener('click',()=> openShipModal());
-    $("#btnMarkShipped")?.addEventListener('click',()=>{
+    if(can('edit_ship')) $("#btnAddShip")?.addEventListener('click',()=> openShipModal()); else gate('edit_ship','#btnAddShip');
+    if(can('mark_shipped')) $("#btnMarkShipped")?.addEventListener('click',()=>{
       state.ship.forEach(s=>{ if(s.status==='出荷準備') { s.status='出荷済'; s.updated=stamp(); }});
       save(); renderShipTable(); syncQtyShip();
-    });
-    $("#btnPull")?.addEventListener('click',pullSheet);
-    $("#btnPush")?.addEventListener('click',pushSheet);
+    }); else gate('mark_shipped','#btnMarkShipped');
+
+    if(can('pull')) $("#btnPull")?.addEventListener('click',pullSheet); else gate('pull','#btnPull');
+    if(can('push')) $("#btnPush")?.addEventListener('click',pushSheet); else gate('push','#btnPush');
+
     renderShipTable();
   }
   function renderShipTable(){
@@ -247,10 +306,11 @@ const App = (function () {
     body.innerHTML = state.ship.map((s,idx)=>`
       <tr><td>${s.date||''}</td><td>${s.customer||''}</td><td>${s.itemName||''}</td><td>${s.itemNo||''}</td>
       <td class="text-right">${s.qty||0}</td><td>${s.status||''}</td><td>${s.note||''}</td><td class="text-xs">${s.updated||''}</td>
-      <td><button class="btn btn-ghost" onclick="App.editShip(${idx})">編集</button></td></tr>`
+      <td>${can('edit_ship')?`<button class="btn btn-ghost" onclick="App.editShip(${idx})">編集</button>`:''}</td></tr>`
     ).join('') || `<tr><td colspan="9" class="text-slate-500">データがありません。</td></tr>`;
   }
   function openShipModal(idx=null){
+    if(!can('edit_ship')) return alert('権限がありません（出荷計画の編集）');
     const m=$("#shipModal"); if(!m) return; m.classList.remove('hidden');
     const isEdit=idx!=null;
     const s=isEdit? state.ship[idx] : {date:today(),customer:'',itemName:'',itemNo:'',qty:0,status:'出荷準備',note:''};
@@ -275,13 +335,14 @@ const App = (function () {
   }
 
   /* =======================================================
-     CONFIRM (Export Excel)
+     CONFIRM
   ======================================================= */
   function pageConfirm(){
     ensureLogin(); bindLogout();
     $("#btnPrint")?.addEventListener('click',()=>window.print());
     $("#btnMakeConfirm")?.addEventListener('click',makeConfirm);
-    $("#btnExport")?.addEventListener('click',exportConfirmXlsx);
+    if(can('confirm_export')) $("#btnExport")?.addEventListener('click',exportConfirmXlsx);
+    else gate('confirm_export','#btnExport');
   }
   function makeConfirm(){
     const d=$("#cDate").value || today(); const cust=$("#cCustomer").value.trim();
@@ -306,7 +367,7 @@ const App = (function () {
   }
 
   /* =======================================================
-     TICKET
+     TICKET (no change)
   ======================================================= */
   function pageTicket(){
     ensureLogin(); bindLogout();
@@ -335,6 +396,7 @@ const App = (function () {
   ======================================================= */
   function pageScan(){
     ensureLogin(); bindLogout();
+    if(!can('scan_update')) alert('注意：あなたのロールはスキャン更新権限がありません。閲覧のみです。');
     const sel=$("#scanProcess"); if(sel) sel.innerHTML=PROCESS_LIST.map(p=>`<option>${p}</option>`).join('');
     let last={prodNo:"",itemNo:""};
 
@@ -352,6 +414,7 @@ const App = (function () {
       last={prodNo:a,itemNo:b}; $("#scanInfo").textContent=`入力: ${a} | ${b}`;
     });
     $("#btnApplyScan")?.addEventListener('click',()=>{
+      if(!can('scan_update')) return alert('権限がありません（スキャン更新）');
       if(!last.prodNo) return alert('QRまたは手入力で製造番号と品番を設定してください');
       const p=state.plan.find(x=>x.prodNo===last.prodNo && x.itemNo===last.itemNo); if(!p) return alert('計画なし');
       p.process=$("#scanProcess").value; p.status=$("#scanStatus").value; p.updated=stamp();
@@ -360,7 +423,7 @@ const App = (function () {
   }
 
   /* =======================================================
-     Sheets 2-way
+     Sheets 2-way (+ MASTER in pull)
   ======================================================= */
   function pushPlan(p){
     fetch(ENDPOINT.PLAN_POST,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(state.token||'')},body:JSON.stringify({...p,user:state.user})})
@@ -371,12 +434,11 @@ const App = (function () {
       .then(()=>logSync('SHIP送信完了')).catch(()=>logSync('SHIP送信失敗'));
   }
   function pullSheet(){
-    Promise.all([fetch(ENDPOINT.PLAN_GET), fetch(ENDPOINT.SHIP_GET||ENDPOINT.PLAN_GET)])
+    Promise.all([fetch(ENDPOINT.PLAN_GET), fetch(ENDPOINT.MASTER)])
       .then(r=>Promise.all(r.map(x=>x.json().catch(()=>({})))))
-      .then(arr=>{
-        const a=arr[0]||{}, b=arr[1]||{};
+      .then(([a,m])=>{
         if(a.plan) state.plan=a.plan; if(a.ship) state.ship=a.ship;
-        if(ENDPOINT.SHIP_GET!==ENDPOINT.PLAN_GET){ if(b.plan) state.plan=b.plan; if(b.ship) state.ship=b.ship; }
+        if(m.master) state.master=m.master;
         save(); buildMasters(); logSync('取得完了'); location.reload();
       }).catch(()=>logSync('同期失敗'));
   }
