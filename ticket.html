@@ -4,15 +4,20 @@
 <link rel="stylesheet" href="style.css"/>
 </head><body>
 <div id="loginBar" class="login-bar"></div>
+
 <header class="topbar">
-  <div class="brand"><img src="tsh.png" class="logo"><div><div class="brand-title">ERPシステム</div><div class="brand-sub">東京精密発條株式会社</div></div></div>
-  <nav class="nav">
+  <div class="brand">
+    <button class="burger no-print" id="burger"><span></span><span></span><span></span></button>
+    <img src="tsh.png" class="logo" alt="TSH"/><div><div class="brand-title">ERPシステム</div><div class="brand-sub">東京精密発條株式会社</div></div>
+  </div>
+  <nav class="nav" id="mainNav">
     <a href="index.html">ダッシュボード</a>
     <a href="plan.html">生産計画</a>
     <a href="ship.html">出荷計画</a>
-    <a href="confirm.html">出荷確認書</a>
+    <a href="confirm.html">出荷予定</a>
     <a href="scan.html">QRスキャン</a>
     <a href="ticket.html" class="active">生産現品票</a>
+    <a href="charts.html">チャート</a>
   </nav>
   <div class="actions"><button id="btnLogout" class="btn btn-outline">ログアウト</button></div>
 </header>
@@ -29,14 +34,17 @@
     </div>
   </section>
 
-  <section class="ticket" id="ticketBox">
+  <section class="ticket">
     <table>
-      <tr><th colspan="3" style="text-align:left">生産現品票</th><th style="width:110px"><div id="tQR"></div></th></tr>
-      <tr><td style="width:20%">得意先</td><td id="tCustomer"></td><td style="width:20%">製造番号</td><td id="tProdNo"></td></tr>
+      <tr>
+        <th colspan="3" class="ttl">生産現品票</th>
+        <th style="width:120px"><div id="tQR"></div></th>
+      </tr>
+      <tr><td style="width:140px">得意先</td><td id="tCustomer"></td><td style="width:140px">製造番号</td><td id="tProdNo"></td></tr>
       <tr><td>品名</td><td id="tItemName"></td><td>品番</td><td id="tItemNo"></td></tr>
       <tr><td>開始</td><td id="tStart"></td><td>担当</td><td id="tUser"></td></tr>
-      <tr>
-        <td>工程名</td><td>重要ポイント</td><td>作業者/着手/完了/判定</td><td>不合格理由/処置/修正内容</td>
+      <tr class="thick">
+        <th>工程名</th><th>重要ポイント</th><th>作業者／着手／完了／判定</th><th>不合格理由／処置／修正内容</th>
       </tr>
       <tbody id="tProcessRows"></tbody>
     </table>
