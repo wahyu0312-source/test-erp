@@ -46,15 +46,19 @@ const App = (function(){
     const bar=$("#loginBar"); if(!bar) return;
     if(!state.user || !state.token){
       bar.style.display="flex";
-      bar.innerHTML=`<div class="login-card">
-        <div class="login-title">ERPシステム 東京精密発條株式会社</div>
-        <div class="login-row">
-          <input id="loginName" class="inp" placeholder="ユーザー名"/>
-          <input id="loginPass" type="password" class="inp" placeholder="パスワード"/>
-          <button id="enter" class="btn btn-primary">入室</button>
-        </div>
-        <div id="loginErr" class="text-xs text-red-500 mt-2"></div>
-      </div>`;
+     bar.innerHTML = `
+  <form class="login-card" autocomplete="off">
+    <div class="login-title">ERPシステム 東京精密発條株式会社</div>
+    <div class="login-row">
+      <input id="loginName" class="inp" placeholder="ユーザー名"
+             name="username" autocomplete="username" spellcheck="false" />
+      <input id="loginPass" type="password" class="inp" placeholder="パスワード"
+             name="current-password" autocomplete="current-password" />
+      <button id="enter" type="button" class="btn btn-primary">入室</button>
+    </div>
+    <div id="loginErr" class="text-xs text-red-500 mt-2"></div>
+  </form>`;
+
       const name=$("#loginName"), pass=$("#loginPass"), btn=$("#enter"), out=$("#loginErr");
       const doLogin=()=>{
         out.textContent="";
