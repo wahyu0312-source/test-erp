@@ -1,10 +1,10 @@
 /* ===========================================================
    ERP Mini-ERP (TSH) • app.js
-   - Dashboard like Figma/Tailwind
-   - Login (GET) + Enter key + spinner
-   - Datalist dropdown for 得意先/図番(品番)/品名
-   - 出荷確認書 confirm.html
-   - QR Scan, Ticket, Plan/Ship, 2-way Sheets
+   - Dashboard, Plan, Ship, Confirm(Excel), Scan(manual+QR), Ticket
+   - Login (GET) + Enter + spinner
+   - Datalist dropdown & auto-fill 品名 from 得意先+図番
+   - Local cache clear button
+   - 2-way Google Sheets sync
 =========================================================== */
 const App = (function () {
   const PROCESS_LIST = [
@@ -12,7 +12,7 @@ const App = (function () {
     "シャッター溶接工程","コーキング工程","外枠塗装工程","組立工程","検査工程"
   ];
 
-  // GANTI dengan URL Web App /exec kamu
+  // ====== SET YOUR GAS URL ======
   const GAS_URL = "https://script.google.com/macros/s/AKfycbxmpC6UA1ixJLLDy3kCa6RPT9D-s2pV4L2UEsvy21gR5klqLpGGQbfSbYkNqWaHnRId/exec";
   const ENDPOINT = {
     PLAN_POST: GAS_URL, PLAN_GET: GAS_URL,
@@ -26,7 +26,8 @@ const App = (function () {
     token: localStorage.getItem('tsh_token') || "",
     plan:  JSON.parse(localStorage.getItem('tsh_plan') || "[]"),
     ship:  JSON.parse(localStorage.getItem('tsh_ship') || "[]"),
-    masters: { customers:[], itemNos:[], itemNames:[] },
+    masters: { customers:[], itemNos:[], itemNames:[],
+               mapItemNoToName:{}, mapCustItemNoToName:{}, mapNameToItemNo:{} },
     _interval:null
   };
 
@@ -35,17 +36,29 @@ const App = (function () {
   const stamp = ()=> new Date().toLocaleString()+" | "+(state.user||"-");
   function save(){ localStorage.setItem('tsh_plan',JSON.stringify(state.plan)); localStorage.setItem('tsh_ship',JSON.stringify(state.ship)); }
   function logSync(m){ const el=$("#syncLog"); if(el) el.textContent=m; }
+  function clearLocal(){ ['tsh_user','tsh_role','tsh_token','tsh_plan','tsh_ship'].forEach(k=>localStorage.removeItem(k)); alert('ローカルデータを削除しました'); location.reload(); }
 
-  /* ---------- Masters ---------- */
+  /* ---------- Masters + Mapping (AUTO-FILL) ---------- */
+  function mostFrequent(arr){ const m=new Map(); arr.forEach(v=>m.set(v,(m.get(v)||0)+1)); let best="", cnt=-1; for(const [k,v] of m){ if(v>cnt){best=k;cnt=v;} } return best; }
   function buildMasters(){
-    const c=new Set(), n=new Set(), nm=new Set();
-    state.plan.forEach(p=>{ if(p.customer) c.add(p.customer); if(p.itemNo) n.add(p.itemNo); if(p.itemName) nm.add(p.itemName); });
-    state.ship.forEach(s=>{ if(s.customer) c.add(s.customer); if(s.itemNo) n.add(s.itemNo); if(s.itemName) nm.add(s.itemName); });
-    state.masters.customers=[...c].sort(); state.masters.itemNos=[...n].sort(); state.masters.itemNames=[...nm].sort();
+    const custSet=new Set(), noSet=new Set(), nameSet=new Set();
+    const pairsItemNoName=[], pairsCustNoName=[], pairsNameNo=[];
+    const feed = (r)=>{ if(r.customer) custSet.add(r.customer); if(r.itemNo) noSet.add(r.itemNo); if(r.itemName) nameSet.add(r.itemName);
+      if(r.itemNo&&r.itemName){ pairsItemNoName.push([r.itemNo,r.itemName]); pairsNameNo.push([r.itemName,r.itemNo]); }
+      if(r.customer&&r.itemNo&&r.itemName){ pairsCustNoName.push([r.customer,r.itemNo,r.itemName]); } };
+    state.plan.forEach(feed); state.ship.forEach(feed);
+    state.masters.customers=[...custSet].sort(); state.masters.itemNos=[...noSet].sort(); state.masters.itemNames=[...nameSet].sort();
+    const tmpNoToNames={}; pairsItemNoName.forEach(([no,nm])=>{ (tmpNoToNames[no] ||= []).push(nm); });
+    state.masters.mapItemNoToName={}; Object.keys(tmpNoToNames).forEach(no=> state.masters.mapItemNoToName[no]=mostFrequent(tmpNoToNames[no]));
+    const tmpCNoToNames={}; pairsCustNoName.forEach(([c,no,nm])=>{ const k=c+"||"+no; (tmpCNoToNames[k] ||= []).push(nm); });
+    state.masters.mapCustItemNoToName={}; Object.keys(tmpCNoToNames).forEach(k=> state.masters.mapCustItemNoToName[k]=mostFrequent(tmpCNoToNames[k]));
+    const tmpNameNos={}; pairsNameNo.forEach(([nm,no])=>{ (tmpNameNos[nm] ||= []).push(no); });
+    state.masters.mapNameToItemNo={}; Object.keys(tmpNameNos).forEach(nm=> state.masters.mapNameToItemNo[nm]=mostFrequent(tmpNameNos[nm]));
   }
   function fillDatalist(id, arr){ const dl=$(id); if(!dl) return; dl.innerHTML = arr.map(v=>`<option value="${v}">`).join(''); }
+  function fillProcessSelect(sel){ if(!sel) return; sel.innerHTML='<option value="">工程（全て）</option>'+PROCESS_LIST.map(p=>`<option>${p}</option>`).join(''); }
 
-  /* ---------- Login (GET + Enter + Spinner) ---------- */
+  /* ---------- Login ---------- */
   function ensureLogin(){
     const bar=$("#loginBar"); if(!bar) return;
     if(!state.user || !state.token){
@@ -76,38 +89,16 @@ const App = (function () {
           })
           .catch(()=>{ alert("サーバー通信エラー"); btn.disabled=false; btn.textContent=prev; });
       };
-      btn.onclick=doLogin;
-      [name,pass].forEach(el=> el.addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); }));
-    }else{
-      bar.style.display="none";
-    }
+      btn.onclick=doLogin; [name,pass].forEach(el=> el.addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); }));
+    }else{ bar.style.display="none"; }
   }
-  function bindLogout(){ const b=$("#btnLogout"); if(b) b.onclick=()=>{ localStorage.removeItem('tsh_user'); localStorage.removeItem('tsh_role'); localStorage.removeItem('tsh_token'); alert('ログアウトしました'); location.reload(); }; }
-
-  function fillProcessSelect(sel){ if(!sel) return; sel.innerHTML = '<option value="">工程（全て）</option>' + PROCESS_LIST.map(p=>`<option>${p}</option>`).join(''); }
+  function bindLogout(){ $("#btnLogout")?.addEventListener('click',()=>{ clearLocal(); }); }
 
   /* =======================================================
-     Dashboard
+     DASHBOARD
   ======================================================= */
   function pageDashboard(){
     ensureLogin(); bindLogout(); buildMasters();
-
-    // now list
-    const nowList=$("#nowList");
-    if(nowList){
-      const items=state.plan.slice(0,10).map(p=>`
-        <div class="list-item">
-          <div>
-            <div class="font-medium">${p.itemName||'-'} <span class="meta">(${p.itemNo||''})</span></div>
-            <div class="meta">得意先:${p.customer||'-'} ・ 製造番号:${p.prodNo||'-'} ・ 開始:${p.start||'-'}</div>
-          </div>
-          <div class="text-right">
-            <div class="status-chip">${p.process||'-'} / ${p.status||'-'}</div>
-            <div class="meta">${p.updated||''}</div>
-          </div>
-        </div>`).join('');
-      nowList.innerHTML = items || '<div class="meta">データがありません。</div>';
-    }
 
     // chart
     const ctx=$("#byProcessChart");
@@ -144,15 +135,17 @@ const App = (function () {
              <td class="text-right font-semibold">${(r.qtyDone||0)-(r.qtyShip||0)}</td></tr>`).join('');
     }
 
+    // sync
     $("#btnPull")?.addEventListener('click',pullSheet);
     $("#btnPush")?.addEventListener('click',pushSheet);
     $("#autoSync")?.addEventListener('change',e=>{
       if(e.target.checked){ state._interval=setInterval(pullSheet,30000);} else { clearInterval(state._interval); }
     });
+    $("#btnClearLocal")?.addEventListener('click',clearLocal);
   }
 
   /* =======================================================
-     生産計画（datalist）
+     PLAN (datalist + auto-fill)
   ======================================================= */
   function pagePlan(){
     ensureLogin(); bindLogout(); buildMasters();
@@ -161,8 +154,8 @@ const App = (function () {
     fillDatalist("#dlItemNos", state.masters.itemNos);
     fillDatalist("#dlItemNames", state.masters.itemNames);
 
-    const st=$("#fltStatus"); if(st) st.value='';
-    const btnClr=$("#btnClearFilter"); if(btnClr){ btnClr.type='button'; btnClr.onclick=()=>{ $("#q").value=''; $("#fltProcess").value=''; $("#fltStatus").value=''; renderPlanTable(); }; }
+    $("#fltStatus").value='';
+    $("#btnClearFilter")?.addEventListener('click',()=>{ $("#q").value=''; $("#fltProcess").value=''; $("#fltStatus").value=''; renderPlanTable(); });
     $("#btnAddPlan")?.addEventListener('click',()=> openPlanModal());
     ['#q','#fltProcess','#fltStatus'].forEach(id=> $(id)?.addEventListener('input', renderPlanTable));
     $("#btnPull")?.addEventListener('click',pullSheet);
@@ -196,20 +189,32 @@ const App = (function () {
     const m=$("#planModal"); if(!m) return; m.classList.remove('hidden');
     const isEdit=idx!=null; $("#planModalTitle").textContent=isEdit?'生産計画：編集':'生産計画：追加';
     const p=isEdit? state.plan[idx] : {customer:'',prodNo:'',itemName:'',itemNo:'',start:today(),process:PROCESS_LIST[0],location:'PPIC',status:'計画'};
+
     $("#fCustomer").value=p.customer||''; $("#fProdNo").value=p.prodNo||'';
     $("#fItemName").value=p.itemName||''; $("#fItemNo").value=p.itemNo||'';
     $("#fStart").value=p.start||today(); const sel=$("#fProcess"); sel.innerHTML=PROCESS_LIST.map(x=>`<option>${x}</option>`).join(''); sel.value=p.process||PROCESS_LIST[0];
     $("#fLocation").value=p.location||'PPIC'; $("#fStatus").value=p.status||'計画';
-    // datalist refresh (in case new builds)
+
     fillDatalist("#dlCustomers", state.masters.customers);
     fillDatalist("#dlItemNos", state.masters.itemNos);
     fillDatalist("#dlItemNames", state.masters.itemNames);
 
+    // AUTO-FILL
+    function suggestName(){
+      const cust=$("#fCustomer").value.trim(); const no=$("#fItemNo").value.trim(); if(!no) return;
+      const key=cust? (cust+"||"+no) : ""; let name = key? (state.masters.mapCustItemNoToName[key]||"") : "";
+      if(!name) name = state.masters.mapItemNoToName[no] || "";
+      if(name){ const curr=$("#fItemName").value.trim(); if(!curr||curr!==name) $("#fItemName").value=name; }
+    }
+    function suggestItemNo(){ const nm=$("#fItemName").value.trim(); if(!nm) return; const no=state.masters.mapNameToItemNo[nm]||""; if(no && !$("#fItemNo").value.trim()) $("#fItemNo").value=no; }
+    $("#fCustomer").addEventListener('input',suggestName);
+    $("#fItemNo").addEventListener('input',suggestName);
+    $("#fItemName").addEventListener('input',suggestItemNo);
+
     $("#btnPlanSave").onclick=()=>{
-      const rec={ customer:$("#fCustomer").value.trim(), prodNo:$("#fProdNo").value.trim(),
-        itemName:$("#fItemName").value.trim(), itemNo:$("#fItemNo").value.trim(),
-        start:$("#fStart").value, process:$("#fProcess").value, location:$("#fLocation").value.trim(),
-        status:$("#fStatus").value, updated:stamp(), qtyDone:p.qtyDone||0, qtyShip:p.qtyShip||0 };
+      const rec={ customer:$("#fCustomer").value.trim(), prodNo:$("#fProdNo").value.trim(), itemName:$("#fItemName").value.trim(), itemNo:$("#fItemNo").value.trim(),
+        start:$("#fStart").value, process:$("#fProcess").value, location:$("#fLocation").value.trim(), status:$("#fStatus").value, updated:stamp(),
+        qtyDone:p.qtyDone||0, qtyShip:p.qtyShip||0 };
       if(isEdit){ state.plan[idx]=Object.assign({},state.plan[idx],rec);} else { state.plan.unshift(rec); }
       save(); buildMasters(); m.classList.add('hidden'); renderPlanTable(); pushPlan(rec);
     };
@@ -224,7 +229,7 @@ const App = (function () {
   }
 
   /* =======================================================
-     出荷計画
+     SHIP
   ======================================================= */
   function pageShip(){
     ensureLogin(); bindLogout(); buildMasters();
@@ -270,28 +275,38 @@ const App = (function () {
   }
 
   /* =======================================================
-     出荷確認書
+     CONFIRM (Export Excel)
   ======================================================= */
   function pageConfirm(){
     ensureLogin(); bindLogout();
     $("#btnPrint")?.addEventListener('click',()=>window.print());
-    $("#btnMakeConfirm")?.addEventListener('click',()=>{
-      const d=$("#cDate").value || today(); const cust=$("#cCustomer").value.trim();
-      const list = state.ship.filter(x=> (x.date===d) && (!cust || x.customer===cust));
-      $("#cInfo").textContent = `日付：${d}　件数：${list.length}`;
-      $("#cUser").textContent = state.user || '';
-      const body=$("#cBody");
-      if(!list.length){ body.innerHTML=`<tr><td colspan="6" class="text-center text-slate-500">該当データなし。</td></tr>`; return; }
-      body.innerHTML = list.map((s,i)=> `<tr>
-        <td class="text-right">${i+1}</td><td>${s.customer||''}</td>
-        <td>${s.itemName||''}</td><td>${s.itemNo||''}</td>
-        <td class="text-right">${s.qty||0}</td><td>${s.note||''}</td>
-      </tr>`).join('');
-    });
+    $("#btnMakeConfirm")?.addEventListener('click',makeConfirm);
+    $("#btnExport")?.addEventListener('click',exportConfirmXlsx);
+  }
+  function makeConfirm(){
+    const d=$("#cDate").value || today(); const cust=$("#cCustomer").value.trim();
+    const list = state.ship.filter(x=> (x.date===d) && (!cust || x.customer===cust));
+    $("#cInfo").textContent = `日付：${d}　件数：${list.length}`;
+    $("#cUser").textContent = state.user || '';
+    const body=$("#cBody");
+    if(!list.length){ body.innerHTML=`<tr><td colspan="6" class="text-center text-slate-500">該当データなし。</td></tr>`; return; }
+    body.innerHTML = list.map((s,i)=> `<tr>
+      <td class="text-right">${i+1}</td><td>${s.customer||''}</td>
+      <td>${s.itemName||''}</td><td>${s.itemNo||''}</td>
+      <td class="text-right">${s.qty||0}</td><td>${s.note||''}</td>
+    </tr>`).join('');
+  }
+  function exportConfirmXlsx(){
+    const table=$("#confirmTable"); if(!table){ alert('先に作成してください'); return; }
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.table_to_sheet(table);
+    XLSX.utils.book_append_sheet(wb, ws, "出荷確認書");
+    const d=$("#cDate").value || today();
+    XLSX.writeFile(wb, `出荷確認書_${d}.xlsx`);
   }
 
   /* =======================================================
-     生産現品票
+     TICKET
   ======================================================= */
   function pageTicket(){
     ensureLogin(); bindLogout();
@@ -316,22 +331,28 @@ const App = (function () {
   }
 
   /* =======================================================
-     QRスキャン
+     SCAN (QR + manual)
   ======================================================= */
   function pageScan(){
     ensureLogin(); bindLogout();
     const sel=$("#scanProcess"); if(sel) sel.innerHTML=PROCESS_LIST.map(p=>`<option>${p}</option>`).join('');
     let last={prodNo:"",itemNo:""};
+
     if(window.Html5Qrcode){
       const h = new Html5Qrcode("reader");
       Html5Qrcode.getCameras().then(devs=>{
-        const cam=devs?.[0]?.id; if(!cam){ alert('カメラが見つかりません'); return; }
+        const cam=devs?.[0]?.id; if(!cam){ return; }
         h.start(cam,{fps:10,qrbox:280}, onScan, ()=>{});
-      });
+      }).catch(()=>{ /* no camera */ });
     }
     function onScan(txt){ const [a,b]=(txt||'').split('|'); if(!a||!b) return; last={prodNo:a,itemNo:b}; $("#scanInfo").textContent=`読み取り: ${a} | ${b}`; }
+    $("#btnSetManual")?.addEventListener('click',()=>{
+      const a=$("#manualProd").value.trim(), b=$("#manualItem").value.trim();
+      if(!a||!b) return alert('製造番号と品番を入力してください');
+      last={prodNo:a,itemNo:b}; $("#scanInfo").textContent=`入力: ${a} | ${b}`;
+    });
     $("#btnApplyScan")?.addEventListener('click',()=>{
-      if(!last.prodNo) return alert('QRを読み取ってください');
+      if(!last.prodNo) return alert('QRまたは手入力で製造番号と品番を設定してください');
       const p=state.plan.find(x=>x.prodNo===last.prodNo && x.itemNo===last.itemNo); if(!p) return alert('計画なし');
       p.process=$("#scanProcess").value; p.status=$("#scanStatus").value; p.updated=stamp();
       save(); pushPlan(p); alert('更新しました');
@@ -342,12 +363,10 @@ const App = (function () {
      Sheets 2-way
   ======================================================= */
   function pushPlan(p){
-    if(!ENDPOINT.PLAN_POST) return;
     fetch(ENDPOINT.PLAN_POST,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(state.token||'')},body:JSON.stringify({...p,user:state.user})})
       .then(()=>logSync('PLAN送信完了')).catch(()=>logSync('PLAN送信失敗'));
   }
   function pushShip(s){
-    if(!ENDPOINT.SHIP_POST) return;
     fetch(ENDPOINT.SHIP_POST,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(state.token||'')},body:JSON.stringify({...s,user:state.user})})
       .then(()=>logSync('SHIP送信完了')).catch(()=>logSync('SHIP送信失敗'));
   }
@@ -363,20 +382,18 @@ const App = (function () {
   }
   function pushSheet(){
     let chain=Promise.resolve();
-    state.plan.forEach(p=>{ chain=chain.then(()=>new Promise(res=>{ pushPlan(p); setTimeout(res,80);})); });
-    state.ship.forEach(s=>{ chain=chain.then(()=>new Promise(res=>{ pushShip(s); setTimeout(res,80);})); });
+    state.plan.forEach(p=>{ chain=chain.then(()=>new Promise(res=>{ pushPlan(p); setTimeout(res,60);})); });
+    state.ship.forEach(s=>{ chain=chain.then(()=>new Promise(res=>{ pushShip(s); setTimeout(res,60);})); });
     chain.then(()=>logSync('全件送信完了'));
   }
 
-  /* bootstrap */
-  function initPage(page){
-    if(page==='dashboard') pageDashboard();
-    if(page==='plan')      pagePlan();
-    if(page==='ship')      pageShip();
-    if(page==='confirm')   pageConfirm();
-    if(page==='ticket')    pageTicket();
-    if(page==='scan')      pageScan();
+  function initPage(p){
+    if(p==='dashboard') pageDashboard();
+    if(p==='plan') pagePlan();
+    if(p==='ship') pageShip();
+    if(p==='confirm') pageConfirm();
+    if(p==='ticket') pageTicket();
+    if(p==='scan') pageScan();
   }
-
   return { initPage, editPlan: openPlanModal, editShip: openShipModal, deletePlan };
 })();
