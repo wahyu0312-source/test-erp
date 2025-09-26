@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>TSH｜QRスキャン</title>
   <link rel="stylesheet" href="style.css"/>
-  <!-- html5-qrcode -->
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 </head>
 <body>
@@ -16,6 +15,8 @@
     <a href="ship.html">出荷計画</a>
     <a class="active" href="scan.html">QRスキャン</a>
     <a href="ticket.html">生産現品票</a>
+    <span class="ml-auto" id="syncLog"></span>
+    <button id="btnLogout" class="btn ml">ログアウト</button>
   </div>
 
   <div id="loginBar" class="login-overlay"></div>
