@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>TSH｜生産現品票</title>
   <link rel="stylesheet" href="style.css"/>
-  <!-- QRCode -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
@@ -16,10 +15,8 @@
     <a href="ship.html">出荷計画</a>
     <a href="scan.html">QRスキャン</a>
     <a class="active" href="ticket.html">生産現品票</a>
-    <span class="ml-auto">
-      <button id="btnLoadTicket" class="btn">読込</button>
-      <button id="btnPrint" class="btn">印刷</button>
-    </span>
+    <span class="ml-auto" id="syncLog"></span>
+    <button id="btnLogout" class="btn ml">ログアウト</button>
   </div>
 
   <div id="loginBar" class="login-overlay"></div>
@@ -30,10 +27,13 @@
         <label>製造番号<input id="ticketProdNo" class="inp"></label>
         <label>品番<input id="ticketItemNo" class="inp"></label>
       </div>
+      <div class="mt">
+        <button id="btnLoadTicket" class="btn">読込</button>
+        <button id="btnPrint" class="btn">印刷</button>
+      </div>
     </div>
   </div>
 
-  <!-- 票：印刷領域 -->
   <div class="ticket A4">
     <div class="row between">
       <div><b>生産現品票</b></div>
