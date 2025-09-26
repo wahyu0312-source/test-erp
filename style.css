@@ -43,7 +43,7 @@ body{margin:0;font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetic
 .login-note{font-size:12px;color:#64748b}
 .login-row{display:grid;gap:8px;margin-top:10px}
 
-/* list chips (dashboard) */
+/* list chips */
 .list-item{display:flex;align-items:center;justify-content:space-between;border:1px solid #e5e7eb;background:#fff;border-radius:12px;padding:10px}
 .meta{font-size:12px;color:#64748b}
 .status-chip{background:#eef2ff;border:1px solid #c7d2fe;padding:2px 6px;border-radius:6px}
