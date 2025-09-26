@@ -1,32 +1,40 @@
-<!doctype html><html lang="ja"><head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>TSH - QRスキャン</title>
-<link rel="stylesheet" href="style.css"/>
-<script src="https://unpkg.com/html5-qrcode"></script>
-</head><body>
-<div class="nav no-print">
-  <img src="tsh.png" style="height:24px;margin-right:10px">
-  <a href="index.html">ダッシュボード</a>
-  <a href="plan.html">生産計画</a>
-  <a href="ship.html">出荷計画</a>
-  <a class="active" href="scan.html">QRスキャン</a>
-  <a href="ticket.html">生産現品票</a>
-</div>
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>TSH｜QRスキャン</title>
+  <link rel="stylesheet" href="style.css"/>
+  <!-- html5-qrcode -->
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+</head>
+<body>
+  <div class="nav no-print">
+    <img src="tsh.png" class="logo" alt="TSH"/>
+    <a href="index.html">ダッシュボード</a>
+    <a href="plan.html">生産計画</a>
+    <a href="ship.html">出荷計画</a>
+    <a class="active" href="scan.html">QRスキャン</a>
+    <a href="ticket.html">生産現品票</a>
+  </div>
 
-<div class="container">
-  <div class="card">
-    <h1>QRコード読み取り</h1>
-    <div id="reader" style="width:320px"></div>
-    <div style="margin-top:8px"> <b id="scanInfo"></b> </div>
-    <div style="display:flex;gap:8px;margin-top:8px">
-      <select id="scanProcess" class="inp"></select>
-      <select id="scanStatus" class="inp"><option>進行中</option><option>保留</option><option>完了</option></select>
-      <button id="btnApplyScan" class="btn primary">更新</button>
+  <div id="loginBar" class="login-overlay"></div>
+
+  <div class="container">
+    <div class="card">
+      <div id="reader" style="width:320px;max-width:100%"></div>
+      <div class="mt">スキャン結果：<span id="scanInfo" class="mono"></span></div>
+      <div class="grid two mt">
+        <label>工程<select id="scanProcess" class="inp"></select></label>
+        <label>ステータス
+          <select id="scanStatus" class="inp"><option>進行中</option><option>停止</option><option>完了</option></select>
+        </label>
+      </div>
+      <button id="btnApplyScan" class="btn primary mt">更新</button>
     </div>
   </div>
-</div>
 
-<div id="loginBar"></div>
-<script src="app.js"></script>
-<script>App.initPage('scan');</script>
-</body></html>
+  <script src="app.js"></script>
+  <script>App.initPage('scan');</script>
+</body>
+</html>
