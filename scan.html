@@ -1,66 +1,44 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>ERPシステム 東京精密発條株式会社 • QRスキャン</title>
-  <link rel="stylesheet" href="style.css"/>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-</head>
-<body class="bg-slate-50 text-slate-800">
-  <div id="loginBar" class="login-bar"></div>
-  <header class="topbar">
-    <div class="flex items-center gap-2">
-      <img src="tsh.png" class="logo" alt="TSH"/>
-      <div class="brand"><div class="brand-title">ERPシステム</div><div class="brand-sub">東京精密発條株式会社</div></div>
+<!DOCTYPE html><html lang="ja"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>ERPシステム • QRスキャン</title>
+<link rel="stylesheet" href="style.css"/>
+</head><body>
+<div id="loginBar" class="login-bar"></div>
+<header class="topbar">
+  <div class="brand"><img src="tsh.png" class="logo"><div><div class="brand-title">ERPシステム</div><div class="brand-sub">東京精密発條株式会社</div></div></div>
+  <nav class="nav">
+    <a href="index.html">ダッシュボード</a>
+    <a href="plan.html">生産計画</a>
+    <a href="ship.html">出荷計画</a>
+    <a href="confirm.html">出荷確認書</a>
+    <a href="scan.html" class="active">QRスキャン</a>
+    <a href="ticket.html">生産現品票</a>
+  </nav>
+  <div class="actions"><button id="btnLogout" class="btn btn-outline">ログアウト</button></div>
+</header>
+
+<main class="container">
+  <section class="card">
+    <h3>スキャン結果：</h3>
+    <div id="reader" style="max-width:480px"></div>
+    <div class="text-muted" style="margin:8px 0">※ カメラを使えない場合は手入力をご利用ください。</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <input id="manualProd" class="inp" placeholder="製造番号（手入力）">
+      <input id="manualItem" class="inp" placeholder="品番（手入力）">
     </div>
-    <nav class="nav">
-      <a href="index.html">ダッシュボード</a>
-      <a href="plan.html">生産計画</a>
-      <a href="ship.html">出荷計画</a>
-      <a href="confirm.html">出荷確認書</a>
-      <a class="active" href="scan.html">QRスキャン</a>
-      <a href="ticket.html">生産現品票</a>
-    </nav>
-    <div class="ml-auto"><button id="btnLogout" class="btn btn-ghost">ログアウト</button></div>
-  </header>
+  </section>
 
-  <main class="container">
-    <section class="card">
-      <div class="grid md:grid-cols-2 gap-6">
-        <div>
-          <div id="reader" style="width:360px;max-width:100%"></div>
-          <div class="mt-2 text-xs text-slate-500">（QRフォーマット：<code>製造番号|品番</code>）</div>
-        </div>
-        <div>
-          <div class="font-medium mb-1">スキャン結果：<span id="scanInfo" class="mono"></span></div>
-          <div class="grid two">
-            <label>工程<select id="scanProcess" class="inp"></select></label>
-            <label>ステータス
-              <select id="scanStatus" class="inp"><option>進行中</option><option>停止</option><option>完了</option></select>
-            </label>
-          </div>
+  <section class="card">
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <select id="scanProcess" class="inp" style="max-width:240px"></select>
+      <select id="scanStatus" class="inp" style="max-width:200px"><option>進行中</option><option>保留</option><option>完了</option></select>
+      <button id="btnApplyScan" class="btn btn-primary">更新</button>
+      <span id="scanInfo" class="text-muted"></span>
+    </div>
+  </section>
+</main>
 
-          <div class="border-t my-4"></div>
-          <div class="text-sm font-semibold mb-1">手入力</div>
-          <div class="grid two">
-            <label>製造番号<input id="manualProd" class="inp" placeholder="例：1111"></label>
-            <label>品番<input id="manualItem" class="inp" placeholder="例：111"></label>
-          </div>
-          <div class="mt-2">
-            <button id="btnSetManual" class="btn btn-outline">結果にセット</button>
-          </div>
-
-          <div class="mt-4">
-            <button id="btnApplyScan" class="btn btn-primary">更新</button>
-          </div>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <script src="app.js"></script>
-  <script>App.initPage('scan');</script>
-</body>
-</html>
+<script src="https://unpkg.com/html5-qrcode"></script>
+<script src="app.js"></script>
+<script>App.initPage('scan')</script>
+</body></html>
