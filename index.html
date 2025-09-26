@@ -1,56 +1,68 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>TSH｜ダッシュボード</title>
-  <link rel="stylesheet" href="style.css"/>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ERPシステム 東京精密発條株式会社 • ダッシュボード</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body>
-  <div class="nav no-print">
-    <img src="tsh.png" alt="TSH" class="logo"/>
-    <a class="active" href="index.html">ダッシュボード</a>
-    <a href="plan.html">生産計画</a>
-    <a href="ship.html">出荷計画</a>
-    <a href="scan.html">QRスキャン</a>
-    <a href="ticket.html">生産現品票</a>
-    <span class="ml-auto" id="syncLog"></span>
-    <button id="btnLogout" class="btn ml">ログアウト</button>
-  </div>
+<body class="bg-slate-50 text-slate-800">
+  <!-- Login -->
+  <div id="loginBar" class="login-bar"></div>
 
-  <!-- login overlay -->
-  <div id="loginBar" class="login-overlay"></div>
-
-  <div class="container">
-    <div class="card">
-      <h1>現在の生産状況</h1>
-      <div id="nowList" class="list"></div>
+  <!-- Topbar -->
+  <header class="topbar">
+    <div class="flex items-center gap-2">
+      <img src="tsh.png" class="logo" alt="TSH"/>
+      <div class="brand">
+        <div class="brand-title">ERPシステム</div>
+        <div class="brand-sub">東京精密発條株式会社</div>
+      </div>
     </div>
-
-    <div class="card">
-      <h1>在庫の所在（工程別）</h1>
-      <canvas id="byProcessChart" height="180"></canvas>
+    <nav class="nav">
+      <a href="index.html" class="active">ダッシュボード</a>
+      <a href="plan.html">生産計画</a>
+      <a href="ship.html">出荷計画</a>
+      <a href="confirm.html">出荷確認書</a>
+      <a href="scan.html">QRスキャン</a>
+      <a href="ticket.html">生産現品票</a>
+    </nav>
+    <div class="ml-auto flex items-center gap-2">
+      <span id="syncLog" class="badge-secondary"></span>
+      <button id="btnLogout" class="btn btn-ghost">ログアウト</button>
     </div>
+  </header>
 
-    <div class="card">
-      <h1>本日の出荷予定</h1>
-      <div id="shipToday"></div>
-    </div>
+  <main class="container space-y-6">
+    <section class="card">
+      <div class="card-head"><h3>現在の生産状況</h3></div>
+      <div id="nowList" class="space-y-2 text-sm"></div>
+    </section>
 
-    <div class="card">
-      <h1>完成品在庫（完成数量 − 出荷数量）</h1>
-      <table class="table">
+    <section class="grid md:grid-cols-2 gap-4">
+      <div class="card"><div class="card-head"><h3>在庫の所在（工程別）</h3></div><canvas id="byProcessChart" height="220"></canvas></div>
+      <div class="card"><div class="card-head"><h3>本日の出荷予定</h3></div><div id="shipToday" class="space-y-2 text-sm"></div></div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h3>完成品在庫（完成数量 − 出荷数量）</h3></div>
+      <table class="gridtbl">
         <thead><tr><th>品名</th><th>品番</th><th>完成数量</th><th>出荷数量</th><th>在庫</th></tr></thead>
         <tbody id="stockBody"></tbody>
       </table>
-      <div class="mt-2 no-print">
-        <button id="btnPull" class="btn">同期(取得)</button>
-        <button id="btnPush" class="btn">同期(送信)</button>
-        <label class="ml"><input type="checkbox" id="autoSync"> 自動同期(30秒)</label>
+    </section>
+
+    <section class="card no-print">
+      <div class="card-head"><h3>同期（Google Sheets）</h3></div>
+      <div class="flex items-center gap-2 flex-wrap">
+        <button id="btnPull" class="btn btn-outline">シートから取得</button>
+        <button id="btnPush" class="btn btn-primary">シートへ送信</button>
+        <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="autoSync"> 自動（30秒毎）</label>
       </div>
-    </div>
-  </div>
+    </section>
+  </main>
 
   <script src="app.js"></script>
   <script>App.initPage('dashboard');</script>
