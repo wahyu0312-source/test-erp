@@ -6,6 +6,7 @@
   <title>ERPシステム 東京精密発條株式会社 • 出荷確認書</title>
   <link rel="stylesheet" href="style.css"/>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body class="bg-slate-50 text-slate-800">
   <div id="loginBar" class="login-bar"></div>
@@ -31,11 +32,11 @@
         <label>日付 <input id="cDate" type="date" class="inp"></label>
         <label>得意先 <input id="cCustomer" class="inp" placeholder="（空白=全て）"></label>
         <button id="btnMakeConfirm" class="btn btn-primary">作成</button>
-        <button id="btnPrint" class="btn btn-outline">印刷</button>
+        <button id="btnExport" class="btn btn-outline">Excel出力</button>
+        <button id="btnPrint" class="btn btn-ghost">印刷</button>
       </div>
     </section>
 
-    <!-- A4 printable -->
     <section class="confirm A4">
       <div class="confirm-head">
         <div>
@@ -44,7 +45,7 @@
         </div>
         <div id="cInfo" class="confirm-info"></div>
       </div>
-      <table class="gridtbl tight">
+      <table class="gridtbl tight" id="confirmTable">
         <thead>
           <tr><th>No</th><th>得意先</th><th>品名</th><th>品番</th><th>数量</th><th>備考</th></tr>
         </thead>
