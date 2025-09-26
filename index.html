@@ -9,10 +9,8 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="bg-slate-50 text-slate-800">
-  <!-- Login -->
   <div id="loginBar" class="login-bar"></div>
 
-  <!-- Topbar -->
   <header class="topbar">
     <div class="flex items-center gap-2">
       <img src="tsh.png" class="logo" alt="TSH"/>
@@ -36,14 +34,15 @@
   </header>
 
   <main class="container space-y-6">
-    <section class="card">
-      <div class="card-head"><h3>現在の生産状況</h3></div>
-      <div id="nowList" class="space-y-2 text-sm"></div>
-    </section>
-
     <section class="grid md:grid-cols-2 gap-4">
-      <div class="card"><div class="card-head"><h3>在庫の所在（工程別）</h3></div><canvas id="byProcessChart" height="220"></canvas></div>
-      <div class="card"><div class="card-head"><h3>本日の出荷予定</h3></div><div id="shipToday" class="space-y-2 text-sm"></div></div>
+      <div class="card">
+        <div class="card-head"><h3>在庫の所在（工程別）</h3></div>
+        <canvas id="byProcessChart" height="220"></canvas>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>本日の出荷予定</h3></div>
+        <div id="shipToday" class="space-y-2 text-sm"></div>
+      </div>
     </section>
 
     <section class="card">
@@ -60,6 +59,10 @@
         <button id="btnPull" class="btn btn-outline">シートから取得</button>
         <button id="btnPush" class="btn btn-primary">シートへ送信</button>
         <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="autoSync"> 自動（30秒毎）</label>
+        <button id="btnClearLocal" class="btn btn-ghost">ローカル削除</button>
+      </div>
+      <div class="text-xs text-slate-500 mt-1">
+        ここはGoogleスプレッドシートとの同期エリアです。<b>シートから取得</b>＝サーバー→アプリ、<b>シートへ送信</b>＝アプリ→サーバー、<b>自動</b>＝30秒ごとに取得、<b>ローカル削除</b>＝ブラウザの一時保存データを消去（キャッシュをクリア）。
       </div>
     </section>
   </main>
