@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TSH • 生産計画</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 text-slate-800">
+  <div id="loginBar" class="login-bar"></div>
+  <header class="topbar">
+    <img src="tsh.png" class="logo" alt="TSH"/>
+    <nav class="nav">
+      <a href="index.html">ダッシュボード</a>
+      <a href="plan.html" class="active">生産計画</a>
+      <a href="ship.html">出荷計画</a>
+      <a href="scan.html">QRスキャン</a>
+      <a href="ticket.html">生産現品票</a>
+    </nav>
+  </header>
+
+  <main class="container space-y-4">
+    <section class="toolbar">
+      <div class="flex gap-2 flex-wrap">
+        <input id="q" class="inp" placeholder="検索（品名/品番/得意先/製造番号）"/>
+        <select id="fltProcess" class="inp"></select>
+        <select id="fltStatus" class="inp"><option value="">全て</option><option>計画</option><option>進行中</option><option>検査保留</option><option>完了</option></select>
+        <button id="btnClearFilter" class="btn">クリア</button>
+      </div>
+      <div class="flex gap-2">
+        <button id="btnAddPlan" class="btn primary">＋ 追加</button>
+        <button id="btnPull" class="btn">シートから取得</button>
+        <button id="btnPush" class="btn">シートへ送信</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <table class="gridtbl">
+        <thead>
+          <tr>
+            <th>得意先</th><th>製造番号</th><th>品名</th><th>品番</th><th>開始</th><th>プロセス</th><th>場所</th><th>ステータス</th><th>更新（時刻&ユーザー）</th><th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="planBody"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <!-- 生産計画：モーダル -->
+  <div id="planModal" class="modal hidden">
+    <div class="modal-body">
+      <div class="modal-head"><h3 id="planModalTitle">生産計画：追加</h3><button id="planModalClose" class="btn">閉じる</button></div>
+      <div class="grid grid-cols-2 gap-3 p-3">
+        <div><label class="lbl">得意先</label><input id="fCustomer" class="inp"/></div>
+        <div><label class="lbl">製造番号</label><input id="fProdNo" class="inp"/></div>
+        <div><label class="lbl">品名</label><input id="fItemName" class="inp"/></div>
+        <div><label class="lbl">品番</label><input id="fItemNo" class="inp"/></div>
+        <div><label class="lbl">開始</label><input type="date" id="fStart" class="inp"/></div>
+        <div><label class="lbl">プロセス</label><select id="fProcess" class="inp"></select></div>
+        <div><label class="lbl">場所</label><input id="fLocation" class="inp" value="PPIC"/></div>
+        <div><label class="lbl">ステータス</label><select id="fStatus" class="inp"><option>計画</option><option>進行中</option><option>検査保留</option><option>完了</option></select></div>
+      </div>
+      <div class="p-3 text-right"><button id="btnPlanSave" class="btn primary">保存</button></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>App.initPage('plan');</script>
+</body>
+</html>
+
