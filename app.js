@@ -177,6 +177,7 @@ const App = (function () {
     $("#btnPull")?.addEventListener('click',pullSheet);
     $("#btnPush")?.addEventListener('click',pushSheet);
     renderPlanTable();
+   document.getElementById('btnClearFilter').type='button'; // cegah submit form default/refresh
   }
   function filtered(){
     var q=($("#q")?.value||'').toLowerCase();
