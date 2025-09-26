@@ -8,8 +8,9 @@ const App = (function () {
     "レーザ工程","曲げ工程","外枠組立工程","シャッター組立工程",
     "シャッター溶接工程","コーキング工程","外枠塗装工程","組立工程","検査工程"
   ];
-
   // ====== Endpoint Google Apps Script (semua sama) ======
+  // [KOREKSI] URL endpoint ini spesifik untuk akun Anda.
+  // Pastikan Anda menggantinya dengan URL hasil deploy Apps Script Anda sendiri.
   var GAS_URL = "https://script.google.com/macros/s/AKfycbxmpC6UA1ixJLLDy3kCa6RPT9D-s2pV4L2UEsvy21gR5klqLpGGQbfSbYkNqWaHnRId/exec";
   var SHEET_ENDPOINT = {
     PLAN_POST: GAS_URL,
@@ -18,7 +19,6 @@ const App = (function () {
     SHIP_GET:  GAS_URL,
     AUTH:      GAS_URL    // dipakai untuk login (GET)
   };
-
   // ====== State ======
   var state = {
     user:  localStorage.getItem('tsh_user')  || "",
@@ -28,7 +28,6 @@ const App = (function () {
     ship:  JSON.parse(localStorage.getItem('tsh_ship') || "[]"),
     _interval: null
   };
-
   // ====== Utils ======
   function $(q){ return document.querySelector(q); }
   function today(){ return new Date().toISOString().slice(0,10); }
@@ -38,7 +37,6 @@ const App = (function () {
     localStorage.setItem('tsh_ship', JSON.stringify(state.ship));
   }
   function logSync(m){ var el=$("#syncLog"); if(el) el.textContent=m; }
-
   // ====== Login (username + password) via GET ======
   function ensureLogin(){
     var bar=$("#loginBar"); if(!bar) return;
@@ -53,16 +51,13 @@ const App = (function () {
             '<button id="enter" class="btn primary">入室</button>'+
           '</div>'+
         '</div>';
-
       $("#enter").onclick = function(){
         var n = ($("#loginName")||{}).value?.trim();
         var p = ($("#loginPass")||{}).value;
         if(!n || !p){ alert("ユーザー名とパスワードを入力してください。"); return; }
-
         // ---- LOGIN via GET (tidak memicu preflight CORS) ----
         const url = SHEET_ENDPOINT.AUTH +
           `?action=login&username=${encodeURIComponent(n)}&password=${encodeURIComponent(p)}&t=${Date.now()}`;
-
         fetch(url, { method:"GET", cache:"no-store" })
           .then(async r => {
             const txt = await r.text();
@@ -86,14 +81,12 @@ const App = (function () {
       bar.style.display="none";
     }
   }
-
   // ====== Komponen ======
   function fillProcessSelect(sel){
     if(!sel) return;
     sel.innerHTML = '<option value="">工程（全て）</option>' +
       PROCESS_LIST.map(p=>`<option>${p}</option>`).join('');
   }
-
   // ====== Dashboard ======
   function pageDashboard(){ ensureLogin();
     var nowList=$("#nowList");
@@ -112,7 +105,6 @@ const App = (function () {
       )).join('');
       nowList.innerHTML = items || '<div class="text-sm text-slate-500">データがありません。</div>';
     }
-
     var ctxEl=$("#byProcessChart");
     if(ctxEl && window.Chart){
       var counts = PROCESS_LIST.map(proc=>state.plan.filter(p=>p.process===proc).length);
@@ -122,7 +114,6 @@ const App = (function () {
         options:{plugins:{legend:{display:false}}}
       });
     }
-
     var t=today(), shipEl=$("#shipToday");
     if(shipEl){
       var list = state.ship.filter(s=>s.date===t).map(s=>(
@@ -137,7 +128,6 @@ const App = (function () {
       )).join('');
       shipEl.innerHTML = list || '<div class="text-sm text-slate-500">本日の出荷予定はありません。</div>';
     }
-
     var stockBody=$("#stockBody");
     if(stockBody){
       var map={};
@@ -156,7 +146,6 @@ const App = (function () {
             <td class='text-right font-semibold'>${(r.qtyDone||0)-(r.qtyShip||0)}</td></tr>`
       )).join('');
     }
-
     var pull=$("#btnPull"), push=$("#btnPush"), auto=$("#autoSync");
     if(pull) pull.onclick=pullSheet;
     if(push) push.onclick=pushSheet;
@@ -164,7 +153,6 @@ const App = (function () {
       auto.onchange=()=>{ if(auto.checked){ state._interval=setInterval(pullSheet,30000);} else { clearInterval(state._interval);} };
     }
   }
-
   // ====== 生産計画 ======
   function pagePlan(){ ensureLogin();
     var fltP=$("#fltProcess"); fillProcessSelect(fltP);
@@ -226,7 +214,6 @@ const App = (function () {
     $("#planModalClose").onclick=()=> m.classList.add('hidden');
   }
   function editPlan(idx){ openPlanModal(idx); }
-
   // ====== 出荷計画 ======
   function pageShip(){ ensureLogin();
     $("#btnAddShip")?.addEventListener('click',()=>openShipModal());
@@ -251,16 +238,20 @@ const App = (function () {
   function openShipModal(idx=null){
     var m=$("#shipModal"); if(!m) return; m.classList.remove('hidden');
     var isEdit=idx!=null;
-    var s = isEdit? state.ship[idx] : {date:today(),customer:'',itemName:'',itemNo:'',qty:0,status:'出荷準備',note:''};
+    // [KOREKSI] Menambahkan `shipId` unik saat membuat data baru untuk sinkronisasi.
+    var s = isEdit? state.ship[idx] : {shipId: 'ship_' + Date.now(), date:today(),customer:'',itemName:'',itemNo:'',qty:0,status:'出荷準備',note:''};
     $("#shipModalTitle").textContent=isEdit?'出荷計画：編集':'出荷計画：追加';
     $("#sDate").value=s.date||today(); $("#sCustomer").value=s.customer||'';
     $("#sItemName").value=s.itemName||''; $("#sItemNo").value=s.itemNo||'';
     $("#sQty").value=s.qty||0; $("#sStatus").value=s.status||'出荷準備'; $("#sNote").value=s.note||'';
     $("#btnShipSave").onclick=()=>{
-      var rec={ date:$("#sDate").value, customer:$("#sCustomer").value.trim(),
+      var rec={ 
+        shipId: s.shipId, // [KOREKSI] Pastikan shipId disertakan saat menyimpan
+        date:$("#sDate").value, customer:$("#sCustomer").value.trim(),
         itemName:$("#sItemName").value.trim(), itemNo:$("#sItemNo").value.trim(),
         qty:Number($("#sQty").value||0), status:$("#sStatus").value,
-        note:$("#sNote").value.trim(), updated:stamp() };
+        note:$("#sNote").value.trim(), updated:stamp() 
+      };
       if(isEdit){ state.ship[idx]=Object.assign({},state.ship[idx],rec); } else { state.ship.unshift(rec); }
       save(); m.classList.add('hidden'); renderShipTable(); syncQtyShip(); pushShip(rec);
     };
@@ -276,7 +267,6 @@ const App = (function () {
     });
     save();
   }
-
   // ====== 生産現品票 ======
   function pageTicket(){ ensureLogin();
     const qs=new URLSearchParams(location.search);
@@ -299,7 +289,6 @@ const App = (function () {
     $("#tProcessRows").innerHTML = PROCESS_LIST.map((name,i)=>`<tr><td>${name}</td><td>${imp[i]||''}</td><td></td><td></td><td></td><td></td><td></td></tr>`).join('');
     const q=$("#tQR"); if(q){ q.innerHTML=''; new QRCode(q,{text:`${p.prodNo}|${p.itemNo}`,width:80,height:80}); }
   }
-
   // ====== QRスキャン ======
   function pageScan(){ ensureLogin();
     const selP=$("#scanProcess"); if(selP) selP.innerHTML=PROCESS_LIST.map(p=>`<option>${p}</option>`).join('');
@@ -323,34 +312,63 @@ const App = (function () {
       save(); pushPlan(p); alert('更新しました');
     });
   }
-
   // ====== Sheets Sync ======
   function pushPlan(p){
-    if(!SHEET_ENDPOINT.PLAN_POST) return;
+    if(!SHEET_ENDPOINT.PLAN_POST || SHEET_ENDPOINT.PLAN_POST === "https://script.google.com/macros/s/AKfycbxmpC6UA1ixJLLDy3kCa6RPT9D-s2pV4L2UEsvy21gR5klqLpGGQbfSbYkNqWaHnRId/exec") return;
+    logSync('PLAN送信中...');
+    // [KOREKSI] Menghapus `mode:'no-cors'` agar bisa membaca respons dari server.
+    // Ini penting untuk memastikan data benar-benar tersimpan.
     fetch(SHEET_ENDPOINT.PLAN_POST,{
-      method:'POST', mode:'no-cors',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(state.token||'')},
-      body:JSON.stringify({...p,user:state.user})
-    }).then(()=>logSync('PLAN送信完了')).catch(()=>logSync('PLAN送信失敗'));
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(p)
+    })
+    .then(r => r.json())
+    .then(res => {
+      if (res.ok) {
+        logSync('PLAN送信完了');
+      } else {
+        logSync('PLAN送信失敗: ' + (res.error || 'Unknown error'));
+      }
+    })
+    .catch(()=>logSync('PLAN送信失敗'));
   }
   function pushShip(s){
-    if(!SHEET_ENDPOINT.SHIP_POST) return;
+    if(!SHEET_ENDPOINT.SHIP_POST || SHEET_ENDPOINT.SHIP_POST === "https://script.google.com/macros/s/AKfycbxmpC6UA1ixJLLDy3kCa6RPT9D-s2pV4L2UEsvy21gR5klqLpGGQbfSbYkNqWaHnRId/exec") return;
+    logSync('SHIP送信中...');
+    // [KOREKSI] Menghapus `mode:'no-cors'`
     fetch(SHEET_ENDPOINT.SHIP_POST,{
-      method:'POST', mode:'no-cors',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(state.token||'')},
-      body:JSON.stringify({...s,user:state.user})
-    }).then(()=>logSync('SHIP送信完了')).catch(()=>logSync('SHIP送信失敗'));
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(s)
+    })
+    .then(r => r.json())
+    .then(res => {
+      if (res.ok) {
+        logSync('SHIP送信完了');
+      } else {
+        logSync('SHIP送信失敗: ' + (res.error || 'Unknown error'));
+      }
+    })
+    .catch(()=>logSync('SHIP送信失敗'));
   }
   function pullSheet(){
-    const urlPlan=SHEET_ENDPOINT.PLAN_GET, urlShip=SHEET_ENDPOINT.SHIP_GET||urlPlan;
-    if(!urlPlan){ logSync('GET URL kosong'); return; }
-    Promise.all([fetch(urlPlan),fetch(urlShip)])
-      .then(r=>Promise.all(r.map(x=>x.json().catch(()=>({})))))
-      .then(arr=>{
-        const a=arr[0]||{}, b=arr[1]||{};
-        if(a.plan||a.ship){ state.plan=a.plan||state.plan; state.ship=a.ship||state.ship; }
-        if(urlShip!==urlPlan && (b.plan||b.ship)){ if(b.plan) state.plan=b.plan; if(b.ship) state.ship=b.ship; }
-        save(); logSync('取得完了'); location.reload();
+    const url=SHEET_ENDPOINT.PLAN_GET;
+    if(!url || url === "https://script.google.com/macros/s/AKfycbxmpC6UA1ixJLLDy3kCa6RPT9D-s2pV4L2UEsvy21gR5klqLpGGQbfSbYkNqWaHnRId/exec"){ logSync('GET URL kosong'); return; }
+    logSync('データ取得中...');
+    // [KOREKSI] Disederhanakan karena urlPlan dan urlShip sama.
+    fetch(url)
+      .then(r => r.json().catch(()=>({})))
+      .then(data => {
+        if(data.plan && data.ship){
+          state.plan = data.plan;
+          state.ship = data.ship;
+          save();
+          logSync('取得完了');
+          location.reload(); // Reload tetap dipertahankan sesuai logika awal
+        } else {
+          logSync('データ形式が正しくありません');
+        }
       })
       .catch(()=>logSync('同期失敗'));
   }
@@ -360,7 +378,6 @@ const App = (function () {
     state.ship.forEach(s=>{ chain=chain.then(()=>new Promise(res=>{ pushShip(s); setTimeout(res,80); })); });
     chain.then(()=>logSync('全件送信完了'));
   }
-
   // ====== Bootstrap ======
   function initPage(page){
     if(page==='dashboard') pageDashboard();
@@ -369,6 +386,5 @@ const App = (function () {
     if(page==='ticket')    pageTicket();
     if(page==='scan')      pageScan();
   }
-
   return { initPage, editPlan: openPlanModal, editShip: openShipModal };
 })();
