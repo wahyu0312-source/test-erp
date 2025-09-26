@@ -1,35 +1,39 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>TSH｜出荷計画</title>
+  <title>ERPシステム 東京精密発條株式会社 • 出荷計画</title>
   <link rel="stylesheet" href="style.css"/>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-  <div class="nav no-print">
-    <img src="tsh.png" class="logo" alt="TSH"/>
-    <a href="index.html">ダッシュボード</a>
-    <a href="plan.html">生産計画</a>
-    <a class="active" href="ship.html">出荷計画</a>
-    <a href="scan.html">QRスキャン</a>
-    <a href="ticket.html">生産現品票</a>
-    <span class="ml-auto" id="syncLog"></span>
-    <button id="btnLogout" class="btn ml">ログアウト</button>
-  </div>
+<body class="bg-slate-50 text-slate-800">
+  <div id="loginBar" class="login-bar"></div>
+  <header class="topbar">
+    <div class="flex items-center gap-2">
+      <img src="tsh.png" class="logo" alt="TSH"/>
+      <div class="brand"><div class="brand-title">ERPシステム</div><div class="brand-sub">東京精密発條株式会社</div></div>
+    </div>
+    <nav class="nav">
+      <a href="index.html">ダッシュボード</a>
+      <a href="plan.html">生産計画</a>
+      <a class="active" href="ship.html">出荷計画</a>
+      <a href="confirm.html">出荷確認書</a>
+      <a href="scan.html">QRスキャン</a>
+      <a href="ticket.html">生産現品票</a>
+    </nav>
+    <div class="ml-auto"><button id="btnLogout" class="btn btn-ghost">ログアウト</button></div>
+  </header>
 
-  <div id="loginBar" class="login-overlay"></div>
-
-  <div class="container">
-    <div class="card">
-      <div class="flex gap wrap">
-        <button id="btnPull" class="btn">同期(取得)</button>
-        <button id="btnPush" class="btn">同期(送信)</button>
-        <button id="btnAddShip" class="btn primary">＋ 新規</button>
-        <button id="btnMarkShipped" class="btn">準備→出荷済へ一括</button>
+  <main class="container space-y-6">
+    <section class="card">
+      <div class="flex items-center gap-2 flex-wrap">
+        <button id="btnPull" class="btn btn-outline">シートから取得</button>
+        <button id="btnPush" class="btn btn-primary">シートへ送信</button>
+        <button id="btnAddShip" class="btn btn-primary">＋ 新規</button>
+        <button id="btnMarkShipped" class="btn btn-ghost">準備→出荷済へ一括</button>
       </div>
-
-      <table class="table mt">
+      <table class="gridtbl mt-3">
         <thead>
           <tr>
             <th>日付</th><th>得意先</th><th>品名</th><th>品番</th>
@@ -38,15 +42,15 @@
         </thead>
         <tbody id="shipBody"></tbody>
       </table>
-    </div>
-  </div>
+    </section>
+  </main>
 
   <!-- Modal -->
   <div id="shipModal" class="modal hidden">
     <div class="modal-card">
       <div class="modal-head">
-        <div id="shipModalTitle">出荷計画：追加</div>
-        <button id="shipModalClose" class="btn">×</button>
+        <div id="shipModalTitle" class="font-semibold">出荷計画：追加</div>
+        <button id="shipModalClose" class="btn btn-ghost">×</button>
       </div>
       <div class="grid two">
         <label>日付<input id="sDate" type="date" class="inp"></label>
@@ -60,7 +64,7 @@
         <label class="col2">備考<textarea id="sNote" class="inp"></textarea></label>
       </div>
       <div class="modal-foot">
-        <button id="btnShipSave" class="btn primary">保存</button>
+        <button id="btnShipSave" class="btn btn-primary">保存</button>
       </div>
     </div>
   </div>
