@@ -3,514 +3,54 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>TSH • ミニERP（生産・出荷）</title>
-  <!-- Tailwind -->
+  <title>TSH • ダッシュボード</title>
+  <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Icons -->
-  <script src="https://unpkg.com/lucide@latest"></script>
-  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- QR Code -->
-  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1/qrcode.min.js"></script>
-  <!-- SheetJS for XLSX export -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <style>
-    table.grid { border-collapse: separate; border-spacing: 0; }
-    table.grid th, table.grid td { border: 1px solid #e5e7eb; padding: .5rem; font-size: 0.9rem; }
-    table.grid th { background:#f8fafc; position: sticky; top: 0; z-index: 1; }
-    td[contenteditable="true"]:focus { outline: 2px solid #3b82f6; background:#eff6ff; }
-    .badge { padding:.15rem .5rem; border-radius: 9999px; font-size:.75rem; }
-    .status-chip{border:1px solid #d1d5db;}
-    @media print{ .no-print{ display:none !important; } .print\:block{ display:block !important; } }
-  </style>
 </head>
 <body class="bg-slate-50 text-slate-800">
-  <!-- ログイン画面 -->
-  <section id="loginGate" class="fixed inset-0 bg-slate-900/60 grid place-items-center">
-    <div class="bg-white w-[520px] max-w-[92vw] rounded-2xl p-6 shadow-2xl">
-      <div class="flex items-center gap-3 mb-4">
-        <img src="tsh.png" alt="TSH" class="h-10"/>
-        <h1 class="text-lg font-semibold">TSH ミニERP ログイン</h1>
-      </div>
-      <div class="grid gap-3">
-        <label class="text-sm">ユーザー名</label>
-        <input id="loginName" class="border rounded-lg px-3 py-2" placeholder="氏名"/>
-        <label class="text-sm">所属（ロール）</label>
-        <select id="loginRole" class="border rounded-lg px-3 py-2">
-          <option>PPIC</option>
-          <option>生産</option>
-          <option>検査</option>
-          <option>物流</option>
-          <option>管理者</option>
-        </select>
-        <button id="btnEnter" class="mt-2 px-4 py-2 rounded-lg bg-indigo-600 text-white">入室</button>
-      </div>
-    </div>
-  </section>
-
-  <!-- ヘッダー -->
-  <header class="bg-white border-b sticky top-0 z-40">
-    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4">
-      <img src="tsh.png" alt="TSH" class="h-8 w-auto" />
-      <div class="font-semibold text-lg">ミニERP（生産・出荷）</div>
-      <nav class="ml-auto flex items-center gap-2 no-print">
-        <button id="btnDashboard" class="px-3 py-1.5 rounded-lg bg-indigo-600 text-white">ダッシュボード</button>
-        <button id="btnPlan" class="px-3 py-1.5 rounded-lg bg-slate-200">生産計画</button>
-        <button id="btnShipping" class="px-3 py-1.5 rounded-lg bg-slate-200">出荷計画</button>
-        <button id="btnExportCSV" class="px-3 py-1.5 rounded-lg bg-emerald-600 text-white">CSV出力</button>
-        <button id="btnExportXLSX" class="px-3 py-1.5 rounded-lg bg-emerald-700 text-white">XLSX出力</button>
-        <button onclick="window.print()" class="px-3 py-1.5 rounded-lg bg-slate-800 text-white">印刷</button>
-        <div class="flex items-center gap-2">
-          <span id="whoami" class="text-sm text-slate-600"></span>
-          <button id="btnLogout" class="px-3 py-1.5 rounded-lg bg-slate-200">ログアウト</button>
-        </div>
-      </nav>
-    </div>
+  <div id="loginBar" class="login-bar"></div>
+  <header class="topbar">
+    <img src="tsh.png" class="logo" alt="TSH"/>
+    <nav class="nav">
+      <a href="index.html" class="active">ダッシュボード</a>
+      <a href="plan.html">生産計画</a>
+      <a href="ship.html">出荷計画</a>
+      <a href="scan.html">QRスキャン</a>
+      <a href="ticket.html">生産現品票</a>
+    </nav>
   </header>
 
-  <main class="max-w-7xl mx-auto p-4 space-y-6">
-    <!-- フィルタ/検索 -->
-    <div class="no-print bg-white rounded-2xl p-4 shadow flex flex-wrap items-end gap-3">
-      <div>
-        <label class="text-xs text-slate-500">検索（品名/品番/得意先/製造番号）</label>
-        <input id="q" class="border rounded-lg px-3 py-2 w-64" placeholder="キーワード"/>
-      </div>
-      <div>
-        <label class="text-xs text-slate-500">工程</label>
-        <select id="fltProcess" class="border rounded-lg px-3 py-2">
-          <option value="">全て</option>
-        </select>
-      </div>
-      <div>
-        <label class="text-xs text-slate-500">ステータス</label>
-        <select id="fltStatus" class="border rounded-lg px-3 py-2">
-          <option value="">全て</option>
-          <option>計画</option><option>進行中</option><option>検査保留</option><option>完了</option>
-        </select>
-      </div>
-      <button id="btnClearFilter" class="px-3 py-2 rounded-lg bg-slate-200">クリア</button>
-    </div>
-
-    <!-- ダッシュボード -->
-    <section id="pageDashboard" class="space-y-4">
-      <div class="grid md:grid-cols-3 gap-4">
-        <div class="bg-white rounded-2xl p-4 shadow">
-          <h3 class="font-semibold mb-3">現在の生産状況</h3>
-          <div id="nowList" class="space-y-2 text-sm"></div>
-        </div>
-        <div class="bg-white rounded-2xl p-4 shadow">
-          <h3 class="font-semibold mb-3">在庫の所在（工程別）</h3>
-          <canvas id="byProcessChart" height="200"></canvas>
-        </div>
-        <div class="bg-white rounded-2xl p-4 shadow">
-          <h3 class="font-semibold mb-3">本日の出荷予定</h3>
-          <div id="shipToday" class="space-y-2 text-sm"></div>
-        </div>
-      </div>
-
-      <div class="bg-white rounded-2xl p-4 shadow">
-        <h3 class="font-semibold mb-3">完成品在庫</h3>
-        <div class="text-sm text-slate-600 mb-2">在庫 = 完成数量 − 出荷数量</div>
-        <table class="w-full grid table-auto grid grid-cols-12 grid-flow-row">
-          <thead class="contents">
-            <tr class="contents bg-slate-50">
-              <th class="col-span-3 p-2 border">品名</th>
-              <th class="col-span-2 p-2 border">品番</th>
-              <th class="col-span-2 p-2 border">完成数量</th>
-              <th class="col-span-2 p-2 border">出荷数量</th>
-              <th class="col-span-3 p-2 border">在庫</th>
-            </tr>
-          </thead>
-          <tbody id="stockBody" class="contents"></tbody>
-        </table>
-      </div>
+  <main class="container space-y-6">
+    <section class="card">
+      <h3>現在の生産状況</h3>
+      <div id="nowList" class="space-y-2 text-sm"></div>
     </section>
-
-    <!-- 生産計画 -->
-    <section id="pagePlan" class="hidden space-y-4">
-      <div class="bg-white rounded-2xl p-4 shadow">
-        <div class="flex items-center justify-between">
-          <h3 class="font-semibold">生産計画</h3>
-          <div class="flex gap-2">
-            <button id="btnAddPlan" class="no-print px-3 py-1.5 rounded-lg bg-indigo-600 text-white">＋ 追加</button>
-          </div>
-        </div>
-        <div class="overflow-auto max-h-[60vh] mt-3">
-          <table class="w-full grid table-auto grid-cols-[160px_150px_200px_160px_140px_200px_160px_160px_220px_120px] grid-flow-row grid border">
-            <thead class="contents">
-              <tr class="contents bg-slate-50">
-                <th class="p-2 border">得意先</th>
-                <th class="p-2 border">製造番号</th>
-                <th class="p-2 border">品名</th>
-                <th class="p-2 border">品番</th>
-                <th class="p-2 border">開始</th>
-                <th class="p-2 border">プロセス</th>
-                <th class="p-2 border">場所</th>
-                <th class="p-2 border">ステータス</th>
-                <th class="p-2 border">更新（時刻 & ユーザー）</th>
-                <th class="p-2 border">操作</th>
-              </tr>
-            </thead>
-            <tbody id="planBody" class="contents"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="bg-white rounded-2xl p-4 shadow">
-        <h3 class="font-semibold mb-3">工程フロー</h3>
-        <ol class="list-decimal pl-6 text-sm leading-7">
-          <li>レーザ工程</li>
-          <li>曲げ工程</li>
-          <li>外枠組立工程</li>
-          <li>シャッター組立工程</li>
-          <li>シャッター溶接工程</li>
-          <li>コーキング工程</li>
-          <li>外枠塗装工程</li>
-          <li>組立工程</li>
-          <li>検査工程（NGの場合：検査保留 → 製造へ戻り手直し）</li>
-        </ol>
-      </div>
+    <section class="grid md:grid-cols-2 gap-4">
+      <div class="card"><h3>在庫の所在（工程別）</h3><canvas id="byProcessChart" height="220"></canvas></div>
+      <div class="card"><h3>本日の出荷予定</h3><div id="shipToday" class="space-y-2 text-sm"></div></div>
     </section>
-
-    <!-- 出荷計画 -->
-    <section id="pageShipping" class="hidden space-y-4">
-      <div class="bg-white rounded-2xl p-4 shadow">
-        <div class="flex items-center justify-between">
-          <h3 class="font-semibold">出荷計画</h3>
-          <div class="no-print flex items-center gap-2">
-            <button id="btnAddShip" class="px-3 py-1.5 rounded-lg bg-indigo-600 text-white">＋ 追加</button>
-            <button id="btnMarkShipped" class="px-3 py-1.5 rounded-lg bg-emerald-600 text-white">出荷済にする</button>
-          </div>
-        </div>
-        <div class="overflow-auto max-h-[60vh] mt-3">
-          <table class="w-full grid table-auto grid-cols-[140px_160px_220px_140px_120px_120px_220px_220px_120px] grid-flow-row grid border">
-            <thead class="contents">
-              <tr class="contents bg-slate-50">
-                <th class="p-2 border">日付</th>
-                <th class="p-2 border">得意先</th>
-                <th class="p-2 border">品名</th>
-                <th class="p-2 border">品番</th>
-                <th class="p-2 border">数量</th>
-                <th class="p-2 border">ステータス</th>
-                <th class="p-2 border">備考</th>
-                <th class="p-2 border">更新（時刻 & ユーザー）</th>
-                <th class="p-2 border">操作</th>
-              </tr>
-            </thead>
-            <tbody id="shipBody" class="contents"></tbody>
-          </table>
-        </div>
+    <section class="card">
+      <h3>完成品在庫（完成数量 − 出荷数量）</h3>
+      <table class="gridtbl">
+        <thead><tr><th>品名</th><th>品番</th><th>完成数量</th><th>出荷数量</th><th>在庫</th></tr></thead>
+        <tbody id="stockBody"></tbody>
+      </table>
+    </section>
+    <section class="card no-print">
+      <h3>同期（Google Sheets）</h3>
+      <div class="flex items-center gap-2 flex-wrap">
+        <button id="btnPull" class="btn">シートから取得</button>
+        <button id="btnPush" class="btn">シートへ送信</button>
+        <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="autoSync"> 自動（30秒毎）</label>
+        <span id="syncLog" class="text-xs text-slate-500"></span>
       </div>
     </section>
   </main>
 
-  <!-- 生産現品票（印刷/プレビュー用モーダル）-->
-  <div id="ticketModal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center p-4">
-    <div class="bg-white w-[900px] max-w-[95vw] rounded-2xl shadow-xl overflow-hidden">
-      <div class="flex justify-between items-center px-4 py-3 border-b">
-        <h3 class="font-semibold">生産現品票</h3>
-        <div class="flex gap-2">
-          <button id="btnTicketPrint" class="px-3 py-1.5 rounded-lg bg-slate-800 text-white">印刷</button>
-          <button id="btnTicketClose" class="px-3 py-1.5 rounded-lg bg-slate-200">閉じる</button>
-        </div>
-      </div>
-      <div id="ticket" class="p-4">
-        <!-- レイアウトはアップロードされた票（PDF）の構成に合わせて配置 -->
-        <div class="border p-3">
-          <div class="text-center font-bold">シャトルガード・生産現品票</div>
-          <div class="grid grid-cols-4 gap-2 mt-2 text-sm">
-            <div>得意先：<span id="t-customer"></span></div>
-            <div>製造番号：<span id="t-prodNo"></span></div>
-            <div>投入日：<span id="t-start"></span></div>
-            <div>品番：<span id="t-itemNo"></span></div>
-            <div class="col-span-2">品名：<span id="t-itemName"></span></div>
-            <div>担当：<span id="t-user"></span></div>
-            <div id="qrcode" class="justify-self-end"></div>
-          </div>
-          <hr class="my-3"/>
-          <div class="text-sm">
-            <div class="font-semibold mb-1">工程チェック（摘要）</div>
-            <table class="grid table-auto grid-cols-[160px_1fr_140px_140px_140px_140px] grid-flow-row border">
-              <thead class="contents">
-                <tr class="contents bg-slate-50">
-                  <th class="p-1 border">工程名</th>
-                  <th class="p-1 border">重要ポイント</th>
-                  <th class="p-1 border">投入数</th>
-                  <th class="p-1 border">合格数</th>
-                  <th class="p-1 border">不合格数</th>
-                  <th class="p-1 border">修正数</th>
-                </tr>
-              </thead>
-              <tbody id="t-process" class="contents"></tbody>
-            </table>
-            <div class="mt-2 text-xs text-slate-500">※票レイアウトは、提出PDFの構成（ヘッダ・工程表・不合格欄 など）に基づいています。</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 追加/編集モーダル（生産） -->
-  <div id="planModal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center p-4">
-    <div class="bg-white w-[720px] max-w-[95vw] rounded-2xl shadow-xl">
-      <div class="flex justify-between items-center px-4 py-3 border-b"><h3 class="font-semibold" id="planModalTitle">生産計画：追加</h3><button id="planModalClose" class="px-3 py-1.5 rounded-lg bg-slate-200">閉じる</button></div>
-      <div class="p-4 grid gap-3">
-        <div class="grid grid-cols-2 gap-3">
-          <div><label class="text-xs">得意先</label><input id="fCustomer" class="border rounded-lg px-3 py-2 w-full"/></div>
-          <div><label class="text-xs">製造番号</label><input id="fProdNo" class="border rounded-lg px-3 py-2 w-full"/></div>
-          <div><label class="text-xs">品名</label><input id="fItemName" class="border rounded-lg px-3 py-2 w-full"/></div>
-          <div><label class="text-xs">品番</label><input id="fItemNo" class="border rounded-lg px-3 py-2 w-full"/></div>
-          <div><label class="text-xs">開始</label><input type="date" id="fStart" class="border rounded-lg px-3 py-2 w-full"/></div>
-          <div><label class="text-xs">プロセス</label><select id="fProcess" class="border rounded-lg px-3 py-2 w-full"></select></div>
-          <div><label class="text-xs">場所</label><input id="fLocation" class="border rounded-lg px-3 py-2 w-full" value="PPIC"/></div>
-          <div><label class="text-xs">ステータス</label><select id="fStatus" class="border rounded-lg px-3 py-2 w-full"><option>計画</option><option>進行中</option><option>検査保留</option><option>完了</option></select></div>
-        </div>
-        <div class="flex gap-2 justify-end">
-          <button id="btnPlanSave" class="px-4 py-2 rounded-lg bg-indigo-600 text-white">保存</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 追加/編集モーダル（出荷） -->
-  <div id="shipModal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center p-4">
-    <div class="bg-white w-[720px] max-w-[95vw] rounded-2xl shadow-xl">
-      <div class="flex justify-between items-center px-4 py-3 border-b"><h3 class="font-semibold" id="shipModalTitle">出荷計画：追加</h3><button id="shipModalClose" class="px-3 py-1.5 rounded-lg bg-slate-200">閉じる</button></div>
-      <div class="p-4 grid gap-3">
-        <div class="grid grid-cols-2 gap-3">
-          <div><label class="text-xs">日付</label><input type="date" id="sDate" class="border rounded-lg px-3 py-2 w-full"/></div>
-          <div><label class="text-xs">得意先</label><input id="sCustomer" class="border rounded-lg px-3 py-2 w-full"/></div>
-          <div><label class="text-xs">品名</label><input id="sItemName" class="border rounded-lg px-3 py-2 w-full"/></div>
-          <div><label class="text-xs">品番</label><input id="sItemNo" class="border rounded-lg px-3 py-2 w-full"/></div>
-          <div><label class="text-xs">数量</label><input type="number" id="sQty" class="border rounded-lg px-3 py-2 w-full"/></div>
-          <div><label class="text-xs">ステータス</label><select id="sStatus" class="border rounded-lg px-3 py-2 w-full"><option>出荷準備</option><option>出荷済</option></select></div>
-          <div class="col-span-2"><label class="text-xs">備考</label><input id="sNote" class="border rounded-lg px-3 py-2 w-full"/></div>
-        </div>
-        <div class="flex gap-2 justify-end">
-          <button id="btnShipSave" class="px-4 py-2 rounded-lg bg-indigo-600 text-white">保存</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
+  <script src="app.js"></script>
   <script>
-    // ====== 定義 ======
-    const PROCESS_LIST = ["レーザ工程","曲げ工程","外枠組立工程","シャッター組立工程","シャッター溶接工程","コーキング工程","外枠塗装工程","組立工程","検査工程"];
-
-    // Google Apps Script エンドポイント（デプロイ後に設定）
-    const SHEET_ENDPOINT = { PLAN_POST:"", PLAN_GET:"", SHIP_POST:"", SHIP_GET:"" };
-
-    // ====== 状態 ======
-    let STATE = {
-      user: localStorage.getItem('tsh_user') || "",
-      role: localStorage.getItem('tsh_role') || "",
-      plan: JSON.parse(localStorage.getItem('tsh_plan')||"[]"),
-      ship: JSON.parse(localStorage.getItem('tsh_ship')||"[]"),
-      editIndex: null,
-      editShipIndex: null,
-    };
-
-    // ====== ユーティリティ ======
-    const $ = (q)=>document.querySelector(q);
-    const todayStr = ()=>new Date().toISOString().slice(0,10);
-    function saveLocal(){ localStorage.setItem('tsh_plan', JSON.stringify(STATE.plan)); localStorage.setItem('tsh_ship', JSON.stringify(STATE.ship)); }
-    function stamp(){ return `${new Date().toLocaleString()} | ${STATE.user||'-'}` }
-
-    // ====== 認証：表示制御 ======
-    function gate(){
-      if(!STATE.user){ $('#loginGate').classList.remove('hidden'); } else { $('#loginGate').classList.add('hidden'); }
-      $('#whoami').textContent = STATE.user ? `${STATE.user}（${STATE.role}）` : '';
-      // 権限簡易設定
-      const isPPIC = STATE.role==='PPIC' || STATE.role==='管理者';
-      const isLogi = STATE.role==='物流' || STATE.role==='管理者';
-      const isProd = STATE.role==='生産' || STATE.role==='管理者';
-      const isKensa= STATE.role==='検査' || STATE.role==='管理者';
-      // 画面制御
-      $('#btnAddPlan').disabled = !isPPIC && !isProd;
-      $('#btnAddShip').disabled = !isLogi && !isPPIC;
-      $('#btnMarkShipped').disabled = !isLogi;
-    }
-
-    // ====== ログイン動作 ======
-    $('#btnEnter').onclick = ()=>{
-      const n = $('#loginName').value.trim(); const r = $('#loginRole').value;
-      if(!n){ alert('ユーザー名を入力してください。'); return; }
-      STATE.user = n; STATE.role = r; localStorage.setItem('tsh_user', n); localStorage.setItem('tsh_role', r); gate(); renderAll();
-    };
-    $('#btnLogout').onclick = ()=>{ localStorage.removeItem('tsh_user'); localStorage.removeItem('tsh_role'); STATE.user=''; STATE.role=''; gate(); };
-
-    // ====== ナビゲーション ======
-    $('#btnDashboard').onclick = ()=>showPage('Dashboard');
-    $('#btnPlan').onclick      = ()=>showPage('Plan');
-    $('#btnShipping').onclick  = ()=>showPage('Shipping');
-    function showPage(name){ ['Dashboard','Plan','Shipping'].forEach(p=>{ $('#page'+p).classList.toggle('hidden', p!==name); const b=$('#btn'+p); b.classList.toggle('bg-indigo-600', p===name); b.classList.toggle('text-white', p===name); b.classList.toggle('bg-slate-200', p!==name); }); }
-
-    // ====== フィルタ ======
-    const fltProcess = $('#fltProcess'); PROCESS_LIST.forEach(p=>{ const o=document.createElement('option'); o.textContent=p; fltProcess.appendChild(o); });
-    $('#btnClearFilter').onclick=()=>{ $('#q').value=''; $('#fltProcess').value=''; $('#fltStatus').value=''; renderAll(); };
-    ['q','fltProcess','fltStatus'].forEach(id=>{ $('#'+id).addEventListener('input', ()=>{ renderPlan(); renderDashboard(); }); });
-
-    function filteredPlan(){ const q=$('#q').value.toLowerCase(); const pr=$('#fltProcess').value; const st=$('#fltStatus').value; return STATE.plan.filter(p=>{ const hit = (p.itemName||'').toLowerCase().includes(q) || (p.itemNo||'').toLowerCase().includes(q) || (p.customer||'').toLowerCase().includes(q) || (p.prodNo||'').toLowerCase().includes(q); return (!q || hit) && (!pr || p.process===pr) && (!st || p.status===st); }); }
-
-    // ====== 生産計画：テーブル描画 ======
-    const planBody = $('#planBody');
-    $('#btnAddPlan').onclick = ()=>{ openPlanModal(); };
-    function planRow(p, idx){ return `<tr class="contents">
-        <td class="p-2 border">${p.customer||''}</td>
-        <td class="p-2 border">${p.prodNo||''}</td>
-        <td class="p-2 border">${p.itemName||''}</td>
-        <td class="p-2 border">${p.itemNo||''}</td>
-        <td class="p-2 border">${p.start||''}</td>
-        <td class="p-2 border">${p.process||''}</td>
-        <td class="p-2 border">${p.location||''}</td>
-        <td class="p-2 border">${p.status||''}</td>
-        <td class="p-2 border text-xs">${p.updated||''}</td>
-        <td class="p-2 border text-sm"><button class="px-2 py-1 rounded bg-slate-200" onclick="editPlan(${idx})">編集</button> <button class="px-2 py-1 rounded bg-slate-200" onclick="openTicket(${idx})">票</button></td>
-      </tr>` }
-    function renderPlan(){ const rows = filteredPlan().map((p,i)=> planRow(p, STATE.plan.indexOf(p))).join(''); planBody.innerHTML = rows || `<tr class='contents'><td class='p-3 border col-span-10 text-slate-500'>データがありません。</td></tr>`; renderDashboard(); }
-
-    // ====== 出荷計画：テーブル描画 ======
-    const shipBody = $('#shipBody');
-    $('#btnAddShip').onclick = ()=>{ openShipModal(); };
-    $('#btnMarkShipped').onclick = ()=>{ if(!confirm('選択不要：出荷準備 → 出荷済 に一括変更します。')) return; STATE.ship.forEach(s=>{ if(s.status==='出荷準備'){ s.status='出荷済'; s.updated=stamp(); }}); saveLocal(); renderShip(); renderDashboard(); syncQtyShip(); };
-    function shipRow(s, idx){ return `<tr class="contents">
-        <td class="p-2 border">${s.date||''}</td>
-        <td class="p-2 border">${s.customer||''}</td>
-        <td class="p-2 border">${s.itemName||''}</td>
-        <td class="p-2 border">${s.itemNo||''}</td>
-        <td class="p-2 border text-right">${s.qty||0}</td>
-        <td class="p-2 border">${s.status||''}</td>
-        <td class="p-2 border">${s.note||''}</td>
-        <td class="p-2 border text-xs">${s.updated||''}</td>
-        <td class="p-2 border text-sm"><button class="px-2 py-1 rounded bg-slate-200" onclick="editShip(${idx})">編集</button></td>
-      </tr>` }
-    function renderShip(){ shipBody.innerHTML = STATE.ship.map(shipRow).join('') || `<tr class='contents'><td class='p-3 border col-span-9 text-slate-500'>データがありません。</td></tr>`; }
-
-    // ====== モーダル（生産） ======
-    window.openPlanModal = (idx=null)=>{
-      STATE.editIndex = idx; $('#planModalTitle').textContent = idx==null? '生産計画：追加' : '生産計画：編集';
-      $('#fCustomer').value = idx==null? '' : STATE.plan[idx].customer||'';
-      $('#fProdNo').value   = idx==null? '' : STATE.plan[idx].prodNo||'';
-      $('#fItemName').value = idx==null? '' : STATE.plan[idx].itemName||'';
-      $('#fItemNo').value   = idx==null? '' : STATE.plan[idx].itemNo||'';
-      $('#fStart').value    = idx==null? todayStr() : (STATE.plan[idx].start||todayStr());
-      $('#fLocation').value = idx==null? 'PPIC' : STATE.plan[idx].location||'';
-      const sel = $('#fProcess'); sel.innerHTML = PROCESS_LIST.map(p=>`<option>${p}</option>`).join(''); sel.value = idx==null? PROCESS_LIST[0] : STATE.plan[idx].process||PROCESS_LIST[0];
-      $('#fStatus').value   = idx==null? '計画' : STATE.plan[idx].status||'計画';
-      $('#planModal').classList.remove('hidden'); $('#planModal').classList.add('flex');
-    }
-    window.editPlan = (idx)=> openPlanModal(idx);
-    $('#planModalClose').onclick = ()=>{ $('#planModal').classList.add('hidden'); $('#planModal').classList.remove('flex'); };
-    $('#btnPlanSave').onclick = ()=>{
-      const rec = { customer:$('#fCustomer').value.trim(), prodNo:$('#fProdNo').value.trim(), itemName:$('#fItemName').value.trim(), itemNo:$('#fItemNo').value.trim(), start:$('#fStart').value, process:$('#fProcess').value, location:$('#fLocation').value.trim(), status:$('#fStatus').value, updated: stamp(), qtyDone:0, qtyShip:0 };
-      if(STATE.editIndex==null){ STATE.plan.unshift(rec); } else { STATE.plan[STATE.editIndex] = {...STATE.plan[STATE.editIndex], ...rec}; }
-      saveLocal(); renderPlan(); $('#planModal').classList.add('hidden');
-      pushToSheet('PLAN_POST', {...rec, user: STATE.user});
-    };
-
-    // ====== モーダル（出荷） ======
-    window.openShipModal = (idx=null)=>{
-      STATE.editShipIndex = idx; $('#shipModalTitle').textContent = idx==null? '出荷計画：追加' : '出荷計画：編集';
-      const s = idx==null? {date:todayStr(), customer:'', itemName:'', itemNo:'', qty:0, status:'出荷準備', note:''} : STATE.ship[idx];
-      $('#sDate').value=s.date; $('#sCustomer').value=s.customer; $('#sItemName').value=s.itemName; $('#sItemNo').value=s.itemNo; $('#sQty').value=s.qty; $('#sStatus').value=s.status; $('#sNote').value=s.note;
-      $('#shipModal').classList.remove('hidden'); $('#shipModal').classList.add('flex');
-    }
-    window.editShip = (idx)=> openShipModal(idx);
-    $('#shipModalClose').onclick = ()=>{ $('#shipModal').classList.add('hidden'); $('#shipModal').classList.remove('flex'); };
-    $('#btnShipSave').onclick = ()=>{
-      const rec = { date:$('#sDate').value, customer:$('#sCustomer').value.trim(), itemName:$('#sItemName').value.trim(), itemNo:$('#sItemNo').value.trim(), qty:Number($('#sQty').value||0), status:$('#sStatus').value, note:$('#sNote').value.trim(), updated: stamp() };
-      if(STATE.editShipIndex==null){ STATE.ship.unshift(rec); } else { STATE.ship[STATE.editShipIndex] = {...STATE.ship[STATE.editShipIndex], ...rec}; }
-      saveLocal(); renderShip(); $('#shipModal').classList.add('hidden'); syncQtyShip(); pushToSheet('SHIP_POST', {...rec, user: STATE.user});
-    };
-
-    function syncQtyShip(){ STATE.plan.forEach(p=>{ const shipped = STATE.ship.filter(s=>s.itemNo===p.itemNo && s.status==='出荷済').reduce((a,b)=>a+Number(b.qty||0),0); p.qtyShip = shipped; }); saveLocal(); renderDashboard(); }
-
-    // ====== ダッシュボード & 在庫 ======
-    let chartByProcess;
-    function renderDashboard(){
-      // 現在の生産状況（フィルタ反映）
-      const now = filteredPlan().slice(0,8).map(p=>`<div class=\"flex items-center justify-between border rounded-lg p-2\"><div><div class=\"font-medium\">${p.itemName||'-'} <span class=\"text-slate-500\">(${p.itemNo||''})</span></div><div class=\"text-xs text-slate-500\">得意先: ${p.customer||'-'} • 製造番号: ${p.prodNo||'-'} • 開始: ${p.start||'-'}</div></div><div class=\"text-right\"><div class=\"badge status-chip\">${p.process||'-'} / ${p.status||'-'}</div><div class=\"text-xs text-slate-500\">${p.updated||''}</div></div></div>`).join('');
-      $('#nowList').innerHTML = now || '<div class="text-sm text-slate-500">データがありません。</div>';
-      // 工程別カウント
-      const counts = PROCESS_LIST.map(proc=>filteredPlan().filter(p=>p.process===proc).length);
-      const ctx = document.getElementById('byProcessChart').getContext('2d'); if(chartByProcess) chartByProcess.destroy(); chartByProcess = new Chart(ctx, { type:'bar', data:{ labels: PROCESS_LIST, datasets:[{ label:'件数', data: counts }] }, options:{ plugins:{legend:{display:false}}, scales:{x:{ticks:{font:{size:10}}}} } });
-      // 本日の出荷
-      const today = todayStr(); const todayList = STATE.ship.filter(s=>s.date===today).map(s=>`<div class=\"flex items-center justify-between border rounded-lg p-2\"><div><div class=\"font-medium\">${s.itemName||'-'}</div><div class=\"text-xs text-slate-500\">${s.customer||'-'} • 数量: ${s.qty||0}</div></div><div><span class=\"badge status-chip\">${s.status}</span><div class=\"text-xs text-slate-500 text-right\">${s.updated||''}</div></div></div>`).join(''); $('#shipToday').innerHTML = todayList || '<div class="text-sm text-slate-500">本日の出荷予定はありません。</div>';
-      // 在庫
-      const stock = Object.values(STATE.plan.reduce((acc,p)=>{ const key=p.itemNo||p.itemName; acc[key] ||= { itemName:p.itemName, itemNo:p.itemNo, qtyDone:0, qtyShip:0 }; acc[key].qtyDone += Number(p.qtyDone||0); acc[key].qtyShip = STATE.ship.filter(s=>s.itemNo===p.itemNo && s.status==='出荷済').reduce((a,b)=>a+Number(b.qty||0),0); return acc; },{}));
-      $('#stockBody').innerHTML = stock.map(r=>`<tr class=\"contents\"><td class=\"p-2 border col-span-3\">${r.itemName||'-'}</td><td class=\"p-2 border col-span-2\">${r.itemNo||'-'}</td><td class=\"p-2 border col-span-2 text-right\">${r.qtyDone||0}</td><td class=\"p-2 border col-span-2 text-right\">${r.qtyShip||0}</td><td class=\"p-2 border col-span-3 text-right font-semibold\">${(r.qtyDone||0)-(r.qtyShip||0)}</td></tr>`).join('');
-    }
-
-    // ====== チケット（生産現品票） ======
-    window.openTicket = (idx)=>{
-      const p = STATE.plan[idx]; if(!p) return;
-      $('#t-customer').textContent=p.customer||''; $('#t-prodNo').textContent=p.prodNo||''; $('#t-start').textContent=p.start||''; $('#t-itemNo').textContent=p.itemNo||''; $('#t-itemName').textContent=p.itemName||''; $('#t-user').textContent=STATE.user||'';
-      // 工程行（簡易）
-      const important = ['表面のキズ/変色/サビの有無','曲げ角度・割れ/クラックの有無','外枠組付け','シャッター組立','溶接状態','コーキング不足/穴あき/割れの有無','塗装ムラ/剥がれ/キズの有無','組立仕上げ','ワイパー/カバーのスキ間 など'];
-      const rows = PROCESS_LIST.map((name,i)=>`<tr class=\"contents\"><td class=\"p-1 border\">${name}</td><td class=\"p-1 border text-xs\">${important[i]||''}</td><td class=\"p-1 border\"></td><td class=\"p-1 border\"></td><td class=\"p-1 border\"></td><td class=\"p-1 border\"></td></tr>`).join('');
-      $('#t-process').innerHTML = rows;
-      // QRコード（製造番号+品番）
-      $('#qrcode').innerHTML=''; new QRCode(document.getElementById('qrcode'), {text:`${p.prodNo}|${p.itemNo}`, width:80, height:80});
-      // 表示
-      const modal = document.getElementById('ticketModal'); modal.classList.remove('hidden'); modal.classList.add('flex');
-    };
-    document.getElementById('btnTicketClose').onclick = ()=>{ const modal=document.getElementById('ticketModal'); modal.classList.add('hidden'); modal.classList.remove('flex'); };
-    document.getElementById('btnTicketPrint').onclick = ()=>{ window.print(); };
-
-    // ====== エクスポート ======
-    document.getElementById('btnExportCSV').onclick = ()=>{ const csv = toCSV({ plan: STATE.plan, ship: STATE.ship }); downloadFile(`TSH-export-${todayStr()}.csv`, csv); };
-    document.getElementById('btnExportXLSX').onclick = ()=>{ exportXLSX(); };
-
-    function toCSV(){ const planCols=['customer','prodNo','itemName','itemNo','start','process','location','status','updated','qtyDone','qtyShip']; const shipCols=['date','customer','itemName','itemNo','qty','status','note','updated']; const head = '#PLAN
-'+planCols.join(',')+'
-'+STATE.plan.map(r=>planCols.map(k=>`"${(r[k]??'').toString().replaceAll('"','""')}"`).join(',')).join('
-')+'
-
-#SHIP
-'+shipCols.join(',')+'
-'+STATE.ship.map(r=>shipCols.map(k=>`"${(r[k]??'').toString().replaceAll('"','""')}"`).join(',')).join('
-'); return head; }
-    function downloadFile(name, content){ const blob = new Blob([content], {type:'text/csv;charset=utf-8;'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download=name; a.click(); URL.revokeObjectURL(url); }
-    function exportXLSX(){ const wb = XLSX.utils.book_new(); const planSheet = XLSX.utils.json_to_sheet(STATE.plan); const shipSheet = XLSX.utils.json_to_sheet(STATE.ship); XLSX.utils.book_append_sheet(wb, planSheet, 'PLAN'); XLSX.utils.book_append_sheet(wb, shipSheet, 'SHIP'); XLSX.writeFile(wb, `TSH-export-${todayStr()}.xlsx`); }
-
-    // ====== Google Sheets 連携（任意） ======
-    async function pushToSheet(which, payload){ const url = SHEET_ENDPOINT[which]; if(!url) return; try{ await fetch(url, {method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'}, body: JSON.stringify({...payload, user: STATE.user})}); }catch(e){ console.warn('Sheet push skipped', e); } }
-
-    // ====== 初期化 ======
-    function renderAll(){ renderPlan(); renderShip(); renderDashboard(); }
-    (function init(){ gate(); showPage('Dashboard'); renderAll(); lucide.createIcons(); })();
+    App.initPage('dashboard');
   </script>
-
-  <!-- ================== スプレッドシート構築手順（日本語ヘッダ） ==================
-  1) Googleスプレッドシートを作成し、シート名を PLAN と SHIP にします。
-  2) 1行目ヘッダ（A1〜）に以下を入力：
-     PLAN: 得意先, 製造番号, 品名, 品番, 開始, プロセス, 場所, ステータス, 更新, 完成数量, 出荷数量, ユザー
-     SHIP: 日付, 得意先, 品名, 品番, 数量, ステータス, 備考, 更新, ユザー
-  3) Apps Scriptを作成（拡張機能 → Apps Script）して、下記コードを貼付。
-  4) Webアプリとしてデプロイ（アクセス：Anyone with the link）。取得URLを上記SHEET_ENDPOINTに設定。
-
-  // ======= Apps Script (Code.gs) =======
-  const SPREADSHEET_ID = 'シートIDに置換';
-  const HEAD_PLAN = ['得意先','製造番号','品名','品番','開始','プロセス','場所','ステータス','更新','完成数量','出荷数量','ユザー'];
-  const HEAD_SHIP = ['日付','得意先','品名','品番','数量','ステータス','備考','更新','ユザー'];
-
-  function doPost(e){
-    const body = JSON.parse(e.postData.contents);
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    if(body.date){
-      const sh = ss.getSheetByName('SHIP'); sh.appendRow(HEAD_SHIP.map(h=> body[h] ?? body[ mapKey(h) ] ?? ''));
-    } else {
-      const sh = ss.getSheetByName('PLAN'); sh.appendRow(HEAD_PLAN.map(h=> body[h] ?? body[ mapKey(h) ] ?? ''));
-    }
-    return ContentService.createTextOutput('ok').setMimeType(ContentService.MimeType.TEXT);
-  }
-  function mapKey(jp){ const m={'得意先':'customer','製造番号':'prodNo','品名':'itemName','品番':'itemNo','開始':'start','プロセス':'process','場所':'location','ステータス':'status','更新':'updated','完成数量':'qtyDone','出荷数量':'qtyShip','ユザー':'user','日付':'date','数量':'qty','備考':'note'}; return m[jp]; }
-  function doGet(e){
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    const plan = (ss.getSheetByName('PLAN').getDataRange().getValues().slice(1)||[]).map(r=>({customer:r[0],prodNo:r[1],itemName:r[2],itemNo:r[3],start:r[4],process:r[5],location:r[6],status:r[7],updated:r[8],qtyDone:Number(r[9]||0),qtyShip:Number(r[10]||0),user:r[11]}));
-    const ship = (ss.getSheetByName('SHIP').getDataRange().getValues().slice(1)||[]).map(r=>({date:r[0],customer:r[1],itemName:r[2],itemNo:r[3],qty:Number(r[4]||0),status:r[5],note:r[6],updated:r[7],user:r[8]}));
-    return ContentService.createTextOutput(JSON.stringify({plan, ship})).setMimeType(ContentService.MimeType.JSON);
-  }
-  // =================================================== -->
 </body>
 </html>
