@@ -1,76 +1,65 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ERPシステム 東京精密発條株式会社 • ダッシュボード</title>
-  <link rel="stylesheet" href="style.css" />
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
-<body class="bg-slate-50 text-slate-800">
-  <div id="loginBar" class="login-bar"></div>
+<!DOCTYPE html><html lang="ja"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>ERPシステム • ダッシュボード</title>
+<link rel="stylesheet" href="style.css"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head><body>
+<div id="loginBar" class="login-bar"></div>
 
-  <header class="topbar">
-    <div class="flex items-center gap-2">
-      <img src="tsh.png" class="logo" alt="TSH"/>
-      <div class="brand">
-        <div class="brand-title">ERPシステム</div>
-        <div class="brand-sub">東京精密発條株式会社</div>
-      </div>
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="brand">
+    <img src="tsh.png" class="logo" alt="TSH"><div><div class="brand-title">ERPシステム</div><div class="brand-sub">東京精密発條株式会社</div></div>
+  </div>
+  <nav class="nav">
+    <a href="index.html" class="active">ダッシュボード</a>
+    <a href="plan.html">生産計画</a>
+    <a href="ship.html">出荷計画</a>
+    <a href="confirm.html">出荷確認書</a>
+    <a href="scan.html">QRスキャン</a>
+    <a href="ticket.html">生産現品票</a>
+  </nav>
+  <div class="actions"><button id="btnLogout" class="btn btn-outline">ログアウト</button></div>
+</header>
+
+<main class="container space-y-6">
+  <section class="card">
+    <h3>現在の生産状況</h3>
+    <div id="nowList" class="space-y-2 text-sm"></div>
+  </section>
+
+  <section class="grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div class="card">
+      <h3>在庫の所在（工程別）</h3>
+      <canvas id="byProcessChart" height="220"></canvas>
     </div>
-    <nav class="nav">
-      <a href="index.html" class="active">ダッシュボード</a>
-      <a href="plan.html">生産計画</a>
-      <a href="ship.html">出荷計画</a>
-      <a href="confirm.html">出荷確認書</a>
-      <a href="scan.html">QRスキャン</a>
-      <a href="ticket.html">生産現品票</a>
-    </nav>
-    <!-- di header/nav -->
-<div id="picPicker" class="no-print" style="margin-left:auto;"></div>
-
-    <div class="ml-auto flex items-center gap-2">
-      <span id="syncLog" class="badge-secondary"></span>
-      <button id="btnLogout" class="btn btn-ghost">ログアウト</button>
+    <div class="card">
+      <h3>本日の出荷予定</h3>
+      <div id="shipToday" class="space-y-2 text-sm"></div>
     </div>
-  </header>
+  </section>
 
-  <main class="container space-y-6">
-    <section class="grid md:grid-cols-2 gap-4">
-      <div class="card">
-        <div class="card-head"><h3>在庫の所在（工程別）</h3></div>
-        <canvas id="byProcessChart" height="220"></canvas>
-      </div>
-      <div class="card">
-        <div class="card-head"><h3>本日の出荷予定</h3></div>
-        <div id="shipToday" class="space-y-2 text-sm"></div>
-      </div>
-    </section>
+  <section class="card">
+    <h3>完成品在庫（完成数量 − 出荷数量）</h3>
+    <table class="gridtbl">
+      <thead><tr><th>品名</th><th>品番</th><th>完成数量</th><th>出荷数量</th><th>在庫</th></tr></thead>
+      <tbody id="stockBody"></tbody>
+    </table>
+  </section>
 
-    <section class="card">
-      <div class="card-head"><h3>完成品在庫（完成数量 − 出荷数量）</h3></div>
-      <table class="gridtbl">
-        <thead><tr><th>品名</th><th>品番</th><th>完成数量</th><th>出荷数量</th><th>在庫</th></tr></thead>
-        <tbody id="stockBody"></tbody>
-      </table>
-    </section>
+  <section class="card no-print">
+    <h3>同期（Google Sheets）</h3>
+    <div class="text-muted" style="margin-bottom:8px">ここはGoogleスプレッドシートとの同期エリアです。<br>シートから取得＝サーバー→アプリ、シートへ送信＝アプリ→サーバー、自動＝30秒毎、ローカル削除＝ブラウザの一時保存データを消去（キャッシュをクリア）。</div>
+    <div class="flex" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <button id="btnPull" class="btn btn-outline">シートから取得</button>
+      <button id="btnPush" class="btn btn-primary">シートへ送信</button>
+      <label class="text-sm"><input type="checkbox" id="autoSync"/> 自動（30秒毎）</label>
+      <button id="btnClearLocal" class="btn btn-outline">ローカル削除</button>
+      <span id="syncLog" class="text-muted"></span>
+    </div>
+  </section>
+</main>
 
-    <section class="card no-print">
-      <div class="card-head"><h3>同期（Google Sheets）</h3></div>
-      <div class="flex items-center gap-2 flex-wrap">
-        <button id="btnPull" class="btn btn-outline">シートから取得</button>
-        <button id="btnPush" class="btn btn-primary">シートへ送信</button>
-        <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="autoSync"> 自動（30秒毎）</label>
-        <button id="btnClearLocal" class="btn btn-ghost">ローカル削除</button>
-      </div>
-      <div class="text-xs text-slate-500 mt-1">
-        ここはGoogleスプレッドシートとの同期エリアです。<b>シートから取得</b>＝サーバー→アプリ、<b>シートへ送信</b>＝アプリ→サーバー、<b>自動</b>＝30秒ごとに取得、<b>ローカル削除</b>＝ブラウザの一時保存データを消去（キャッシュをクリア）。
-      </div>
-    </section>
-  </main>
-
-  <script src="app.js"></script>
-  <script>App.initPage('dashboard');</script>
-</body>
-</html>
+<script src="app.js"></script>
+<script>App.initPage('dashboard')</script>
+</body></html>
