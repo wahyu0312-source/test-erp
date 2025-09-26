@@ -1,7 +1,8 @@
-:root{--pri:#5b6ee1;}
-*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;font-size:14px;color:#0f172a;background:#f8fafc}
+:root{--pri:#5b6ee1}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;font-size:14px;color:#0f172a;background:#f8fafc}
 a{color:inherit;text-decoration:none}
-.nav{display:flex;gap:12px;align-items:center;padding:10px 12px;background:#fff;border-bottom:1px solid #e5e7eb;position:sticky;top:0}
+.nav{display:flex;gap:12px;align-items:center;padding:10px 12px;background:#fff;border-bottom:1px solid #e5e7eb;position:sticky;top:0;z-index:10}
 .nav .logo{height:22px;margin-right:6px}
 .nav a{padding:6px 10px;border-radius:8px}
 .nav a.active{background:#eef2ff;color:#1e3a8a}
@@ -25,10 +26,19 @@ h1{font-size:16px;margin:0 0 8px}
 .btn{padding:7px 12px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;cursor:pointer}
 .btn.primary{background:var(--pri);border-color:var(--pri);color:#fff}
 .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.text-xs{font-size:12px}
+.font-semibold{font-weight:600}
+.font-medium{font-weight:500}
+.text-right{text-align:right}
+.text-slate-500{color:#64748b}
 
+/* login */
 .login-overlay{position:fixed;inset:0;background:rgba(15,23,42,.3);display:none;align-items:center;justify-content:center;z-index:50}
 .login-card{background:#fff;padding:16px;border-radius:12px;min-width:280px;box-shadow:0 10px 30px rgba(0,0,0,.15)}
+.text-lg{font-size:16px}
+.mb-2{margin-bottom:8px}
 
+/* modal */
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;z-index:60}
 .modal.hidden{display:none}
 .modal-card{background:#fff;border-radius:12px;min-width:660px;max-width:90vw}
@@ -36,6 +46,14 @@ h1{font-size:16px;margin:0 0 8px}
 .modal-foot{border-top:1px solid #e5e7eb;border-bottom:none}
 .modal-card .grid{padding:12px}
 
+/* dashboard list (versi awal) */
+.list{display:grid;gap:8px}
+.list-item{display:flex;align-items:center;justify-content:space-between;border:1px solid #e5e7eb;background:#fff;border-radius:10px;padding:10px}
+.meta{font-size:12px;color:#64748b}
+.status-chip{background:#eef2ff;border-color:#c7d2fe}
+#syncLog{font-size:12px;color:#475569;background:#f1f5f9;padding:4px 8px;border-radius:8px}
+
+/* ticket */
 .ticket.A4{background:#fff;color:#000;max-width:1024px;margin:10px auto;padding:12px;border:1px solid #000}
 .ticket .row{display:flex;gap:10px}
 .ticket .between{justify-content:space-between}
@@ -44,13 +62,6 @@ h1{font-size:16px;margin:0 0 8px}
 .ticket-grid th{background:#f1f5f9}
 
 .no-print{display:block}
-/* --- dashboard list --- */
-.list {display:grid; gap:8px}
-.list-item{display:flex; align-items:center; justify-content:space-between;
-  border:1px solid #e5e7eb; background:#fff; border-radius:10px; padding:10px}
-.list-item .meta{font-size:12px; color:#64748b}
-.status-chip{background:#eef2ff; border-color:#c7d2fe}
-
 @media print{
   .no-print{display:none!important}
   body{background:#fff}
