@@ -18,17 +18,19 @@ const App = (function () {
   // === Ganti dengan URL Apps Script kamu (semua boleh sama) ===
   var SHEET_ENDPOINT = {
     PLAN_POST: "https://script.google.com/macros/s/AKfycbwlSzA-9aT_9OPvgcuyq8CDG-exBuuTSICY5q4gQXYTR-Won5mcquGCLLNcci7aWGo5/exec",   // e.g. https://script.google.com/macros/s/XXXX/exec
-    PLAN_GET:  "",
-    SHIP_POST: "",
-    SHIP_GET:  ""
+    PLAN_GET:  "https://script.google.com/macros/s/AKfycbwlSzA-9aT_9OPvgcuyq8CDG-exBuuTSICY5q4gQXYTR-Won5mcquGCLLNcci7aWGo5/exec",
+    SHIP_POST: "https://script.google.com/macros/s/AKfycbwlSzA-9aT_9OPvgcuyq8CDG-exBuuTSICY5q4gQXYTR-Won5mcquGCLLNcci7aWGo5/exec",
+    SHIP_GET:  "https://script.google.com/macros/s/AKfycbwlSzA-9aT_9OPvgcuyq8CDG-exBuuTSICY5q4gQXYTR-Won5mcquGCLLNcci7aWGo5/exec",
+    AUTH:      "Login"    // untuk login (POST action:"login")
   };
 
   // State global (disimpan di localStorage juga)
   var state = {
-    user: localStorage.getItem('tsh_user') || "",
-    role: localStorage.getItem('tsh_role') || "",
-    plan: JSON.parse(localStorage.getItem('tsh_plan') || "[]"),
-    ship: JSON.parse(localStorage.getItem('tsh_ship') || "[]"),
+    user:  localStorage.getItem('tsh_user')  || "",
+    role:  localStorage.getItem('tsh_role')  || "",
+    token: localStorage.getItem('tsh_token') || "",
+    plan:  JSON.parse(localStorage.getItem('tsh_plan') || "[]"),
+    ship:  JSON.parse(localStorage.getItem('tsh_ship') || "[]"),
     _interval: null
   };
 
@@ -42,32 +44,44 @@ const App = (function () {
   }
   function logSync(msg) { var el = $("#syncLog"); if (el) el.textContent = msg; }
 
-  // ================= Login Gate =================
+  // ================= Login Gate (pakai password) =================
   function ensureLogin() {
     var bar = $("#loginBar");
     if (!bar) return; // jika halaman tidak punya overlay
-    if (!state.user) {
+    if (!state.user || !state.token) {
       bar.style.display = "flex";
       bar.innerHTML =
         '<div class="login-card">' +
         '<h3 class="text-lg font-semibold mb-2">TSH ミニERP ログイン</h3>' +
         '<div class="grid gap-2">' +
         '<input id="loginName" class="inp" placeholder="ユーザー名"/>' +
-        '<select id="loginRole" class="inp">' +
-        '<option>PPIC</option><option>生産</option><option>検査</option><option>物流</option><option>管理者</option>' +
-        '</select>' +
+        '<input id="loginPass" type="password" class="inp" placeholder="パスワード"/>' +
         '<button id="enter" class="btn primary">入室</button>' +
         "</div></div>";
 
       $("#enter").onclick = function () {
-        var n = $("#loginName").value.trim();
-        var r = $("#loginRole").value;
-        if (!n) { alert("ユーザー名を入力してください。"); return; }
-        state.user = n; state.role = r;
-        localStorage.setItem('tsh_user', n);
-        localStorage.setItem('tsh_role', r);
-        bar.style.display = "none";
-        location.reload();
+        var n = ($("#loginName")||{}).value?.trim();
+        var p = ($("#loginPass")||{}).value;
+        if (!n || !p) { alert("ユーザー名とパスワードを入力してください。"); return; }
+
+        fetch(SHEET_ENDPOINT.AUTH, {
+          method: "POST",
+          headers: {"Content-Type":"application/json"},
+          body: JSON.stringify({ action:"login", username:n, password:p })
+        })
+        .then(function(r){ return r.json(); })
+        .then(function(resp){
+          if(!resp.ok){ alert("ログイン失敗: " + (resp.error||"")); return; }
+          state.user = resp.user;
+          state.role = resp.role;
+          state.token = resp.token;
+          localStorage.setItem('tsh_user', resp.user);
+          localStorage.setItem('tsh_role', resp.role);
+          localStorage.setItem('tsh_token', resp.token);
+          bar.style.display = "none";
+          location.reload();
+        })
+        .catch(function(){ alert("サーバー通信エラー"); });
       };
     } else {
       bar.style.display = "none";
@@ -143,13 +157,10 @@ const App = (function () {
         var k = p.itemNo || p.itemName;
         if (!map[k]) map[k] = { itemName: p.itemName, itemNo: p.itemNo, qtyDone: 0, qtyShip: 0 };
         map[k].qtyDone += Number(p.qtyDone || 0);
-        // total ship by itemNo and status
         var shipped = 0;
         for (var j = 0; j < state.ship.length; j++) {
           var s = state.ship[j];
-          if (s.itemNo === p.itemNo && s.status === "出荷済") {
-            shipped += Number(s.qty || 0);
-          }
+          if (s.itemNo === p.itemNo && s.status === "出荷済") { shipped += Number(s.qty || 0); }
         }
         map[k].qtyShip = shipped;
       }
@@ -430,13 +441,13 @@ const App = (function () {
 
   function loadTicket() {
     var prod = ($("#ticketProdNo") ? $("#ticketProdNo").value.trim() : "");
-    var ino = ($("#ticketItemNo") ? $("#ticketItemNo").value.trim() : "");
+    var ino  = ($("#ticketItemNo") ? $("#ticketItemNo").value.trim() : "");
     var p = null;
     for (var i = 0; i < state.plan.length; i++) {
       var x = state.plan[i];
       var hit = true;
       if (prod && x.prodNo !== prod) hit = false;
-      if (ino && x.itemNo !== ino) hit = false;
+      if (ino  && x.itemNo !== ino)  hit = false;
       if (hit) { p = x; break; }
     }
     if (!p) { alert("計画が見つかりません"); return; }
@@ -448,14 +459,12 @@ const App = (function () {
     $("#tItemName").textContent = p.itemName || "";
     $("#tUser").textContent     = state.user || "";
 
-    // Tabel proses ringkas (bisa disesuaikan 1:1 layout)
     var imp = ['表面のキズ/変色/サビ','曲げ角度・割れ','外枠組付け','シャッター組立','溶接状態','コーキング','塗装','組立仕上げ','最終検査'];
     var rows = PROCESS_LIST.map(function (name, i) {
       return "<tr><td>" + name + "</td><td>" + (imp[i] || "") + "</td><td></td><td></td><td></td><td></td><td></td></tr>";
     }).join("");
     var cont = $("#tProcessRows"); if (cont) cont.innerHTML = rows;
 
-    // QRコード
     var q = $("#tQR"); if (q) { q.innerHTML = ""; new QRCode(q, { text: (p.prodNo + "|" + p.itemNo), width: 80, height: 80 }); }
   }
 
@@ -463,11 +472,9 @@ const App = (function () {
   function pageScan() {
     ensureLogin();
 
-    // isi dropdown proses
     var selP = $("#scanProcess");
     if (selP) selP.innerHTML = PROCESS_LIST.map(function (p) { return "<option>" + p + "</option>"; }).join("");
 
-    // start kamera
     if (window.Html5Qrcode) {
       var html5QrCode = new Html5Qrcode("reader");
       Html5Qrcode.getCameras().then(function (devs) {
@@ -478,9 +485,7 @@ const App = (function () {
     }
 
     var last = { prodNo: "", itemNo: "" };
-
     function onScan(txt) {
-      // Format: 製造番号|品番
       var parts = (txt || "").split("|");
       if (parts.length < 2) return;
       last.prodNo = parts[0]; last.itemNo = parts[1];
@@ -497,7 +502,6 @@ const App = (function () {
         if (x.prodNo === last.prodNo && x.itemNo === last.itemNo) { p = x; break; }
       }
       if (!p) { alert("計画なし"); return; }
-
       p.process = $("#scanProcess").value;
       p.status  = $("#scanStatus").value;
       p.updated = stamp();
@@ -513,7 +517,10 @@ const App = (function () {
     fetch(SHEET_ENDPOINT.PLAN_POST, {
       method: "POST",
       mode: "no-cors",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + (state.token || "")
+      },
       body: JSON.stringify(Object.assign({}, p, { user: state.user }))
     }).then(function () { logSync("PLAN送信完了"); })
       .catch(function () { logSync("PLAN送信失敗"); });
@@ -524,14 +531,16 @@ const App = (function () {
     fetch(SHEET_ENDPOINT.SHIP_POST, {
       method: "POST",
       mode: "no-cors",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + (state.token || "")
+      },
       body: JSON.stringify(Object.assign({}, s, { user: state.user }))
     }).then(function () { logSync("SHIP送信完了"); })
       .catch(function () { logSync("SHIP送信失敗"); });
   }
 
   function pullSheet() {
-    // Asumsi doGet mengembalikan { plan:[], ship:[] }
     var urlPlan = SHEET_ENDPOINT.PLAN_GET;
     var urlShip = SHEET_ENDPOINT.SHIP_GET || urlPlan;
     if (!urlPlan) { logSync("GET URL kosong"); return; }
@@ -541,12 +550,10 @@ const App = (function () {
       .then(function (arr) {
         var a = arr[0] || {};
         var b = arr[1] || {};
-        // Jika endpoint sama, gunakan nilai dari properti a
         if (a.plan || a.ship) {
           state.plan = a.plan || state.plan;
           state.ship = a.ship || state.ship;
         }
-        // Jika endpoint berbeda dan b juga punya data, merge
         if (urlShip !== urlPlan) {
           if (b.plan || b.ship) {
             if (b.plan) state.plan = b.plan;
@@ -555,14 +562,12 @@ const App = (function () {
         }
         save();
         logSync("取得完了");
-        // reload agar tabel/graph segar
         location.reload();
       })
       .catch(function () { logSync("同期失敗"); });
   }
 
   function pushSheet() {
-    // kirim semua record (Apps Script akan append)
     var chain = Promise.resolve();
     for (var i = 0; i < state.plan.length; i++) {
       (function (p) { chain = chain.then(function () { return new Promise(function (res) { pushPlan(p); setTimeout(res, 80); }); }); })(state.plan[i]);
@@ -582,6 +587,5 @@ const App = (function () {
     if (page === 'scan')      pageScan();
   }
 
-  // Ekspos API yang dipakai di HTML (onclick)
-  return { initPage: initPage, editPlan: editPlan, editShip: editShip };
+  return { initPage: initPage, editPlan: openPlanModal, editShip: openShipModal };
 })();
