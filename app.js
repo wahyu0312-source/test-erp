@@ -1,3 +1,7 @@
+/* ===========================================================
+   TSH Mini-ERP • app.js (front-end utama / Multi-page)
+   Login via GET (anti preflight CORS)
+   =========================================================== */
 const App = (function () {
   // ====== Konstanta ======
   var PROCESS_LIST = [
@@ -12,7 +16,7 @@ const App = (function () {
     PLAN_GET:  GAS_URL,
     SHIP_POST: GAS_URL,
     SHIP_GET:  GAS_URL,
-    AUTH:      GAS_URL
+    AUTH:      GAS_URL    // dipakai untuk login (GET)
   };
 
   // ====== State ======
@@ -35,7 +39,7 @@ const App = (function () {
   }
   function logSync(m){ var el=$("#syncLog"); if(el) el.textContent=m; }
 
-  // ====== Login (username + password) ======
+  // ====== Login (username + password) via GET ======
   function ensureLogin(){
     var bar=$("#loginBar"); if(!bar) return;
     if(!state.user || !state.token){
@@ -55,29 +59,28 @@ const App = (function () {
         var p = ($("#loginPass")||{}).value;
         if(!n || !p){ alert("ユーザー名とパスワードを入力してください。"); return; }
 
-        fetch(SHEET_ENDPOINT.AUTH, {
-          method: "POST",
-          headers: {"Content-Type":"application/json"},
-          body: JSON.stringify({ action:"login", username:n, password:p })
-        })
-        // — patch debug: tampilkan raw response jika bukan JSON —
-        .then(async r => {
-          const txt = await r.text();
-          try { return JSON.parse(txt); }
-          catch (e) { console.log("Login raw response:", txt); throw new Error("NON_JSON"); }
-        })
-        .then(resp => {
-          if(!resp.ok){ alert("ログイン失敗: " + (resp.error||"")); return; }
-          state.user  = resp.user;
-          state.role  = resp.role;
-          state.token = resp.token;
-          localStorage.setItem('tsh_user',  resp.user);
-          localStorage.setItem('tsh_role',  resp.role);
-          localStorage.setItem('tsh_token', resp.token);
-          bar.style.display="none";
-          location.reload();
-        })
-        .catch(() => alert("サーバー通信エラー"));
+        // ---- LOGIN via GET (tidak memicu preflight CORS) ----
+        const url = SHEET_ENDPOINT.AUTH +
+          `?action=login&username=${encodeURIComponent(n)}&password=${encodeURIComponent(p)}&t=${Date.now()}`;
+
+        fetch(url, { method:"GET", cache:"no-store" })
+          .then(async r => {
+            const txt = await r.text();
+            try { return JSON.parse(txt); }
+            catch (e) { console.log("Login raw response:", txt); throw new Error("NON_JSON"); }
+          })
+          .then(resp => {
+            if(!resp.ok){ alert("ログイン失敗: " + (resp.error||"")); return; }
+            state.user  = resp.user;
+            state.role  = resp.role;
+            state.token = resp.token;
+            localStorage.setItem('tsh_user',  resp.user);
+            localStorage.setItem('tsh_role',  resp.role);
+            localStorage.setItem('tsh_token', resp.token);
+            bar.style.display="none";
+            location.reload();
+          })
+          .catch(() => alert("サーバー通信エラー"));
       };
     } else {
       bar.style.display="none";
