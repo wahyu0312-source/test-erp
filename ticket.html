@@ -1,71 +1,49 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>ERPシステム 東京精密発條株式会社 • 生産現品票</title>
-  <link rel="stylesheet" href="style.css"/>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-</head>
-<body class="bg-slate-50 text-slate-800">
-  <div id="loginBar" class="login-bar"></div>
-  <header class="topbar no-print">
-    <div class="flex items-center gap-2">
-      <img src="tsh.png" class="logo" alt="TSH"/>
-      <div class="brand"><div class="brand-title">ERPシステム</div><div class="brand-sub">東京精密発條株式会社</div></div>
-    </div>
-    <nav class="nav">
-      <a href="index.html">ダッシュボード</a>
-      <a href="plan.html">生産計画</a>
-      <a href="ship.html">出荷計画</a>
-      <a href="confirm.html">出荷確認書</a>
-      <a href="scan.html">QRスキャン</a>
-      <a class="active" href="ticket.html">生産現品票</a>
-    </nav>
-    <div class="ml-auto"><button id="btnLogout" class="btn btn-ghost">ログアウト</button></div>
-  </header>
+<!DOCTYPE html><html lang="ja"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>ERPシステム • 生産現品票</title>
+<link rel="stylesheet" href="style.css"/>
+</head><body>
+<div id="loginBar" class="login-bar"></div>
+<header class="topbar">
+  <div class="brand"><img src="tsh.png" class="logo"><div><div class="brand-title">ERPシステム</div><div class="brand-sub">東京精密発條株式会社</div></div></div>
+  <nav class="nav">
+    <a href="index.html">ダッシュボード</a>
+    <a href="plan.html">生産計画</a>
+    <a href="ship.html">出荷計画</a>
+    <a href="confirm.html">出荷確認書</a>
+    <a href="scan.html">QRスキャン</a>
+    <a href="ticket.html" class="active">生産現品票</a>
+  </nav>
+  <div class="actions"><button id="btnLogout" class="btn btn-outline">ログアウト</button></div>
+</header>
 
-  <main class="container no-print">
-    <section class="card">
-      <div class="grid two">
-        <label>製造番号<input id="ticketProdNo" class="inp"></label>
-        <label>品番<input id="ticketItemNo" class="inp"></label>
-      </div>
-      <div class="mt-3">
-        <button id="btnLoadTicket" class="btn btn-outline">読込</button>
-        <button id="btnPrint" class="btn btn-primary">印刷</button>
-      </div>
-    </section>
-  </main>
-
-  <section class="ticket A4">
-    <div class="row between">
-      <div><b>生産現品票</b></div>
-      <div id="tQR"></div>
+<main class="container">
+  <section class="card no-print">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <input id="ticketProdNo" class="inp" placeholder="製造番号">
+      <input id="ticketItemNo" class="inp" placeholder="品番">
     </div>
-    <table class="ticket-tbl">
-      <tr><th>得意先</th><td id="tCustomer"></td><th>製造番号</th><td id="tProdNo"></td></tr>
-      <tr><th>品名</th><td id="tItemName"></td><th>品番</th><td id="tItemNo"></td></tr>
-      <tr><th>開始</th><td id="tStart"></td><th>担当</th><td id="tUser"></td></tr>
-    </table>
-    <table class="ticket-grid">
-      <thead>
-        <tr>
-          <th>工程名</th>
-          <th>重要ポイント</th>
-          <th>作業者</th>
-          <th>着手</th>
-          <th>完了</th>
-          <th>判定</th>
-          <th>不合格理由/処置/修正内容</th>
-        </tr>
-      </thead>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button id="btnLoadTicket" class="btn btn-primary">読込</button>
+      <button id="btnPrint" class="btn btn-outline">印刷</button>
+    </div>
+  </section>
+
+  <section class="ticket" id="ticketBox">
+    <table>
+      <tr><th colspan="3" style="text-align:left">生産現品票</th><th style="width:110px"><div id="tQR"></div></th></tr>
+      <tr><td style="width:20%">得意先</td><td id="tCustomer"></td><td style="width:20%">製造番号</td><td id="tProdNo"></td></tr>
+      <tr><td>品名</td><td id="tItemName"></td><td>品番</td><td id="tItemNo"></td></tr>
+      <tr><td>開始</td><td id="tStart"></td><td>担当</td><td id="tUser"></td></tr>
+      <tr>
+        <td>工程名</td><td>重要ポイント</td><td>作業者/着手/完了/判定</td><td>不合格理由/処置/修正内容</td>
+      </tr>
       <tbody id="tProcessRows"></tbody>
     </table>
   </section>
+</main>
 
-  <script src="app.js"></script>
-  <script>App.initPage('ticket');</script>
-</body>
-</html>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="app.js"></script>
+<script>App.initPage('ticket')</script>
+</body></html>
