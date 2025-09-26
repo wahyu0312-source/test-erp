@@ -1,0 +1,60 @@
+<!DOCTYPE html><html lang="ja"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>ERPシステム • チャート</title>
+<link rel="stylesheet" href="style.css"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head><body>
+<div id="loginBar" class="login-bar"></div>
+
+<header class="topbar">
+  <div class="brand">
+    <button class="burger no-print" id="burger"><span></span><span></span><span></span></button>
+    <img src="tsh.png" class="logo" alt="TSH"/><div><div class="brand-title">ERPシステム</div><div class="brand-sub">東京精密発條株式会社</div></div>
+  </div>
+  <nav class="nav" id="mainNav">
+    <a href="index.html">ダッシュボード</a>
+    <a href="plan.html">生産計画</a>
+    <a href="ship.html">出荷計画</a>
+    <a href="confirm.html">出荷予定</a>
+    <a href="scan.html">QRスキャン</a>
+    <a href="ticket.html">生産現品票</a>
+    <a href="charts.html" class="active">チャート</a>
+  </nav>
+  <div class="actions"><button id="btnLogout" class="btn btn-outline">ログアウト</button></div>
+</header>
+
+<main class="container">
+  <section class="card">
+    <h3>在庫（完成数量 − 出荷数量）</h3>
+    <div class="chart-grid">
+      <canvas id="stockPie"></canvas>
+      <canvas id="stockPareto"></canvas>
+    </div>
+  </section>
+
+  <section class="card">
+    <h3>NG（数量）</h3>
+    <div class="chart-grid">
+      <canvas id="ngPie"></canvas>
+      <canvas id="ngPareto"></canvas>
+    </div>
+  </section>
+
+  <section class="card">
+    <h3>出荷（顧客別）</h3>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+      <select id="shipAgg" class="inp" style="max-width:220px">
+        <option value="month">月次（当年）</option>
+        <option value="year">年次</option>
+      </select>
+    </div>
+    <div class="chart-grid">
+      <canvas id="shipPie"></canvas>
+      <canvas id="shipPareto"></canvas>
+    </div>
+  </section>
+</main>
+
+<script src="app.js"></script>
+<script>App.initPage('charts')</script>
+</body></html>
