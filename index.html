@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>TSH｜ダッシュボード</title>
   <link rel="stylesheet" href="style.css"/>
-  <!-- Chart -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -16,22 +15,22 @@
     <a href="ship.html">出荷計画</a>
     <a href="scan.html">QRスキャン</a>
     <a href="ticket.html">生産現品票</a>
-    <span id="syncLog" class="ml-auto"></span>
+    <span class="ml-auto" id="syncLog"></span>
+    <button id="btnLogout" class="btn ml">ログアウト</button>
   </div>
 
   <!-- login overlay -->
-  <div id="nowList" class="list"></div>
+  <div id="loginBar" class="login-overlay"></div>
 
   <div class="container">
-
     <div class="card">
       <h1>現在の生産状況</h1>
-      <div id="nowList" class="grid gap"></div>
+      <div id="nowList" class="list"></div>
     </div>
 
     <div class="card">
       <h1>在庫の所在（工程別）</h1>
-      <canvas id="byProcessChart" height="160"></canvas>
+      <canvas id="byProcessChart" height="180"></canvas>
     </div>
 
     <div class="card">
@@ -51,7 +50,6 @@
         <label class="ml"><input type="checkbox" id="autoSync"> 自動同期(30秒)</label>
       </div>
     </div>
-
   </div>
 
   <script src="app.js"></script>
