@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>ERPシステム 東京精密発條株式会社 • 出荷確認書</title>
+  <link rel="stylesheet" href="style.css"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 text-slate-800">
+  <div id="loginBar" class="login-bar"></div>
+  <header class="topbar">
+    <div class="flex items-center gap-2">
+      <img src="tsh.png" class="logo" alt="TSH"/>
+      <div class="brand"><div class="brand-title">ERPシステム</div><div class="brand-sub">東京精密発條株式会社</div></div>
+    </div>
+    <nav class="nav">
+      <a href="index.html">ダッシュボード</a>
+      <a href="plan.html">生産計画</a>
+      <a href="ship.html">出荷計画</a>
+      <a class="active" href="confirm.html">出荷確認書</a>
+      <a href="scan.html">QRスキャン</a>
+      <a href="ticket.html">生産現品票</a>
+    </nav>
+    <div class="ml-auto"><button id="btnLogout" class="btn btn-ghost">ログアウト</button></div>
+  </header>
+
+  <main class="container space-y-4">
+    <section class="card no-print">
+      <div class="flex gap-2 items-end flex-wrap">
+        <label>日付 <input id="cDate" type="date" class="inp"></label>
+        <label>得意先 <input id="cCustomer" class="inp" placeholder="（空白=全て）"></label>
+        <button id="btnMakeConfirm" class="btn btn-primary">作成</button>
+        <button id="btnPrint" class="btn btn-outline">印刷</button>
+      </div>
+    </section>
+
+    <!-- A4 printable -->
+    <section class="confirm A4">
+      <div class="confirm-head">
+        <div>
+          <div class="confirm-title">出荷確認書</div>
+          <div class="confirm-sub">東京精密発條株式会社</div>
+        </div>
+        <div id="cInfo" class="confirm-info"></div>
+      </div>
+      <table class="gridtbl tight">
+        <thead>
+          <tr><th>No</th><th>得意先</th><th>品名</th><th>品番</th><th>数量</th><th>備考</th></tr>
+        </thead>
+        <tbody id="cBody"><tr><td colspan="6" class="text-center text-slate-500">作成してください。</td></tr></tbody>
+      </table>
+      <div class="confirm-foot">
+        <div>担当：<span id="cUser"></span></div>
+        <div>確認印：</div>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+  <script>App.initPage('confirm');</script>
+</body>
+</html>
