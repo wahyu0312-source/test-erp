@@ -5,13 +5,32 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head><body>
 <div id="loginBar" class="login-bar"></div>
-<!-- TOPBAR --> <!-- (copy header di atas) -->
+
+<!-- Backdrop + Drawer (mobile) -->
+<div id="backdrop" class="backdrop no-print"></div>
+<nav id="drawer" class="drawer no-print" aria-label="モバイルメニュー">
+  <a href="index.html" class="active">ダッシュボード</a>
+  <a href="plan.html">生産計画</a>
+  <a href="ship.html">出荷計画</a>
+  <a href="confirm.html">出荷予定</a>
+  <a href="scan.html">QRスキャン</a>
+  <a href="ticket.html">生産現品票</a>
+  <a href="charts.html">チャート</a>
+</nav>
+
+<!-- TOPBAR -->
 <header class="topbar">
   <div class="brand">
-    <button class="burger no-print" id="burger"><span></span><span></span><span></span></button>
-    <img src="tsh.png" class="logo" alt="TSH"/><div><div class="brand-title">ERPシステム</div><div class="brand-sub">東京精密発條株式会社</div></div>
+    <button class="burger no-print" id="burger" aria-label="メニュー" aria-expanded="false" aria-controls="drawer">
+      <span></span><span></span><span></span>
+    </button>
+    <img src="tsh.png" class="logo" alt="TSH"/>
+    <div>
+      <div class="brand-title">ERPシステム</div>
+      <div class="brand-sub">東京精密発條株式会社</div>
+    </div>
   </div>
-  <nav class="nav" id="mainNav">
+  <nav class="nav" id="mainNav" aria-label="デスクトップメニュー">
     <a href="index.html" class="active">ダッシュボード</a>
     <a href="plan.html">生産計画</a>
     <a href="ship.html">出荷計画</a>
@@ -28,12 +47,15 @@
     <h3>現在の生産状況</h3>
     <div id="nowList" class="space-y-2"></div>
   </section>
+
   <section class="card">
     <h3>在庫の所在（工程別）</h3><canvas id="byProcessChart" height="220"></canvas>
   </section>
+
   <section class="card">
     <h3>本日の出荷予定</h3><div id="shipToday" class="space-y-2"></div>
   </section>
+
   <section class="card no-print">
     <h3>同期（Google Sheets）</h3>
     <div class="text-muted" style="margin-bottom:8px">シートから取得＝サーバー→アプリ、シートへ送信＝アプリ→サーバー。</div>
