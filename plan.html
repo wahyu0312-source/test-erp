@@ -1,92 +1,128 @@
-<!DOCTYPE html><html lang="ja"><head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>ERPシステム • 生産計画</title>
-<link rel="stylesheet" href="style.css"/>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-</head><body>
-<div id="loginBar" class="login-bar"></div>
-<header class="topbar">
-  <div class="brand">
-    <button class="burger no-print" id="burger"><span></span><span></span><span></span></button>
-    <img src="tsh.png" class="logo" alt="TSH"/><div><div class="brand-title">ERPシステム</div><div class="brand-sub">東京精密発條株式会社</div></div>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>ERPシステム • 生産計画</title>
+  <link rel="stylesheet" href="style.css"/>
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+  <div id="loginBar" class="loginbar"></div>
+  <header class="topbar">
+    <div class="max">
+      <a href="index.html" class="brand"><img src="tsh.png" class="logo" alt="TSH">
+        <div><div class="brand-title">ERPシステム</div><div class="brand-sub">東京精密発條株式会社</div></div>
+      </a>
+      <nav class="hide-sm md:flex items-center gap-2">
+        <a href="index.html" class="navlink" data-menu-link>ダッシュボード</a>
+        <a href="plan.html"  class="navlink" data-menu-link>生産計画</a>
+        <a href="ship.html"  class="navlink" data-menu-link>出荷計画</a>
+        <a href="confirm.html" class="navlink" data-menu-link>出荷確認書</a>
+        <a href="scan.html"  class="navlink" data-menu-link>QRスキャン</a>
+        <a href="ticket.html" class="navlink" data-menu-link>生産現品票</a>
+        <a href="master.html" class="navlink" data-menu-link>マスター</a>
+        <button id="btnLogout" class="btn btn-outline">ログアウト</button>
+      </nav>
+      <button id="btnBurger" class="md:hidden btn-ghost" aria-expanded="false" aria-controls="mobileMenu">☰</button>
+    </div>
+    <div id="navOverlay" class="hidden fixed inset-0 z-40"></div>
+    <div id="mobileMenu" class="hidden fixed inset-y-0 right-0 w-64 bg-white shadow-xl border-l z-50">
+      <div class="p-4 flex items-center justify-between border-b">
+        <div class="font-semibold text-sm">メニュー</div>
+        <button id="btnCloseMenu" class="btn-ghost" aria-label="閉じる">✕</button>
+      </div>
+      <nav class="p-3 grid gap-1 text-sm">
+        <a href="index.html"   class="mnav" data-menu-link>ダッシュボード</a>
+        <a href="plan.html"    class="mnav" data-menu-link>生産計画</a>
+        <a href="ship.html"    class="mnav" data-menu-link>出荷計画</a>
+        <a href="confirm.html" class="mnav" data-menu-link>出荷確認書</a>
+        <a href="scan.html"    class="mnav" data-menu-link>QRスキャン</a>
+        <a href="ticket.html"  class="mnav" data-menu-link>生産現品票</a>
+        <a href="master.html"  class="mnav" data-menu-link>マスター</a>
+        <button id="btnLogoutMobile" class="btn mt-2">ログアウト</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container grid">
+    <section class="card">
+      <div class="grid two" style="grid-template-columns:1fr 220px 160px">
+        <input id="q" placeholder="検索（得意先・製造番号・品名…）" />
+        <select id="fltProcess"></select>
+        <select id="fltStatus">
+          <option value="">すべて</option><option>計画</option><option>進行中</option><option>停止</option><option>完了</option>
+        </select>
+      </div>
+      <div class="grid" style="grid-template-columns:auto auto auto 1fr;gap:8px;margin-top:8px">
+        <button id="btnClearFilter" class="btn-outline"><i data-lucide="eraser"></i>クリア</button>
+        <button id="btnAddPlan" class="btn"><i data-lucide="plus"></i>追加</button>
+        <button id="btnPull" class="btn-outline"><i data-lucide="download"></i>取得</button>
+        <button id="btnPush" class="btn-outline"><i data-lucide="upload"></i>送信</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <table class="gridtbl">
+        <thead><tr>
+          <th>得意先</th><th>製造番号</th><th>品名</th><th>品番（図番）</th><th>開始</th>
+          <th>工程</th><th>場所</th><th>ステータス</th><th>更新</th><th>操作</th>
+        </tr></thead>
+        <tbody id="planBody"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <!-- ====== Modal ====== -->
+  <div id="planModal" class="hidden fixed inset-0 z-50">
+    <div class="absolute inset-0 bg-black/40"></div>
+    <div class="absolute inset-0 grid place-items-center p-4">
+      <div class="card" style="width:720px;max-width:100%;position:relative">
+        <button id="planModalClose" class="btn-ghost" style="position:absolute;right:12px;top:12px">✕</button>
+        <h3 id="planModalTitle">生産計画</h3>
+        <div class="grid two">
+          <div>
+            <div class="text-sm">得意先</div>
+            <select id="fCustomer"></select>
+          </div>
+          <div>
+            <div class="text-sm">品番（図番）</div>
+            <select id="fItemNo"></select>
+          </div>
+          <div>
+            <div class="text-sm">品名（自動）</div>
+            <input id="fItemName" placeholder="MASTERから自動入力" />
+          </div>
+          <div>
+            <div class="text-sm">製造番号</div>
+            <input id="fProdNo" placeholder="PRD-..." />
+          </div>
+          <div>
+            <div class="text-sm">開始</div>
+            <input id="fStart" type="date" />
+          </div>
+          <div>
+            <div class="text-sm">工程</div>
+            <select id="fProcess"></select>
+          </div>
+          <div>
+            <div class="text-sm">場所</div>
+            <input id="fLocation" placeholder="PPIC" />
+          </div>
+          <div>
+            <div class="text-sm">ステータス</div>
+            <select id="fStatus"><option>計画</option><option>進行中</option><option>停止</option><option>完了</option></select>
+          </div>
+        </div>
+        <div class="flex" style="gap:8px;margin-top:12px">
+          <button id="btnPlanSave" class="btn"><i data-lucide="save"></i>保存</button>
+        </div>
+      </div>
+    </div>
   </div>
-  <nav class="nav" id="mainNav">
-    <a href="index.html">ダッシュボード</a>
-    <a href="plan.html" class="active">生産計画</a>
-    <a href="ship.html">出荷計画</a>
-    <a href="confirm.html">出荷予定</a>
-    <a href="scan.html">QRスキャン</a>
-    <a href="ticket.html">生産現品票</a>
-    <a href="charts.html">チャート</a>
-  </nav>
-  <div class="actions"><button id="btnLogout" class="btn btn-outline">ログアウト</button></div>
-</header>
 
-<main class="container">
-  <section class="card">
-    <h3>検索／フィルタ</h3>
-    <div style="display:flex; gap:8px; flex-wrap:wrap">
-      <input id="q" class="inp" placeholder="キーワード（得意先/品番/品名/製造番号）"/>
-      <select id="fltProcess" class="inp" style="max-width:220px"></select>
-      <select id="fltStatus" class="inp" style="max-width:180px">
-        <option value="">ステータス（全て）</option>
-        <option>計画</option><option>進行中</option><option>保留</option><option>完了</option>
-      </select>
-      <button id="btnClearFilter" class="btn btn-outline">クリア</button>
-      <button id="btnAddPlan" class="btn btn-primary">＋ 新規</button>
-      <button id="btnPull" class="btn btn-outline">シートから取得</button>
-      <button id="btnPush" class="btn btn-outline">シートへ送信</button>
-    </div>
-  </section>
+  <footer class="site-footer"><span>© 東京精密発條株式会社</span><span>Design by Wahyu</span></footer>
 
-  <section class="card">
-    <table class="gridtbl">
-      <thead><tr>
-        <th>得意先</th><th>製造番号</th><th>品名</th><th>品番</th><th>開始</th><th>プロセス</th><th>場所</th><th>ステータス</th><th>更新</th><th style="width:240px">操作</th>
-      </tr></thead>
-      <tbody id="planBody"></tbody>
-    </table>
-  </section>
-</main>
-
-<!-- Plan Modal -->
-<div id="planModal" class="login-bar">
-  <div class="login-card" style="width:min(680px,92vw)">
-    <div id="planModalTitle" class="login-title">生産計画：追加</div>
-    <div class="grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <select id="fCustomer" class="inp"><option value="">得意先を選択</option></select>
-      <input id="fProdNo" class="inp" placeholder="製造番号"/>
-      <input id="fItemName" class="inp" placeholder="品名"/>
-      <select id="fItemNo" class="inp"><option value="">図番/品番を選択</option></select>
-      <input id="fStart" type="date" class="inp"/>
-      <select id="fProcess" class="inp"></select>
-      <input id="fLocation" class="inp" placeholder="場所" value="PPIC"/>
-      <select id="fStatus" class="inp">
-        <option>計画</option><option>進行中</option><option>保留</option><option>完了</option>
-      </select>
-    </div>
-    <div style="display:flex;gap:8px;margin-top:10px;justify-content:flex-end">
-      <button id="btnPlanDel" class="btn btn-danger">削除</button>
-      <button id="btnPlanSave" class="btn btn-primary">保存</button>
-      <button id="planModalClose" class="btn btn-outline">閉じる</button>
-    </div>
-  </div>
-</div>
-
-<!-- QR Modal -->
-<div id="qrModal" class="modal no-print">
-  <div class="box">
-    <div style="font-weight:700; margin-bottom:6px">QRコード</div>
-    <div id="qrBox" style="display:flex;justify-content:center;margin:8px 0"></div>
-    <div id="qrMeta" class="text-muted" style="font-size:12px"></div>
-    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
-      <button id="btnQrDownload" class="btn btn-outline">保存（PNG）</button>
-      <button id="btnQrPrint" class="btn btn-outline">ラベル印刷</button>
-      <button id="btnQrClose" class="btn">閉じる</button>
-    </div>
-  </div>
-</div>
-
-<script src="app.js"></script>
-<script>App.initPage('plan')</script>
-</body></html>
+  <script src="app.js"></script>
+  <script>App.initPage('plan');</script>
+</body>
+</html>
