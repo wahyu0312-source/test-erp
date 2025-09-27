@@ -17,11 +17,7 @@ body{background:var(--bg); color:#0f172a; font-family:system-ui,-apple-system,Se
 .space-y-2 > * + *{margin-top:.5rem}
 
 /* ====== Topbar + Burger ====== */
-.topbar{
-  position:sticky; top:0; z-index:40;
-  display:flex; align-items:center; justify-content:space-between; gap:12px;
-  padding:10px 14px; background:#fff; border-bottom:1px solid var(--border)
-}
+.topbar{position:sticky; top:0; z-index:40; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 14px; background:#fff; border-bottom:1px solid var(--border)}
 .brand{display:flex; align-items:center; gap:10px}
 .logo{height:28px}
 .brand-title{font-weight:700; font-size:13px; line-height:1}
@@ -75,6 +71,11 @@ body{background:var(--bg); color:#0f172a; font-family:system-ui,-apple-system,Se
 .chart-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px}
 @media (max-width: 920px){ .chart-grid{grid-template-columns:1fr} }
 canvas{max-width:100%}
+
+/* Modal kecil (QR) */
+.modal{position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.45); z-index:60}
+.modal .box{background:#fff; border-radius:12px; padding:16px; border:1px solid var(--border); width:min(420px,92vw)}
+.modal.show{display:flex}
 
 /* Print */
 @media print{
