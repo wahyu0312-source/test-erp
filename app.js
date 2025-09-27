@@ -1,18 +1,14 @@
 /* ===========================================================
-   ERP Mini-ERP (TSH) • app.js (dashboard/plan/ship/confirm/scan/ticket/charts)
+   ERP Mini-ERP (TSH) • app.js  (burger OK + QR modal + plan/ship lengkap)
 =========================================================== */
 const App = (function(){
   // ==== KONFIG ====
   const PROCESS_LIST = ["レーザ工程","曲げ工程","外枠組立工程","シャッター組立工程","シャッター溶接工程","コーキング工程","外枠塗装工程","組立工程","検査工程"];
 
-  // GANTI URL BERIKUT (Web App GAS)
+  // GANTI URL BERIKUT
   const GAS_URL = "https://script.google.com/macros/s/AKfycbxmpC6UA1ixJLLDy3kCa6RPT9D-s2pV4L2UEsvy21gR5klqLpGGQbfSbYkNqWaHnRId/exec";
   const ENDPOINT={
-    ROOT:GAS_URL,
-    AUTH:GAS_URL,
-    MASTER:GAS_URL+"?action=master",
-    PICS:GAS_URL+"?action=pics",
-    PING:GAS_URL+"?action=ping"
+    ROOT:GAS_URL, AUTH:GAS_URL, MASTER:GAS_URL+"?action=master", PICS:GAS_URL+"?action=pics", PING:GAS_URL+"?action=ping"
   };
 
   // Role / izin
@@ -22,9 +18,9 @@ const App = (function(){
     "製造部":{view_all:true,scan_update:true},
     "検査部":{view_all:true,scan_update:true}
   };
+  const can=(a)=>state.dept && (PERMS[state.dept]?.all || PERMS[state.dept]?.[a]);
 
   // util
-  const can=(a)=>state.dept && (PERMS[state.dept]?.all || PERMS[state.dept]?.[a]);
   const $=(q)=>document.querySelector(q);
   const today=()=>new Date().toISOString().slice(0,10);
   const stamp=()=>new Date().toLocaleString()+" | "+(state.user||"-")+(state.pic?(" / "+state.pic):"");
@@ -97,12 +93,11 @@ const App = (function(){
   }
   function bindLogout(){ $("#btnLogout")?.addEventListener('click',clearLocal); }
 
-  // ====== Burger menu ======
+  // ====== Burger menu (FIX) ======
   function initBurger(){
     const burger=$("#burger"), nav=$("#mainNav");
     if(burger && nav){
       burger.onclick=()=> nav.classList.toggle('open');
-      // close on click link (mobile)
       nav.querySelectorAll('a').forEach(a=> a.addEventListener('click', ()=> nav.classList.remove('open')));
     }
   }
@@ -110,7 +105,6 @@ const App = (function(){
   // ====== Common helpers ======
   function fillProcessSelect(sel){ if(!sel) return; sel.innerHTML=`<option value="">工程（全て）</option>`+PROCESS_LIST.map(p=>`<option>${p}</option>`).join(''); }
   function fillMasterSelects(){
-    // Customers
     const customers=[...new Set(state.master.map(m=>m.customer))].filter(Boolean).sort();
     document.querySelectorAll('#fCustomer,#sCustomer,#cCustomer').forEach(sel=>{
       if(!sel) return;
@@ -136,8 +130,9 @@ const App = (function(){
   /* =======================================================
      DASHBOARD
   ======================================================= */
-  function pageDashboard(){ ensureLogin(); bindLogout(); initBurger();
-    // now list
+  function pageDashboard(){
+    ensureLogin(); bindLogout(); initBurger();
+    // List
     const nowList=$("#nowList");
     const items=state.plan.slice(0,10).map(p=>`
       <div class='card' style="padding:8px;display:flex;align-items:center;justify-content:space-between">
@@ -152,21 +147,24 @@ const App = (function(){
       </div>`).join('');
     nowList.innerHTML = items || '<div class="text-muted">データがありません。</div>';
 
-    // chart process
-    const counts=PROCESS_LIST.map(proc=>state.plan.filter(p=>p.process===proc).length);
-    const ctx=document.getElementById('byProcessChart'); if(ctx && window.Chart){
-      new Chart(ctx.getContext('2d'),{type:'bar',data:{labels:PROCESS_LIST,datasets:[{label:'件数',data:counts}]},options:{plugins:{legend:{display:false}}}});
+    // Chart
+    if(window.Chart){
+      const counts=PROCESS_LIST.map(proc=>state.plan.filter(p=>p.process===proc).length);
+      const ctx=document.getElementById('byProcessChart'); if(ctx){
+        new Chart(ctx.getContext('2d'),{type:'bar',data:{labels:PROCESS_LIST,datasets:[{label:'件数',data:counts}]},options:{plugins:{legend:{display:false}}}});
+      }
     }
 
-    // ship today
-    const t=today(), list=state.ship.filter(s=>s.date===t).map(s=>`
+    // Ship today
+    const t=today();
+    const list=state.ship.filter(s=>s.date===t).map(s=>`
       <div class='card' style="padding:8px;display:flex;align-items:center;justify-content:space-between">
         <div><div style="font-weight:600">${s.itemName}</div><div class='text-muted' style="font-size:12px">${s.customer} ・ 数量:${s.qty}</div></div>
         <div><span class='badge'>${s.status}</span><div class='text-muted' style="font-size:12px;text-align:right">${s.updated||''}</div></div>
       </div>`).join('');
     $("#shipToday").innerHTML=list||'<div class="text-muted">本日の出荷予定はありません。</div>';
 
-    // stock
+    // Stock table
     const stock=Object.values(state.plan.reduce((a,p)=>{
       const k=p.itemNo||p.itemName; a[k] ||= {itemName:p.itemName,itemNo:p.itemNo,qtyDone:0,qtyShip:0};
       a[k].qtyDone += Number(p.qtyDone||0);
@@ -175,7 +173,7 @@ const App = (function(){
     },{}));
     $("#stockBody")?.insertAdjacentHTML('beforeend', stock.map(r=>`<tr><td>${r.itemName||'-'}</td><td>${r.itemNo||'-'}</td><td style="text-align:right">${r.qtyDone||0}</td><td style="text-align:right">${r.qtyShip||0}</td><td style="text-align:right;font-weight:600">${(r.qtyDone||0)-(r.qtyShip||0)}</td></tr>`).join(''));
 
-    // sync
+    // Sync
     $("#btnPull")?.addEventListener('click',pullSheet);
     $("#btnPush")?.addEventListener('click',pushSheet);
     $("#btnClearLocal")?.addEventListener('click',clearLocal);
@@ -183,13 +181,132 @@ const App = (function(){
   }
 
   /* =======================================================
-     PLAN / SHIP  (pakai versi Anda sebelumnya)
-     ——— (fungsi inti tetap; hanya panggil pull/push)
+     PLAN
   ======================================================= */
+  function pagePlan(){
+    ensureLogin(); bindLogout(); initBurger();
+    fillProcessSelect($("#fltProcess")); fillMasterSelects(); bindMasterCascade();
+    $("#fltStatus").value='';
+    $("#btnClearFilter").onclick=()=>{ $("#q").value=''; $("#fltProcess").value=''; $("#fltStatus").value=''; renderPlanTable(); };
+    $("#btnAddPlan").onclick=()=> openPlanModal();
+    ;['q','fltProcess','fltStatus'].forEach(id=> $("#"+id).addEventListener('input', renderPlanTable));
+    $("#btnPull").onclick=pullSheet; $("#btnPush").onclick=pushSheet;
+    renderPlanTable();
+  }
+  function filteredPlan(){
+    const q=($("#q")?.value||'').toLowerCase(); const pr=$("#fltProcess")?.value||''; const st=$("#fltStatus")?.value||'';
+    return state.plan.filter(p=>{
+      const hit=(p.itemName||'').toLowerCase().includes(q)||(p.itemNo||'').toLowerCase().includes(q)||(p.customer||'').toLowerCase().includes(q)||(p.prodNo||'').toLowerCase().includes(q);
+      return (!q||hit)&&(!pr||p.process===pr)&&(!st||p.status===st);
+    });
+  }
+  function renderPlanTable(){
+    const body=$("#planBody"); if(!body) return;
+    body.innerHTML = filteredPlan().map((p)=>`<tr>
+      <td>${p.customer||''}</td><td>${p.prodNo||''}</td><td>${p.itemName||''}</td><td>${p.itemNo||''}</td>
+      <td>${p.start||''}</td><td>${p.process||''}</td><td>${p.location||''}</td><td>${p.status||''}</td><td style="font-size:12px">${p.updated||''}</td>
+      <td>
+        ${can('edit_plan')?`<button class='btn btn-outline' data-edit='${state.plan.indexOf(p)}'>編集</button>`:''}
+        <a class='btn btn-outline' href='ticket.html?prodNo=${encodeURIComponent(p.prodNo)}&itemNo=${encodeURIComponent(p.itemNo)}'>票</a>
+        <button class='btn btn-outline' data-qr='${state.plan.indexOf(p)}'>QR</button>
+      </td></tr>`).join('') || `<tr><td colspan='10' class='text-muted'>データがありません。</td></tr>`;
+    body.querySelectorAll("[data-edit]").forEach(b=> b.onclick=()=> openPlanModal(Number(b.dataset.edit)));
+    body.querySelectorAll("[data-qr]").forEach(b=> b.onclick=()=> openQrModal(Number(b.dataset.qr)));
+  }
+  function openPlanModal(idx=null){
+    const m=$("#planModal"); m.classList.remove('hidden'); m.style.display='flex';
+    const isEdit=(idx!=null);
+    $("#planModalTitle").textContent = isEdit?'生産計画：編集':'生産計画：追加';
+    fillMasterSelects(); bindMasterCascade();
+    const p = isEdit? state.plan[idx] : {customer:'',prodNo:'',itemName:'',itemNo:'',start:today(),process:PROCESS_LIST[0],location:'PPIC',status:'計画'};
+    $("#fCustomer").value=p.customer; $("#fProdNo").value=p.prodNo; $("#fItemName").value=p.itemName; $("#fStart").value=p.start; $("#fLocation").value=p.location; $("#fStatus").value=p.status;
+    $("#fProcess").innerHTML=PROCESS_LIST.map(x=>`<option>${x}</option>`).join(''); $("#fProcess").value=p.process;
+    const items=[...new Set(state.master.filter(m=>m.customer===p.customer).map(m=>m.itemNo))];
+    $("#fItemNo").innerHTML = `<option value="">図番/品番を選択</option>` + items.map(x=>`<option>${x}</option>`).join(''); $("#fItemNo").value=p.itemNo;
+
+    $("#btnPlanSave").onclick=()=>{
+      if(!can('edit_plan') && !isEdit){ alert('権限がありません'); return; }
+      const rec={
+        customer:$("#fCustomer").value.trim(), prodNo:$("#fProdNo").value.trim(),
+        itemName:$("#fItemName").value.trim(), itemNo:$("#fItemNo").value.trim(),
+        start:$("#fStart").value, process:$("#fProcess").value, location:$("#fLocation").value.trim(),
+        status:$("#fStatus").value, updated:stamp(), qtyDone:p.qtyDone||0, qtyShip:p.qtyShip||0
+      };
+      if(isEdit){ state.plan[idx]={...state.plan[idx],...rec}; }
+      else { state.plan.unshift(rec); }
+      save(); m.style.display='none'; renderPlanTable(); pushPlan(rec);
+    };
+    $("#btnPlanDel").onclick=()=>{
+      if(!can('delete_plan') || !isEdit) return;
+      if(confirm('この計画を削除しますか？')){ state.plan.splice(idx,1); save(); m.style.display='none'; renderPlanTable(); }
+    }
+    $("#planModalClose").onclick=()=> m.style.display='none';
+  }
+
+  // === QR Modal (tanpa kertas) ===
+  function openQrModal(idx){
+    const p=state.plan[idx]; if(!p) return;
+    const modal=$("#qrModal"); const box=$("#qrBox"); const meta=$("#qrMeta");
+    modal.classList.add('show'); box.innerHTML='';
+    const qr = new QRCode(box,{text:`${p.prodNo}|${p.itemNo}`,width:220,height:220});
+    meta.textContent=`${p.customer} / ${p.itemName} (${p.itemNo})  製造番号:${p.prodNo}`;
+    $("#btnQrClose").onclick=()=> modal.classList.remove('show');
+    $("#btnQrPrint").onclick=()=> window.print();
+    $("#btnQrDownload").onclick=()=>{
+      // ambil <img> dari qrcode
+      const img=box.querySelector('img')||box.querySelector('canvas');
+      let dataURL;
+      if(img && img.tagName==='IMG'){ dataURL=img.src; }
+      else if(img && img.tagName==='CANVAS'){ dataURL=img.toDataURL('image/png'); }
+      if(!dataURL) return alert('保存できません');
+      const a=document.createElement('a'); a.href=dataURL; a.download=`QR_${p.prodNo}_${p.itemNo}.png`; a.click();
+    };
+  }
 
   /* =======================================================
-     CONFIRM (出荷予定＝紙)
+     SHIP
   ======================================================= */
+  function pageShip(){
+    ensureLogin(); bindLogout(); initBurger(); fillMasterSelects(); bindMasterCascade();
+    $("#btnAddShip").onclick=()=> openShipModal();
+    $("#btnMarkShipped").onclick=()=>{ if(!can('mark_shipped'))return;
+      state.ship.forEach(s=>{ if(s.status==='出荷準備') { s.status='出荷済'; s.updated=stamp(); } }); save(); renderShipTable(); syncQtyShip(); };
+    $("#btnPull").onclick=pullSheet; $("#btnPush").onclick=pushSheet; renderShipTable();
+  }
+  function renderShipTable(){
+    const body=$("#shipBody");
+    body.innerHTML = state.ship.map((s,idx)=>`<tr>
+      <td>${s.date||''}</td><td>${s.customer||''}</td><td>${s.itemName||''}</td><td>${s.itemNo||''}</td>
+      <td style="text-align:right">${s.qty||0}</td><td>${s.status||''}</td><td>${s.note||''}</td><td style="font-size:12px">${s.updated||''}</td>
+      <td>${can('edit_ship')?`<button class='btn btn-outline' data-s='${idx}'>編集</button>`:''}</td></tr>`).join('') || `<tr><td colspan='9' class='text-muted'>データがありません。</td></tr>`;
+    body.querySelectorAll("[data-s]").forEach(b=> b.onclick=()=> openShipModal(Number(b.dataset.s)));
+  }
+  function openShipModal(idx=null){
+    const m=$("#shipModal"); m.style.display='flex';
+    const isEdit=idx!=null;
+    const s=isEdit? state.ship[idx] : {date:today(),customer:'',itemName:'',itemNo:'',qty:0,status:'出荷準備',note:''};
+    $("#sDate").value=s.date; $("#sCustomer").value=s.customer; $("#sItemName").value=s.itemName; $("#sQty").value=s.qty; $("#sStatus").value=s.status; $("#sNote").value=s.note;
+    const items=[...new Set(state.master.filter(m=>m.customer===s.customer).map(m=>m.itemNo))];
+    $("#sItemNo").innerHTML = `<option value="">図番/品番を選択</option>` + items.map(x=>`<option>${x}</option>`).join(''); $("#sItemNo").value=s.itemNo;
+
+    $("#btnShipSave").onclick=()=>{
+      const rec={ date:$("#sDate").value, customer:$("#sCustomer").value.trim(), itemName:$("#sItemName").value.trim(),
+        itemNo:$("#sItemNo").value.trim(), qty:Number($("#sQty").value||0), status:$("#sStatus").value, note:$("#sNote").value.trim(), updated:stamp() };
+      if(isEdit){ state.ship[idx]={...state.ship[idx],...rec}; } else { state.ship.unshift(rec); }
+      save(); m.style.display='none'; renderShipTable(); syncQtyShip(); pushShip(rec);
+    };
+    $("#shipModalClose").onclick=()=> m.style.display='none';
+  }
+  function syncQtyShip(){
+    state.plan.forEach(p=>{
+      const shipped=state.ship.filter(s=>s.itemNo===p.itemNo && s.status==='出荷済').reduce((a,b)=>a+Number(b.qty||0),0);
+      p.qtyShip=shipped;
+    }); save();
+  }
+
+  /* ======== CONFIRM / TICKET / SCAN / CHARTS (sama seperti versi sebelumnya) ======== */
+  // (Demi ringkas, fungsi2 halaman lain tetap sama seperti paket terakhir yang saya kirim — sudah burger-ready.)
+  // ---- CONFIRM ----
   function pageConfirm(){ ensureLogin(); bindLogout(); initBurger(); fillMasterSelects();
     $("#btnBuildConfirm").onclick=makeConfirm;
     $("#btnPrintConfirm").onclick=()=>window.print();
@@ -216,9 +333,7 @@ const App = (function(){
     XLSX.writeFile(wb, `出荷予定_${d}.xlsx`);
   }
 
-  /* =======================================================
-     TICKET（生産現品票）
-  ======================================================= */
+  // ---- TICKET ----
   function pageTicket(){ ensureLogin(); bindLogout(); initBurger();
     const qs=new URLSearchParams(location.search);
     const prodNo=qs.get('prodNo')||''; const itemNo=qs.get('itemNo')||'';
@@ -233,12 +348,10 @@ const App = (function(){
     $("#tCustomer").textContent=p.customer; $("#tProdNo").textContent=p.prodNo; $("#tStart").textContent=p.start; $("#tItemNo").textContent=p.itemNo; $("#tItemName").textContent=p.itemName; $("#tUser").textContent=state.user;
     const imp=['表面のキズ/変色/サビ','曲げ角度・割れ','外枠組付け','シャッター組立','溶接状態','コーキング','塗装','組立仕上げ','最終検査'];
     $("#tProcessRows").innerHTML = PROCESS_LIST.map((name,i)=>`<tr><td>${name}</td><td>${imp[i]||''}</td><td style="height:46px"></td><td></td></tr>`).join('');
-    const q=$("#tQR"); q.innerHTML=''; new QRCode(q,{text:`${p.prodNo}|${p.itemNo}`,width:100,height:100}); // QR otomatis
+    const q=$("#tQR"); q.innerHTML=''; new QRCode(q,{text:`${p.prodNo}|${p.itemNo}`,width:100,height:100});
   }
 
-  /* =======================================================
-     SCAN（QR＋手入力、NG登録）
-  ======================================================= */
+  // ---- SCAN ----
   function pageScan(){ ensureLogin(); bindLogout(); initBurger();
     $("#scanProcess").innerHTML=PROCESS_LIST.map(p=>`<option>${p}</option>`).join('');
     if(window.Html5Qrcode){
@@ -256,7 +369,7 @@ const App = (function(){
       save(); pushPlan(p); alert('更新しました');
     };
     // NG save
-    $("#btnSaveNG").onclick=()=>{
+    $("#btnSaveNG")?.addEventListener('click',()=>{
       const prodNo=$("#manualProd").value.trim(), itemNo=$("#manualItem").value.trim();
       if(!prodNo||!itemNo) return alert('製造番号と品番を入力/スキャンしてください');
       const qty=Number($("#ngQty").value||0); const reason=$("#ngReason").value.trim();
@@ -264,14 +377,12 @@ const App = (function(){
       const p=state.plan.find(x=>x.prodNo===prodNo && x.itemNo===itemNo); if(!p) return alert('計画なし');
       const rec={ng:true, date:today(), customer:p.customer||'', itemName:p.itemName||'', itemNo:p.itemNo||itemNo, qty:qty, reason:reason, updated:stamp(), user:state.user};
       state.ng.unshift(rec); save(); pushNG(rec); alert('NG登録しました');
-    };
+    });
   }
 
-  /* =======================================================
-     CHARTS（在庫、NG、出荷 顧客別）
-  ======================================================= */
+  // ---- CHARTS ----
   function pageCharts(){ ensureLogin(); bindLogout(); initBurger();
-    // STOCK: itemNo => qtyDone-qtyShip
+    // Stock
     const stockMap={};
     state.plan.forEach(p=>{
       const k=p.itemNo||p.itemName; stockMap[k] ||= {label:(p.itemName||p.itemNo||'-'), qty:0};
@@ -282,20 +393,19 @@ const App = (function(){
     const stockArr=Object.values(stockMap).filter(x=>x.qty>0).sort((a,b)=>b.qty-a.qty);
     drawPiePareto('stockPie','stockPareto',stockArr,'qty','label','在庫');
 
-    // NG: by item/customer (gunakan customer)
+    // NG by customer
     const ngMap={};
     state.ng.forEach(n=>{ const k=n.customer||'-'; ngMap[k]=(ngMap[k]||0)+Number(n.qty||0); });
     const ngArr=Object.keys(ngMap).map(k=>({label:k, qty:ngMap[k]})).sort((a,b)=>b.qty-a.qty);
     drawPiePareto('ngPie','ngPareto',ngArr,'qty','label','NG');
 
-    // SHIP per customer (monthly this year / yearly all)
+    // Ship per customer
     const aggSel=$("#shipAgg");
     const buildShip=()=>{
       const mode=aggSel.value; const map={};
       if(mode==='year'){
         state.ship.filter(s=>s.status==='出荷済').forEach(s=>{
-          const y=(s.date||'').slice(0,4)||'----'; const k=s.customer||'-';
-          map[k]=(map[k]||0)+Number(s.qty||0);
+          const k=s.customer||'-'; map[k]=(map[k]||0)+Number(s.qty||0);
         });
       }else{
         const y=(new Date()).getFullYear().toString();
@@ -308,27 +418,20 @@ const App = (function(){
     };
     aggSel.onchange=buildShip; buildShip();
   }
-
   function drawPiePareto(pieId, paretoId, data, valKey, labelKey, title){
     const labels=data.map(x=>x[labelKey]); const values=data.map(x=>x[valKey]);
-    // PIE
-    const ctx1=document.getElementById(pieId); if(ctx1){
+    const ctx1=document.getElementById(pieId); if(ctx1 && window.Chart){
       new Chart(ctx1.getContext('2d'),{type:'pie',data:{labels,datasets:[{data:values}]},options:{plugins:{legend:{position:'bottom'},title:{display:true,text:title+'：Pie'}}});
     }
-    // PARETO: bar + cumulative line
     const sum = values.reduce((a,b)=>a+b,0)||1;
     const cumulative = values.map((v,i)=> values.slice(0,i+1).reduce((a,b)=>a+b,0)/sum*100 );
-    const ctx2=document.getElementById(paretoId); if(ctx2){
+    const ctx2=document.getElementById(paretoId); if(ctx2 && window.Chart){
       new Chart(ctx2.getContext('2d'),{
-        data:{
-          labels,
-          datasets:[
-            {type:'bar', label:title, data:values, yAxisID:'y'},
-            {type:'line', label:'累積%', data:cumulative, yAxisID:'y1', tension:.2}
-          ]
-        },
-        options:{
-          plugins:{legend:{position:'bottom'},title:{display:true,text:title+'：Pareto'}},
+        data:{labels,datasets:[
+          {type:'bar', label:title, data:values, yAxisID:'y'},
+          {type:'line', label:'累積%', data:cumulative, yAxisID:'y1', tension:.2}
+        ]},
+        options:{plugins:{legend:{position:'bottom'},title:{display:true,text:title+'：Pareto'}},
           scales:{ y:{beginAtZero:true}, y1:{beginAtZero:true, max:100, ticks:{callback:(v)=>v+'%'} } }
         }
       });
@@ -336,12 +439,11 @@ const App = (function(){
   }
 
   /* =======================================================
-     連携（2方向）— tambah NG
+     SHEETS Sync (+NG)
   ======================================================= */
   async function pushPlan(p){ try{ await fetch(ENDPOINT.ROOT,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({...p,user:state.user})}); logSync('PLAN送信完了'); }catch(e){ logSync('送信エラー'); } }
   async function pushShip(s){ try{ await fetch(ENDPOINT.ROOT,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({...s,user:state.user})}); logSync('SHIP送信完了'); }catch(e){ logSync('送信エラー'); } }
   async function pushNG(n){ try{ await fetch(ENDPOINT.ROOT,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(n)}); logSync('NG送信完了'); }catch(e){ logSync('送信エラー'); } }
-
   async function pullSheet(){
     try{
       const r=await fetch(ENDPOINT.ROOT); const j=await r.json();
@@ -353,9 +455,10 @@ const App = (function(){
 
   // ====== init ======
   function initPage(page){
+    // panggil spesifik dulu supaya burger aktif
     if(page==='dashboard') pageDashboard();
-    if(page==='plan') { /* gunakan file plan.html Anda sebelumnya */ }
-    if(page==='ship') { /* gunakan file ship.html Anda sebelumnya */ }
+    if(page==='plan') pagePlan();
+    if(page==='ship') pageShip();
     if(page==='confirm') pageConfirm();
     if(page==='ticket') pageTicket();
     if(page==='scan') pageScan();
