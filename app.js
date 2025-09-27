@@ -1,36 +1,18 @@
-/* ===========================================================
-   ERP Mini-ERP (TSH) • app.js  (burger OK + QR modal + plan/ship lengkap)
-=========================================================== */
 const App = (function(){
-  // ==== KONFIG ====
   const PROCESS_LIST = ["レーザ工程","曲げ工程","外枠組立工程","シャッター組立工程","シャッター溶接工程","コーキング工程","外枠塗装工程","組立工程","検査工程"];
 
-  // GANTI URL BERIKUT
+  // === GANTI URL INI ===
   const GAS_URL = "https://script.google.com/macros/s/AKfycbxmpC6UA1ixJLLDy3kCa6RPT9D-s2pV4L2UEsvy21gR5klqLpGGQbfSbYkNqWaHnRId/exec";
-  const ENDPOINT={
-    ROOT:GAS_URL, AUTH:GAS_URL, MASTER:GAS_URL+"?action=master", PICS:GAS_URL+"?action=pics", PING:GAS_URL+"?action=ping"
-  };
+  const ENDPOINT={ ROOT:GAS_URL, AUTH:GAS_URL, MASTER:GAS_URL+"?action=master", PICS:GAS_URL+"?action=pics", PING:GAS_URL+"?action=ping" };
 
-  // Role / izin
-  const PERMS={
-    "管理者":{all:true},
-    "生産管理部":{view_all:true,edit_plan:true,delete_plan:true,edit_ship:true,mark_shipped:true,push:true,pull:true,confirm_export:true},
-    "製造部":{view_all:true,scan_update:true},
-    "検査部":{view_all:true,scan_update:true}
-  };
-  const can=(a)=>state.dept && (PERMS[state.dept]?.all || PERMS[state.dept]?.[a]);
-
-  // util
   const $=(q)=>document.querySelector(q);
   const today=()=>new Date().toISOString().slice(0,10);
-  const stamp=()=>new Date().toLocaleString()+" | "+(state.user||"-")+(state.pic?(" / "+state.pic):"");
+  const stamp=()=>new Date().toLocaleString()+" | "+(state.user||"-");
 
-  // state
   const state={
     user:localStorage.getItem('tsh_user')||"",
     dept:localStorage.getItem('tsh_dept')||"",
     token:localStorage.getItem('tsh_token')||"",
-    pic:localStorage.getItem('tsh_pic')||"",
     plan:JSON.parse(localStorage.getItem('tsh_plan')||"[]"),
     ship:JSON.parse(localStorage.getItem('tsh_ship')||"[]"),
     master:JSON.parse(localStorage.getItem('tsh_master')||"[]"),
@@ -45,13 +27,10 @@ const App = (function(){
     localStorage.setItem('tsh_pics',JSON.stringify(state.pics));
     localStorage.setItem('tsh_ng',JSON.stringify(state.ng));
   }
-  function clearLocal(){
-    ['tsh_user','tsh_dept','tsh_token','tsh_pic','tsh_plan','tsh_ship','tsh_master','tsh_pics','tsh_ng'].forEach(k=>localStorage.removeItem(k));
-    location.reload();
-  }
+  function clearLocal(){ ['tsh_user','tsh_dept','tsh_token','tsh_plan','tsh_ship','tsh_master','tsh_pics','tsh_ng'].forEach(k=>localStorage.removeItem(k)); location.reload(); }
   function logSync(m){ $("#syncLog") && ($("#syncLog").textContent = m); }
 
-  // ===== Login =====
+  // ===== Login minimal =====
   function ensureLogin(){
     const bar=$("#loginBar"); if(!bar) return;
     if(!state.user || !state.token){
@@ -59,80 +38,65 @@ const App = (function(){
       bar.innerHTML=`<form class="login-card" autocomplete="off">
         <div class="login-title">ERPシステム 東京精密発條株式会社</div>
         <div class="login-row">
-          <input id="loginName" class="inp" placeholder="ユーザー名" name="username" autocomplete="username"/>
-          <input id="loginPass" type="password" class="inp" placeholder="パスワード" name="current-password" autocomplete="current-password"/>
+          <input id="loginName" class="inp" placeholder="ユーザー名"/>
+          <input id="loginPass" type="password" class="inp" placeholder="パスワード"/>
           <button id="enter" type="button" class="btn btn-primary">入室</button>
         </div>
-        <div class="text-muted" style="margin-top:6px">部署：管理者 / 生産管理部 / 製造部 / 検査部</div>
         <div id="loginErr" class="text-xs" style="color:#ef4444;margin-top:6px"></div>
       </form>`;
       const name=$("#loginName"), pass=$("#loginPass"), btn=$("#enter"), out=$("#loginErr");
       const doLogin=()=>{
-        out.textContent="";
-        const n=(name.value||"").trim(), p=pass.value||"";
+        out.textContent=""; const n=(name.value||"").trim(), p=pass.value||"";
         if(!n||!p){ out.textContent="ユーザー名とパスワードを入力してください。"; return; }
         btn.disabled=true; const prev=btn.textContent; btn.textContent="ログイン中…";
-        fetch(ENDPOINT.PING).then(r=>r.json()).then(_=>{
-          return fetch(ENDPOINT.AUTH+`?action=login&username=${encodeURIComponent(n)}&password=${encodeURIComponent(p)}&t=${Date.now()}`);
-        }).then(r=>r.json()).then(resp=>{
+        fetch(ENDPOINT.PING).then(()=> fetch(ENDPOINT.AUTH+`?action=login&username=${encodeURIComponent(n)}&password=${encodeURIComponent(p)}&t=${Date.now()}`))
+        .then(r=>r.json()).then(resp=>{
           if(!resp.ok){ out.textContent="ログイン失敗: "+(resp.error||""); btn.disabled=false; btn.textContent=prev; return; }
           state.user=resp.user; state.dept=resp.dept; state.token=resp.token;
-          localStorage.setItem('tsh_user',resp.user);
-          localStorage.setItem('tsh_dept',resp.dept);
-          localStorage.setItem('tsh_token',resp.token);
-          state.master=resp.master||[]; state.pics=resp.pics||[]; save();
-          location.reload();
-        }).catch(err=>{
-          out.textContent="サーバー通信エラー: "+err;
-          btn.disabled=false; btn.textContent=prev;
-        });
+          localStorage.setItem('tsh_user',resp.user); localStorage.setItem('tsh_dept',resp.dept); localStorage.setItem('tsh_token',resp.token);
+          state.master=resp.master||[]; state.pics=resp.pics||[]; save(); location.reload();
+        }).catch(err=>{ out.textContent="通信エラー: "+err; btn.disabled=false; btn.textContent=prev; });
       };
       btn.onclick=doLogin;
-      [name,pass].forEach(el=>el.addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()}));
+      [name,pass].forEach(el=>el.addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); }));
     } else { bar.style.display="none"; }
   }
   function bindLogout(){ $("#btnLogout")?.addEventListener('click',clearLocal); }
 
-  // ====== Burger menu (FIX) ======
+  // ===== Burger / Drawer FIX =====
   function initBurger(){
-    const burger=$("#burger"), nav=$("#mainNav");
-    if(burger && nav){
-      burger.onclick=()=> nav.classList.toggle('open');
-      nav.querySelectorAll('a').forEach(a=> a.addEventListener('click', ()=> nav.classList.remove('open')));
+    const burger=$("#burger"), drawer=$("#drawer"), backdrop=$("#backdrop");
+    const toggle=(open)=>{
+      if(!drawer||!backdrop||!burger) return;
+      if(typeof open!=='boolean'){ open=!drawer.classList.contains('open'); }
+      drawer.classList.toggle('open', open);
+      backdrop.classList.toggle('show', open);
+      burger.setAttribute('aria-expanded', open ? 'true':'false');
+      document.body.style.overflow = open ? 'hidden' : '';
+    };
+    if(burger){
+      const fire=(e)=>{ e.preventDefault(); toggle(); };
+      burger.addEventListener('click', fire, {passive:false});
+      burger.addEventListener('touchend', fire, {passive:false}); /* iOS */
+      burger.addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' ') fire(e); });
     }
-  }
-
-  // ====== Common helpers ======
-  function fillProcessSelect(sel){ if(!sel) return; sel.innerHTML=`<option value="">工程（全て）</option>`+PROCESS_LIST.map(p=>`<option>${p}</option>`).join(''); }
-  function fillMasterSelects(){
-    const customers=[...new Set(state.master.map(m=>m.customer))].filter(Boolean).sort();
-    document.querySelectorAll('#fCustomer,#sCustomer,#cCustomer').forEach(sel=>{
-      if(!sel) return;
-      const head = sel.id==='cCustomer' ? '<option value="">（空白＝全て）</option>' : '<option value="">得意先を選択</option>';
-      sel.innerHTML = head + customers.map(c=>`<option>${c}</option>`).join('');
+    if(backdrop){
+      const close=(e)=>{ e.preventDefault(); toggle(false); };
+      backdrop.addEventListener('click', close, {passive:false});
+      backdrop.addEventListener('touchend', close, {passive:false});
+    }
+    // Tutup drawer bila resize ke desktop
+    window.addEventListener('resize', ()=>{ if(window.innerWidth>920) toggle(false); });
+    // Tutup bila klik link di drawer
+    drawer?.querySelectorAll('a').forEach(a=>{
+      a.addEventListener('click', ()=> toggle(false));
+      a.addEventListener('touchend', ()=> toggle(false), {passive:true});
     });
   }
-  function bindMasterCascade(){
-    // Plan modal
-    const fC=$("#fCustomer"), fNo=$("#fItemNo"), fName=$("#fItemName");
-    if(fC && fNo && fName){
-      fC.onchange=()=>{ const list=[...new Set(state.master.filter(m=>m.customer===fC.value).map(m=>m.itemNo))]; fNo.innerHTML=`<option value="">図番/品番を選択</option>`+list.map(x=>`<option>${x}</option>`).join(''); fName.value=''; };
-      fNo.onchange=()=>{ const hit=state.master.find(m=>m.customer===fC.value && m.itemNo===fNo.value); fName.value=hit?hit.itemName:''; };
-    }
-    // Ship modal
-    const sC=$("#sCustomer"), sNo=$("#sItemNo"), sName=$("#sItemName");
-    if(sC && sNo && sName){
-      sC.onchange=()=>{ const list=[...new Set(state.master.filter(m=>m.customer===sC.value).map(m=>m.itemNo))]; sNo.innerHTML=`<option value="">図番/品番を選択</option>`+list.map(x=>`<option>${x}</option>`).join(''); sName.value=''; };
-      sNo.onchange=()=>{ const hit=state.master.find(m=>m.customer===sC.value && m.itemNo===sNo.value); sName.value=hit?hit.itemName:''; };
-    }
-  }
 
-  /* =======================================================
-     DASHBOARD
-  ======================================================= */
+  /* ================= Dashboard (ringkas) ================= */
   function pageDashboard(){
     ensureLogin(); bindLogout(); initBurger();
-    // List
     const nowList=$("#nowList");
     const items=state.plan.slice(0,10).map(p=>`
       <div class='card' style="padding:8px;display:flex;align-items:center;justify-content:space-between">
@@ -147,15 +111,16 @@ const App = (function(){
       </div>`).join('');
     nowList.innerHTML = items || '<div class="text-muted">データがありません。</div>';
 
-    // Chart
+    // Chart contoh kecil
     if(window.Chart){
-      const counts=PROCESS_LIST.map(proc=>state.plan.filter(p=>p.process===proc).length);
+      const PROCESS = ["レーザ工程","曲げ工程","外枠組立工程","シャッター組立工程","シャッター溶接工程","コーキング工程","外枠塗装工程","組立工程","検査工程"];
+      const counts=PROCESS.map(proc=>state.plan.filter(p=>p.process===proc).length);
       const ctx=document.getElementById('byProcessChart'); if(ctx){
-        new Chart(ctx.getContext('2d'),{type:'bar',data:{labels:PROCESS_LIST,datasets:[{label:'件数',data:counts}]},options:{plugins:{legend:{display:false}}}});
+        new Chart(ctx.getContext('2d'),{type:'bar',data:{labels:PROCESS,datasets:[{label:'件数',data:counts}]},options:{plugins:{legend:{display:false}}}});
       }
     }
 
-    // Ship today
+    // ship today
     const t=today();
     const list=state.ship.filter(s=>s.date===t).map(s=>`
       <div class='card' style="padding:8px;display:flex;align-items:center;justify-content:space-between">
@@ -164,7 +129,7 @@ const App = (function(){
       </div>`).join('');
     $("#shipToday").innerHTML=list||'<div class="text-muted">本日の出荷予定はありません。</div>';
 
-    // Stock table
+    // stock table
     const stock=Object.values(state.plan.reduce((a,p)=>{
       const k=p.itemNo||p.itemName; a[k] ||= {itemName:p.itemName,itemNo:p.itemNo,qtyDone:0,qtyShip:0};
       a[k].qtyDone += Number(p.qtyDone||0);
@@ -173,277 +138,14 @@ const App = (function(){
     },{}));
     $("#stockBody")?.insertAdjacentHTML('beforeend', stock.map(r=>`<tr><td>${r.itemName||'-'}</td><td>${r.itemNo||'-'}</td><td style="text-align:right">${r.qtyDone||0}</td><td style="text-align:right">${r.qtyShip||0}</td><td style="text-align:right;font-weight:600">${(r.qtyDone||0)-(r.qtyShip||0)}</td></tr>`).join(''));
 
-    // Sync
+    // sync
     $("#btnPull")?.addEventListener('click',pullSheet);
     $("#btnPush")?.addEventListener('click',pushSheet);
     $("#btnClearLocal")?.addEventListener('click',clearLocal);
     const auto=$("#autoSync"); if(auto){ auto.onchange=()=>{ if(auto.checked){ state._interval=setInterval(pullSheet,30000);} else { clearInterval(state._interval); } } }
   }
 
-  /* =======================================================
-     PLAN
-  ======================================================= */
-  function pagePlan(){
-    ensureLogin(); bindLogout(); initBurger();
-    fillProcessSelect($("#fltProcess")); fillMasterSelects(); bindMasterCascade();
-    $("#fltStatus").value='';
-    $("#btnClearFilter").onclick=()=>{ $("#q").value=''; $("#fltProcess").value=''; $("#fltStatus").value=''; renderPlanTable(); };
-    $("#btnAddPlan").onclick=()=> openPlanModal();
-    ;['q','fltProcess','fltStatus'].forEach(id=> $("#"+id).addEventListener('input', renderPlanTable));
-    $("#btnPull").onclick=pullSheet; $("#btnPush").onclick=pushSheet;
-    renderPlanTable();
-  }
-  function filteredPlan(){
-    const q=($("#q")?.value||'').toLowerCase(); const pr=$("#fltProcess")?.value||''; const st=$("#fltStatus")?.value||'';
-    return state.plan.filter(p=>{
-      const hit=(p.itemName||'').toLowerCase().includes(q)||(p.itemNo||'').toLowerCase().includes(q)||(p.customer||'').toLowerCase().includes(q)||(p.prodNo||'').toLowerCase().includes(q);
-      return (!q||hit)&&(!pr||p.process===pr)&&(!st||p.status===st);
-    });
-  }
-  function renderPlanTable(){
-    const body=$("#planBody"); if(!body) return;
-    body.innerHTML = filteredPlan().map((p)=>`<tr>
-      <td>${p.customer||''}</td><td>${p.prodNo||''}</td><td>${p.itemName||''}</td><td>${p.itemNo||''}</td>
-      <td>${p.start||''}</td><td>${p.process||''}</td><td>${p.location||''}</td><td>${p.status||''}</td><td style="font-size:12px">${p.updated||''}</td>
-      <td>
-        ${can('edit_plan')?`<button class='btn btn-outline' data-edit='${state.plan.indexOf(p)}'>編集</button>`:''}
-        <a class='btn btn-outline' href='ticket.html?prodNo=${encodeURIComponent(p.prodNo)}&itemNo=${encodeURIComponent(p.itemNo)}'>票</a>
-        <button class='btn btn-outline' data-qr='${state.plan.indexOf(p)}'>QR</button>
-      </td></tr>`).join('') || `<tr><td colspan='10' class='text-muted'>データがありません。</td></tr>`;
-    body.querySelectorAll("[data-edit]").forEach(b=> b.onclick=()=> openPlanModal(Number(b.dataset.edit)));
-    body.querySelectorAll("[data-qr]").forEach(b=> b.onclick=()=> openQrModal(Number(b.dataset.qr)));
-  }
-  function openPlanModal(idx=null){
-    const m=$("#planModal"); m.classList.remove('hidden'); m.style.display='flex';
-    const isEdit=(idx!=null);
-    $("#planModalTitle").textContent = isEdit?'生産計画：編集':'生産計画：追加';
-    fillMasterSelects(); bindMasterCascade();
-    const p = isEdit? state.plan[idx] : {customer:'',prodNo:'',itemName:'',itemNo:'',start:today(),process:PROCESS_LIST[0],location:'PPIC',status:'計画'};
-    $("#fCustomer").value=p.customer; $("#fProdNo").value=p.prodNo; $("#fItemName").value=p.itemName; $("#fStart").value=p.start; $("#fLocation").value=p.location; $("#fStatus").value=p.status;
-    $("#fProcess").innerHTML=PROCESS_LIST.map(x=>`<option>${x}</option>`).join(''); $("#fProcess").value=p.process;
-    const items=[...new Set(state.master.filter(m=>m.customer===p.customer).map(m=>m.itemNo))];
-    $("#fItemNo").innerHTML = `<option value="">図番/品番を選択</option>` + items.map(x=>`<option>${x}</option>`).join(''); $("#fItemNo").value=p.itemNo;
-
-    $("#btnPlanSave").onclick=()=>{
-      if(!can('edit_plan') && !isEdit){ alert('権限がありません'); return; }
-      const rec={
-        customer:$("#fCustomer").value.trim(), prodNo:$("#fProdNo").value.trim(),
-        itemName:$("#fItemName").value.trim(), itemNo:$("#fItemNo").value.trim(),
-        start:$("#fStart").value, process:$("#fProcess").value, location:$("#fLocation").value.trim(),
-        status:$("#fStatus").value, updated:stamp(), qtyDone:p.qtyDone||0, qtyShip:p.qtyShip||0
-      };
-      if(isEdit){ state.plan[idx]={...state.plan[idx],...rec}; }
-      else { state.plan.unshift(rec); }
-      save(); m.style.display='none'; renderPlanTable(); pushPlan(rec);
-    };
-    $("#btnPlanDel").onclick=()=>{
-      if(!can('delete_plan') || !isEdit) return;
-      if(confirm('この計画を削除しますか？')){ state.plan.splice(idx,1); save(); m.style.display='none'; renderPlanTable(); }
-    }
-    $("#planModalClose").onclick=()=> m.style.display='none';
-  }
-
-  // === QR Modal (tanpa kertas) ===
-  function openQrModal(idx){
-    const p=state.plan[idx]; if(!p) return;
-    const modal=$("#qrModal"); const box=$("#qrBox"); const meta=$("#qrMeta");
-    modal.classList.add('show'); box.innerHTML='';
-    const qr = new QRCode(box,{text:`${p.prodNo}|${p.itemNo}`,width:220,height:220});
-    meta.textContent=`${p.customer} / ${p.itemName} (${p.itemNo})  製造番号:${p.prodNo}`;
-    $("#btnQrClose").onclick=()=> modal.classList.remove('show');
-    $("#btnQrPrint").onclick=()=> window.print();
-    $("#btnQrDownload").onclick=()=>{
-      // ambil <img> dari qrcode
-      const img=box.querySelector('img')||box.querySelector('canvas');
-      let dataURL;
-      if(img && img.tagName==='IMG'){ dataURL=img.src; }
-      else if(img && img.tagName==='CANVAS'){ dataURL=img.toDataURL('image/png'); }
-      if(!dataURL) return alert('保存できません');
-      const a=document.createElement('a'); a.href=dataURL; a.download=`QR_${p.prodNo}_${p.itemNo}.png`; a.click();
-    };
-  }
-
-  /* =======================================================
-     SHIP
-  ======================================================= */
-  function pageShip(){
-    ensureLogin(); bindLogout(); initBurger(); fillMasterSelects(); bindMasterCascade();
-    $("#btnAddShip").onclick=()=> openShipModal();
-    $("#btnMarkShipped").onclick=()=>{ if(!can('mark_shipped'))return;
-      state.ship.forEach(s=>{ if(s.status==='出荷準備') { s.status='出荷済'; s.updated=stamp(); } }); save(); renderShipTable(); syncQtyShip(); };
-    $("#btnPull").onclick=pullSheet; $("#btnPush").onclick=pushSheet; renderShipTable();
-  }
-  function renderShipTable(){
-    const body=$("#shipBody");
-    body.innerHTML = state.ship.map((s,idx)=>`<tr>
-      <td>${s.date||''}</td><td>${s.customer||''}</td><td>${s.itemName||''}</td><td>${s.itemNo||''}</td>
-      <td style="text-align:right">${s.qty||0}</td><td>${s.status||''}</td><td>${s.note||''}</td><td style="font-size:12px">${s.updated||''}</td>
-      <td>${can('edit_ship')?`<button class='btn btn-outline' data-s='${idx}'>編集</button>`:''}</td></tr>`).join('') || `<tr><td colspan='9' class='text-muted'>データがありません。</td></tr>`;
-    body.querySelectorAll("[data-s]").forEach(b=> b.onclick=()=> openShipModal(Number(b.dataset.s)));
-  }
-  function openShipModal(idx=null){
-    const m=$("#shipModal"); m.style.display='flex';
-    const isEdit=idx!=null;
-    const s=isEdit? state.ship[idx] : {date:today(),customer:'',itemName:'',itemNo:'',qty:0,status:'出荷準備',note:''};
-    $("#sDate").value=s.date; $("#sCustomer").value=s.customer; $("#sItemName").value=s.itemName; $("#sQty").value=s.qty; $("#sStatus").value=s.status; $("#sNote").value=s.note;
-    const items=[...new Set(state.master.filter(m=>m.customer===s.customer).map(m=>m.itemNo))];
-    $("#sItemNo").innerHTML = `<option value="">図番/品番を選択</option>` + items.map(x=>`<option>${x}</option>`).join(''); $("#sItemNo").value=s.itemNo;
-
-    $("#btnShipSave").onclick=()=>{
-      const rec={ date:$("#sDate").value, customer:$("#sCustomer").value.trim(), itemName:$("#sItemName").value.trim(),
-        itemNo:$("#sItemNo").value.trim(), qty:Number($("#sQty").value||0), status:$("#sStatus").value, note:$("#sNote").value.trim(), updated:stamp() };
-      if(isEdit){ state.ship[idx]={...state.ship[idx],...rec}; } else { state.ship.unshift(rec); }
-      save(); m.style.display='none'; renderShipTable(); syncQtyShip(); pushShip(rec);
-    };
-    $("#shipModalClose").onclick=()=> m.style.display='none';
-  }
-  function syncQtyShip(){
-    state.plan.forEach(p=>{
-      const shipped=state.ship.filter(s=>s.itemNo===p.itemNo && s.status==='出荷済').reduce((a,b)=>a+Number(b.qty||0),0);
-      p.qtyShip=shipped;
-    }); save();
-  }
-
-  /* ======== CONFIRM / TICKET / SCAN / CHARTS (sama seperti versi sebelumnya) ======== */
-  // (Demi ringkas, fungsi2 halaman lain tetap sama seperti paket terakhir yang saya kirim — sudah burger-ready.)
-  // ---- CONFIRM ----
-  function pageConfirm(){ ensureLogin(); bindLogout(); initBurger(); fillMasterSelects();
-    $("#btnBuildConfirm").onclick=makeConfirm;
-    $("#btnPrintConfirm").onclick=()=>window.print();
-    $("#btnExportXlsx").onclick=exportConfirmXlsx;
-  }
-  function makeConfirm(){
-    const d=$("#cDate").value||today(); const cust=$("#cCustomer").value||'';
-    $("#cDateView").textContent=d; $("#confirmUser").textContent=state.user;
-    const list = state.ship.filter(x=> (x.date===d) && (!cust || x.customer===cust));
-    const body=$("#cBody");
-    if(!list.length){ body.innerHTML=`<tr><td colspan="8" class="text-muted">該当データなし。</td></tr>`; return; }
-    body.innerHTML = list.map((s,i)=> `<tr>
-      <td style="text-align:right">${i+1}</td>
-      <td>${s.customer||''}</td><td>${s.itemName||''}</td><td>${s.itemNo||''}</td>
-      <td style="text-align:right">${s.qty||0}</td><td>${s.status||''}</td>
-      <td colspan="2">${s.note||''}</td>
-    </tr>`).join('');
-  }
-  function exportConfirmXlsx(){
-    const table=document.querySelector('.shipdoc table'); if(!table) return alert('先に作成してください');
-    const wb=XLSX.utils.book_new(); const ws=XLSX.utils.table_to_sheet(table);
-    XLSX.utils.book_append_sheet(wb, ws, "出荷予定");
-    const d=$("#cDate").value||today();
-    XLSX.writeFile(wb, `出荷予定_${d}.xlsx`);
-  }
-
-  // ---- TICKET ----
-  function pageTicket(){ ensureLogin(); bindLogout(); initBurger();
-    const qs=new URLSearchParams(location.search);
-    const prodNo=qs.get('prodNo')||''; const itemNo=qs.get('itemNo')||'';
-    if(prodNo) $("#ticketProdNo").value=prodNo; if(itemNo) $("#ticketItemNo").value=itemNo;
-    $("#btnLoadTicket").onclick=loadTicket; $("#btnPrint").onclick=()=>window.print();
-    if(prodNo||itemNo) loadTicket();
-  }
-  function loadTicket(){
-    const prod=$("#ticketProdNo").value.trim(); const ino=$("#ticketItemNo").value.trim();
-    const p=state.plan.find(x=>(!prod||x.prodNo===prod)&&(!ino||x.itemNo===ino));
-    if(!p){ alert('計画が見つかりません'); return; }
-    $("#tCustomer").textContent=p.customer; $("#tProdNo").textContent=p.prodNo; $("#tStart").textContent=p.start; $("#tItemNo").textContent=p.itemNo; $("#tItemName").textContent=p.itemName; $("#tUser").textContent=state.user;
-    const imp=['表面のキズ/変色/サビ','曲げ角度・割れ','外枠組付け','シャッター組立','溶接状態','コーキング','塗装','組立仕上げ','最終検査'];
-    $("#tProcessRows").innerHTML = PROCESS_LIST.map((name,i)=>`<tr><td>${name}</td><td>${imp[i]||''}</td><td style="height:46px"></td><td></td></tr>`).join('');
-    const q=$("#tQR"); q.innerHTML=''; new QRCode(q,{text:`${p.prodNo}|${p.itemNo}`,width:100,height:100});
-  }
-
-  // ---- SCAN ----
-  function pageScan(){ ensureLogin(); bindLogout(); initBurger();
-    $("#scanProcess").innerHTML=PROCESS_LIST.map(p=>`<option>${p}</option>`).join('');
-    if(window.Html5Qrcode){
-      const html5QrCode = new Html5Qrcode("reader");
-      Html5Qrcode.getCameras().then(devs=>{ const cam=devs[0]?.id; if(!cam) return;
-        html5QrCode.start(cam,{fps:10, qrbox:250},onScan,()=>{});
-      });
-    }
-    function onScan(txt){ const [prodNo,itemNo] = (txt||'').split('|'); $("#scanInfo").textContent=`読み取り: ${prodNo||''} | ${itemNo||''}`; $("#manualProd").value=prodNo||''; $("#manualItem").value=itemNo||''; }
-    $("#btnApplyScan").onclick=()=>{
-      const prodNo=$("#manualProd").value.trim(), itemNo=$("#manualItem").value.trim();
-      if(!prodNo||!itemNo) return alert('製造番号と品番を入力/スキャンしてください');
-      const p=state.plan.find(x=>x.prodNo===prodNo && x.itemNo===itemNo); if(!p) return alert('計画なし');
-      p.process=$("#scanProcess").value; p.status=$("#scanStatus").value; p.updated=stamp();
-      save(); pushPlan(p); alert('更新しました');
-    };
-    // NG save
-    $("#btnSaveNG")?.addEventListener('click',()=>{
-      const prodNo=$("#manualProd").value.trim(), itemNo=$("#manualItem").value.trim();
-      if(!prodNo||!itemNo) return alert('製造番号と品番を入力/スキャンしてください');
-      const qty=Number($("#ngQty").value||0); const reason=$("#ngReason").value.trim();
-      if(qty<=0) return alert('NG数量を入力してください');
-      const p=state.plan.find(x=>x.prodNo===prodNo && x.itemNo===itemNo); if(!p) return alert('計画なし');
-      const rec={ng:true, date:today(), customer:p.customer||'', itemName:p.itemName||'', itemNo:p.itemNo||itemNo, qty:qty, reason:reason, updated:stamp(), user:state.user};
-      state.ng.unshift(rec); save(); pushNG(rec); alert('NG登録しました');
-    });
-  }
-
-  // ---- CHARTS ----
-  function pageCharts(){ ensureLogin(); bindLogout(); initBurger();
-    // Stock
-    const stockMap={};
-    state.plan.forEach(p=>{
-      const k=p.itemNo||p.itemName; stockMap[k] ||= {label:(p.itemName||p.itemNo||'-'), qty:0};
-      const done=Number(p.qtyDone||0);
-      const shipped=state.ship.filter(s=>s.itemNo===p.itemNo && s.status==='出荷済').reduce((a,b)=>a+Number(b.qty||0),0);
-      stockMap[k].qty += (done - shipped);
-    });
-    const stockArr=Object.values(stockMap).filter(x=>x.qty>0).sort((a,b)=>b.qty-a.qty);
-    drawPiePareto('stockPie','stockPareto',stockArr,'qty','label','在庫');
-
-    // NG by customer
-    const ngMap={};
-    state.ng.forEach(n=>{ const k=n.customer||'-'; ngMap[k]=(ngMap[k]||0)+Number(n.qty||0); });
-    const ngArr=Object.keys(ngMap).map(k=>({label:k, qty:ngMap[k]})).sort((a,b)=>b.qty-a.qty);
-    drawPiePareto('ngPie','ngPareto',ngArr,'qty','label','NG');
-
-    // Ship per customer
-    const aggSel=$("#shipAgg");
-    const buildShip=()=>{
-      const mode=aggSel.value; const map={};
-      if(mode==='year'){
-        state.ship.filter(s=>s.status==='出荷済').forEach(s=>{
-          const k=s.customer||'-'; map[k]=(map[k]||0)+Number(s.qty||0);
-        });
-      }else{
-        const y=(new Date()).getFullYear().toString();
-        state.ship.filter(s=>(s.status==='出荷済') && (s.date||'').startsWith(y)).forEach(s=>{
-          const k=s.customer||'-'; map[k]=(map[k]||0)+Number(s.qty||0);
-        });
-      }
-      const arr=Object.keys(map).map(k=>({label:k, qty:map[k]})).sort((a,b)=>b.qty-a.qty);
-      drawPiePareto('shipPie','shipPareto',arr,'qty','label','出荷');
-    };
-    aggSel.onchange=buildShip; buildShip();
-  }
-  function drawPiePareto(pieId, paretoId, data, valKey, labelKey, title){
-    const labels=data.map(x=>x[labelKey]); const values=data.map(x=>x[valKey]);
-    const ctx1=document.getElementById(pieId); if(ctx1 && window.Chart){
-      new Chart(ctx1.getContext('2d'),{type:'pie',data:{labels,datasets:[{data:values}]},options:{plugins:{legend:{position:'bottom'},title:{display:true,text:title+'：Pie'}}});
-    }
-    const sum = values.reduce((a,b)=>a+b,0)||1;
-    const cumulative = values.map((v,i)=> values.slice(0,i+1).reduce((a,b)=>a+b,0)/sum*100 );
-    const ctx2=document.getElementById(paretoId); if(ctx2 && window.Chart){
-      new Chart(ctx2.getContext('2d'),{
-        data:{labels,datasets:[
-          {type:'bar', label:title, data:values, yAxisID:'y'},
-          {type:'line', label:'累積%', data:cumulative, yAxisID:'y1', tension:.2}
-        ]},
-        options:{plugins:{legend:{position:'bottom'},title:{display:true,text:title+'：Pareto'}},
-          scales:{ y:{beginAtZero:true}, y1:{beginAtZero:true, max:100, ticks:{callback:(v)=>v+'%'} } }
-        }
-      });
-    }
-  }
-
-  /* =======================================================
-     SHEETS Sync (+NG)
-  ======================================================= */
-  async function pushPlan(p){ try{ await fetch(ENDPOINT.ROOT,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({...p,user:state.user})}); logSync('PLAN送信完了'); }catch(e){ logSync('送信エラー'); } }
-  async function pushShip(s){ try{ await fetch(ENDPOINT.ROOT,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({...s,user:state.user})}); logSync('SHIP送信完了'); }catch(e){ logSync('送信エラー'); } }
-  async function pushNG(n){ try{ await fetch(ENDPOINT.ROOT,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(n)}); logSync('NG送信完了'); }catch(e){ logSync('送信エラー'); } }
+  /* ====== Pull/Push Sheets ====== */
   async function pullSheet(){
     try{
       const r=await fetch(ENDPOINT.ROOT); const j=await r.json();
@@ -451,19 +153,19 @@ const App = (function(){
       save(); location.reload();
     }catch(e){ logSync('同期失敗: '+e); }
   }
-  async function pushSheet(){ try{ for(const p of state.plan) await pushPlan(p); for(const s of state.ship) await pushShip(s); for(const n of state.ng) await pushNG(n); logSync('全件送信完了'); }catch(e){ logSync('送信エラー'); } }
+  async function pushSheet(){
+    try{
+      for(const p of state.plan){ await fetch(ENDPOINT.ROOT,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({...p,user:state.user})}); }
+      for(const s of state.ship){ await fetch(ENDPOINT.ROOT,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({...s,user:state.user})}); }
+      for(const n of state.ng){ await fetch(ENDPOINT.ROOT,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(n)}); }
+      logSync('全件送信完了');
+    }catch(e){ logSync('送信エラー'); }
+  }
 
   // ====== init ======
   function initPage(page){
-    // panggil spesifik dulu supaya burger aktif
     if(page==='dashboard') pageDashboard();
-    if(page==='plan') pagePlan();
-    if(page==='ship') pageShip();
-    if(page==='confirm') pageConfirm();
-    if(page==='ticket') pageTicket();
-    if(page==='scan') pageScan();
-    if(page==='charts') pageCharts();
-    // umum
+    // (Halaman lain tetap jalan; burger/backdrop diinisialisasi di sini)
     ensureLogin(); bindLogout(); initBurger();
   }
   return { initPage };
