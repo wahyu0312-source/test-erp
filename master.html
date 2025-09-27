@@ -1,121 +1,47 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>ERPシステム • マスター</title>
-  <link rel="stylesheet" href="style.css"/>
-  <script src="https://unpkg.com/lucide@latest"></script>
-</head>
-<body>
-  <div id="loginBar" class="loginbar"></div>
-  <header class="topbar">
-    <div class="max">
-      <a href="index.html" class="brand"><img src="tsh.png" class="logo" alt="TSH">
-        <div><div class="brand-title">ERPシステム</div><div class="brand-sub">東京精密発條株式会社</div></div></a>
-      <nav class="hide-sm md:flex items-center gap-2">
-        <a href="index.html" class="navlink" data-menu-link>ダッシュボード</a>
-        <a href="plan.html"  class="navlink" data-menu-link>生産計画</a>
-        <a href="ship.html"  class="navlink" data-menu-link>出荷計画</a>
-        <a href="confirm.html" class="navlink" data-menu-link>出荷確認書</a>
-        <a href="scan.html"  class="navlink" data-menu-link>QRスキャン</a>
-        <a href="ticket.html" class="navlink" data-menu-link>生産現品票</a>
-        <a href="master.html" class="navlink" data-menu-link>マスター</a>
-        <button id="btnLogout" class="btn btn-outline">ログアウト</button>
-      </nav>
-      <button id="btnBurger" class="md:hidden btn-ghost" aria-expanded="false" aria-controls="mobileMenu">☰</button>
+<!doctype html><html lang="ja"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>マスター • ERP</title>
+<link rel="stylesheet" href="style.css"/></head><body>
+<header class="topbar"><div class="container wrap">
+  <img src="tsh.png" class="logo"><span class="brand">ERP</span>
+  <nav id="mainNav" class="nav">
+    <a href="index.html">ダッシュボード</a><a href="plan.html">生産計画</a>
+    <a href="ship.html">出荷計画</a><a href="confirm.html">出荷確認書</a>
+    <a href="scan.html">QRスキャン</a><a href="ticket.html">生産現品票</a><a href="master.html" class="active">マスター</a>
+  </nav><div class="menu-spacer"></div><button id="burgerBtn" class="burger">☰</button></div></header>
+<div id="loginBar" class="container login-bar"></div>
+
+<main class="container grid">
+  <section class="card">
+    <h3>得意先/図番/品名 マスター</h3>
+    <div class="row wrap">
+      <input id="mq" class="input" placeholder="検索: 得意先/図番/品名/品番" style="min-width:260px">
+      <select id="mp" class="input" style="max-width:120px"><option>10</option><option>25</option><option>50</option></select>
+      <button id="btnAddMaster" class="btn">追加</button>
     </div>
-    <div id="navOverlay" class="hidden fixed inset-0 z-40"></div>
-    <div id="mobileMenu" class="hidden fixed inset-y-0 right-0 w-64 bg-white shadow-xl border-l z-50">
-      <div class="p-4 flex items-center justify-between border-b">
-        <div class="font-semibold text-sm">メニュー</div>
-        <button id="btnCloseMenu" class="btn-ghost" aria-label="閉じる">✕</button>
-      </div>
-      <nav class="p-3 grid gap-1 text-sm">
-        <a href="index.html"   class="mnav" data-menu-link>ダッシュボード</a>
-        <a href="plan.html"    class="mnav" data-menu-link>生産計画</a>
-        <a href="ship.html"    class="mnav" data-menu-link>出荷計画</a>
-        <a href="confirm.html" class="mnav" data-menu-link>出荷確認書</a>
-        <a href="scan.html"    class="mnav" data-menu-link>QRスキャン</a>
-        <a href="ticket.html"  class="mnav" data-menu-link>生産現品票</a>
-        <a href="master.html"  class="mnav" data-menu-link>マスター</a>
-        <button id="btnLogoutMobile" class="btn mt-2">ログアウト</button>
-      </nav>
+  </section>
+
+  <section class="card">
+    <table class="table">
+      <thead><tr><th>得意先</th><th>図番</th><th>品名</th><th>品番</th><th></th></tr></thead>
+      <tbody id="masterBody"></tbody>
+    </table>
+    <div id="masterPager" style="margin-top:10px"></div>
+  </section>
+
+  <section id="masterForm" class="card hidden">
+    <h3>マスター編集</h3>
+    <div class="grid grid-2">
+      <div><label>得意先</label><input id="mfCustomer" class="input"></div>
+      <div><label>図番</label><input id="mfDraw" class="input"></div>
+      <div><label>品名</label><input id="mfName" class="input"></div>
+      <div><label>品番</label><input id="mfNo" class="input"></div>
     </div>
-  </header>
+    <div class="space"></div>
+    <div class="row"><button id="btnSaveMaster" class="btn">保存</button><button id="btnCancelMaster" class="btn outline">キャンセル</button></div>
+  </section>
+</main>
 
-  <main class="container grid">
-    <section class="card">
-      <h3><i data-lucide="table"></i> マスター管理（得意先／図番／品名）</h3>
-      <div class="grid two">
-        <div>
-          <div class="text-sm">得意先</div>
-          <input id="mCustomer" placeholder="例：ABC社"/>
-        </div>
-        <div>
-          <div class="text-sm">図番（品番）</div>
-          <input id="mItemNo" placeholder="例：A-1001"/>
-        </div>
-        <div>
-          <div class="text-sm">品名</div>
-          <input id="mItemName" placeholder="例：外枠ASSY"/>
-        </div>
-        <div>
-          <div class="text-sm">備考</div>
-          <input id="mNote" placeholder="任意"/>
-        </div>
-      </div>
-      <div class="flex" style="gap:8px;margin-top:8px">
-        <button id="btnAddMaster" class="btn"><i data-lucide="save"></i>追加</button>
-        <button id="btnPull" class="btn-outline"><i data-lucide="download"></i>再取得</button>
-      </div>
-    </section>
-
-    <section class="card">
-      <table class="gridtbl">
-        <thead><tr>
-          <th>得意先</th><th>図番</th><th>品名</th><th>備考</th><th>操作</th>
-        </tr></thead>
-        <tbody id="masterBody"></tbody>
-      </table>
-    </section>
-  </main>
-
-  <!-- ====== Edit Modal ====== -->
-  <div id="mEditModal" class="hidden fixed inset-0 z-50">
-    <div class="absolute inset-0 bg-black/40"></div>
-    <div class="absolute inset-0 grid place-items-center p-4">
-      <div class="card" style="width:640px;max-width:100%;position:relative">
-        <button id="mEditClose" class="btn-ghost" style="position:absolute;right:12px;top:12px">✕</button>
-        <h3>マスター：編集</h3>
-        <input type="hidden" id="mEditId" />
-        <div class="grid two">
-          <div>
-            <div class="text-sm">得意先</div>
-            <input id="mEditCustomer"/>
-          </div>
-          <div>
-            <div class="text-sm">図番（品番）</div>
-            <input id="mEditItemNo"/>
-          </div>
-          <div>
-            <div class="text-sm">品名</div>
-            <input id="mEditItemName"/>
-          </div>
-          <div>
-            <div class="text-sm">備考</div>
-            <input id="mEditNote"/>
-          </div>
-        </div>
-        <div class="flex" style="gap:8px;margin-top:12px">
-          <button id="mEditSave" class="btn"><i data-lucide="save"></i>保存</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <footer class="site-footer"><span>© 東京精密発條株式会社</span><span>Design by Wahyu</span></footer>
-
-  <script src="app.js"></script>
-  <script>App.initPage('master');</script>
-</body>
-</html>
+<script src="app.js"></script>
+<script>App.initPage('master');</script>
+</body></html>
