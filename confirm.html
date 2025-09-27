@@ -1,68 +1,72 @@
-<!DOCTYPE html><html lang="ja"><head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>ERPシステム • 出荷予定</title>
-<link rel="stylesheet" href="style.css"/>
-</head><body>
-<div id="loginBar" class="login-bar"></div>
-
-<!-- TOPBAR -->
-<header class="topbar">
-  <div class="brand">
-    <button class="burger no-print" id="burger"><span></span><span></span><span></span></button>
-    <img src="tsh.png" class="logo" alt="TSH"/><div><div class="brand-title">ERPシステム</div><div class="brand-sub">東京精密発條株式会社</div></div>
-  </div>
-  <nav class="nav" id="mainNav">
-    <a href="index.html">ダッシュボード</a>
-    <a href="plan.html">生産計画</a>
-    <a href="ship.html">出荷計画</a>
-    <a href="confirm.html" class="active">出荷予定</a>
-    <a href="scan.html">QRスキャン</a>
-    <a href="ticket.html">生産現品票</a>
-    <a href="charts.html">チャート</a>
-  </nav>
-  <div class="actions"><button id="btnLogout" class="btn btn-outline">ログアウト</button></div>
-</header>
-
-<main class="container">
-  <section class="card no-print">
-    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-      <input id="cDate" type="date" class="inp"/>
-      <select id="cCustomer" class="inp"><option value="">（空白＝全て）</option></select>
-      <button id="btnBuildConfirm" class="btn btn-primary">作成</button>
-      <button id="btnPrintConfirm" class="btn btn-outline">印刷</button>
-      <button id="btnExportXlsx" class="btn btn-outline">Excel出力</button>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>ERPシステム • 出荷確認書</title>
+  <link rel="stylesheet" href="style.css"/>
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+  <div id="loginBar" class="loginbar"></div>
+  <header class="topbar">
+    <div class="max">
+      <a href="index.html" class="brand"><img src="tsh.png" class="logo" alt="TSH">
+        <div><div class="brand-title">ERPシステム</div><div class="brand-sub">東京精密発條株式会社</div></div></a>
+      <nav class="hide-sm md:flex items-center gap-2">
+        <a href="index.html" class="navlink" data-menu-link>ダッシュボード</a>
+        <a href="plan.html"  class="navlink" data-menu-link>生産計画</a>
+        <a href="ship.html"  class="navlink" data-menu-link>出荷計画</a>
+        <a href="confirm.html" class="navlink" data-menu-link>出荷確認書</a>
+        <a href="scan.html"  class="navlink" data-menu-link>QRスキャン</a>
+        <a href="ticket.html" class="navlink" data-menu-link>生産現品票</a>
+        <button id="btnLogout" class="btn btn-outline">ログアウト</button>
+      </nav>
+      <button id="btnBurger" class="md:hidden btn-ghost" aria-expanded="false" aria-controls="mobileMenu">☰</button>
     </div>
-  </section>
+    <div id="navOverlay" class="hidden fixed inset-0 z-40"></div>
+    <div id="mobileMenu" class="hidden fixed inset-y-0 right-0 w-64 bg-white shadow-xl border-l z-50">
+      <div class="p-4 flex items-center justify-between border-b">
+        <div class="font-semibold text-sm">メニュー</div>
+        <button id="btnCloseMenu" class="btn-ghost" aria-label="閉じる">✕</button>
+      </div>
+      <nav class="p-3 grid gap-1 text-sm">
+        <a href="index.html"   class="mnav" data-menu-link>ダッシュボード</a>
+        <a href="plan.html"    class="mnav" data-menu-link>生産計画</a>
+        <a href="ship.html"    class="mnav" data-menu-link>出荷計画</a>
+        <a href="confirm.html" class="mnav" data-menu-link>出荷確認書</a>
+        <a href="scan.html"    class="mnav" data-menu-link>QRスキャン</a>
+        <a href="ticket.html"  class="mnav" data-menu-link>生産現品票</a>
+        <button id="btnLogoutMobile" class="btn mt-2">ログアウト</button>
+      </nav>
+    </div>
+  </header>
 
-  <!-- 出荷予定 紙レイアウト -->
-  <section class="shipdoc">
-    <table>
-      <tr>
-        <td colspan="6" class="title">出荷予定</td>
-        <td style="width:120px">日付</td>
-        <td id="cDateView" style="width:160px"></td>
-      </tr>
-      <tr>
-        <td style="width:80px">担当</td><td id="confirmUser" style="width:160px"></td>
-        <td style="width:80px">確認</td><td style="width:160px"></td>
-        <td style="width:80px">承認</td><td style="width:160px"></td>
-        <td style="width:80px">備考</td><td id="cNote"></td>
-      </tr>
-      <tr>
-        <th style="width:50px">No</th>
-        <th style="width:150px">得意先</th>
-        <th>品名</th>
-        <th style="width:140px">品番</th>
-        <th style="width:80px">数量</th>
-        <th style="width:120px">ステータス</th>
-        <th colspan="2">備考</th>
-      </tr>
-      <tbody id="cBody"></tbody>
-    </table>
-  </section>
-</main>
+  <main class="container grid">
+    <section class="card grid" style="grid-template-columns:180px 1fr auto auto;gap:8px;align-items:end">
+      <div><div class="text-sm">日付</div><input id="cfDate" type="date"/></div>
+      <div><div class="text-sm">得意先（空白＝全て）</div><input id="cfCustomer" placeholder=""/></div>
+      <button id="btnCfBuild" class="btn"><i data-lucide="list-checks"></i>作成</button>
+      <button class="btn-outline no-print" onclick="window.print()"><i data-lucide="printer"></i>印刷</button>
+    </section>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="app.js"></script>
-<script>App.initPage('confirm')</script>
-</body></html>
+    <section class="card" id="cfArea">
+      <h3><i data-lucide="file-badge"></i> 出荷確認書</h3>
+      <table class="gridtbl" id="cfTable">
+        <thead><tr><th>No</th><th>得意先</th><th>品名</th><th>品番</th><th>数量</th><th>備考</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <div class="grid" style="grid-template-columns:1fr 1fr;margin-top:8px">
+        <div>担当：<span id="cfUser"></span></div><div>確認印：</div>
+      </div>
+      <div class="no-print" style="margin-top:8px">
+        <button id="btnCfExcel" class="btn-outline"><i data-lucide="file-spreadsheet"></i>Excelエクスポート</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer"><span>© 東京精密発條株式会社</span><span>Design by Wahyu</span></footer>
+
+  <script src="app.js"></script>
+  <script>App.initPage('confirm');</script>
+</body>
+</html>
