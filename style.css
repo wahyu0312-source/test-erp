@@ -1,123 +1,69 @@
-/* ====== Base ====== */
+/* ===== Base ===== */
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
-:root{
-  --primary:#4f46e5; --primary-dark:#4338ca;
-  --muted:#64748b; --border:#e5e7eb; --bg:#f8fafc;
-}
-body{background:var(--bg); color:#0f172a; font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Helvetica,Arial,sans-serif}
+:root{--primary:#4f46e5;--primary-dark:#4338ca;--muted:#64748b;--border:#e5e7eb;--bg:#f8fafc}
+body{background:var(--bg);color:#0f172a;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Helvetica,Arial,sans-serif}
+.hidden{display:none!important}
 
-/* ====== Layout ====== */
-.container{max-width:1200px; margin:18px auto; padding:0 14px}
-.card{background:#fff; border:1px solid var(--border); border-radius:12px; padding:14px}
-.gridtbl{width:100%; border-collapse:collapse}
-.gridtbl th,.gridtbl td{border:1px solid var(--border); padding:8px; text-align:left}
+/* ===== Layout ===== */
+.container{max-width:1200px;margin:18px auto;padding:0 14px}
+.card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px}
+.gridtbl{width:100%;border-collapse:collapse}
+.gridtbl th,.gridtbl td{border:1px solid var(--border);padding:8px;text-align:left}
 .gridtbl th{background:#f1f5f9}
 .text-muted{color:var(--muted)}
-.space-y-2 > * + *{margin-top:.5rem}
+.space-y-2>*+*{margin-top:.5rem}
 
-/* ====== Topbar + Burger / Drawer ====== */
-.topbar{
-  position:sticky; top:0; z-index:100; /* naikkan agar di atas konten lain */
-  display:flex; align-items:center; justify-content:space-between; gap:12px;
-  padding:10px 14px; background:#fff; border-bottom:1px solid var(--border);
-  position: sticky;
-}
-.topbar{ position:sticky; } /* eksplisit */
-.topbar{ position:sticky; } /* (beberapa browser butuh deklarasi eksplisit) */
-.topbar{ position:sticky; }
-.topbar{ position:sticky; }
-.topbar{ position:sticky; }
-.topbar{ position:sticky; }
-/* anchor untuk nav absolute/fixed */
-.topbar{ position:sticky; }
-.topbar{ position:sticky; }
-.brand{display:flex; align-items:center; gap:10px}
+/* ===== Topbar & Nav ===== */
+.topbar{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;background:#fff;border-bottom:1px solid var(--border)}
+.brand{display:flex;align-items:center;gap:10px}
 .logo{height:28px}
-.brand-title{font-weight:700; font-size:13px; line-height:1}
-.brand-sub{font-size:11px; color:var(--muted); line-height:1}
-
-.nav{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
-.nav a{padding:8px 12px; border-radius:10px; font-size:13px; color:#334155; text-decoration:none}
+.brand-title{font-weight:700;font-size:13px;line-height:1}
+.brand-sub{font-size:11px;color:var(--muted);line-height:1}
+.nav{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.nav a{padding:8px 12px;border-radius:10px;font-size:13px;color:#334155;text-decoration:none}
 .nav a:hover{background:#f1f5f9}
-.nav a.active{background:#e0e7ff; color:#4338ca; font-weight:600}
-.actions{display:flex; gap:8px; align-items:center}
+.nav a.active{background:#e0e7ff;color:#4338ca;font-weight:600}
+.actions{display:flex;gap:8px;align-items:center}
 
-.burger{
-  display:none; width:40px; height:40px; border:1px solid var(--border);
-  border-radius:10px; background:#fff; -webkit-tap-highlight-color:transparent;
-}
-.burger span{display:block; width:20px; height:2px; background:#334155; margin:5px auto}
-
-/* Drawer + Backdrop (mobile) */
-.backdrop{
-  position:fixed; inset:0; background:rgba(0,0,0,.45);
-  z-index:98; display:none;
-}
+/* Burger & Drawer (mobile) */
+.burger{display:none;width:40px;height:40px;border:1px solid var(--border);border-radius:10px;background:#fff;-webkit-tap-highlight-color:transparent}
+.burger span{display:block;width:20px;height:2px;background:#334155;margin:5px auto}
+.backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:98;display:none}
 .backdrop.show{display:block}
-
-.drawer{
-  position:fixed; top:0; left:0; bottom:0; width:280px;
-  background:#fff; border-right:1px solid var(--border);
-  transform:translateX(-100%); transition:transform .2s ease-out;
-  z-index:99; padding:12px;
-}
+.drawer{position:fixed;top:0;left:0;bottom:0;width:280px;background:#fff;border-right:1px solid var(--border);transform:translateX(-100%);transition:transform .2s ease-out;z-index:99;padding:12px;overflow:auto}
 .drawer.open{transform:translateX(0)}
-.drawer a{display:block; padding:10px 12px; border-radius:8px; color:#334155; text-decoration:none}
-.drawer a:hover{background:#f1f5f9}
-.drawer .active{background:#e0e7ff; color:#4338ca; font-weight:600}
+.drawer a{display:block;padding:10px 12px;border-radius:8px;color:#334155;text-decoration:none}
+.drawer a:hover{background:#f8fafc}
+.drawer .active{background:#e0e7ff;color:#4338ca;font-weight:600}
 
-/* Mobile: sembunyikan nav baris atas, pakai drawer */
-@media (max-width: 920px){
+@media (max-width:920px){
   .nav{display:none}
   .burger{display:inline-block}
 }
 
-/* ====== Buttons/Inputs ====== */
-.btn{appearance:none; border:0; outline:0; cursor:pointer; font-size:13px; border-radius:10px; padding:9px 12px; line-height:1; transition:.15s; display:inline-flex; align-items:center; gap:6px}
-.btn:disabled{opacity:.6; cursor:not-allowed}
-.btn-primary{background:var(--primary); color:#fff}
+/* ===== Buttons/Inputs ===== */
+.btn{appearance:none;border:0;outline:0;cursor:pointer;font-size:13px;border-radius:10px;padding:9px 12px;line-height:1;transition:.15s;display:inline-flex;align-items:center;gap:6px}
+.btn:disabled{opacity:.6;cursor:not-allowed}
+.btn-primary{background:var(--primary);color:#fff}
 .btn-primary:hover{background:var(--primary-dark)}
-.btn-outline{background:#fff; color:#334155; border:1px solid #cbd5e1}
+.btn-outline{background:#fff;color:#334155;border:1px solid #cbd5e1}
 .btn-outline:hover{background:#f8fafc}
-.btn-danger{background:#ef4444; color:#fff}
-.badge{display:inline-block; padding:2px 8px; border-radius:9999px; font-size:12px; background:#e2e8f0; color:#334155}
-.inp{flex:1 1 200px; border:1px solid #cbd5e1; border-radius:10px; padding:10px 12px; font-size:14px; min-width:0}
+.btn-danger{background:#ef4444;color:#fff}
+.badge{display:inline-block;padding:2px 8px;border-radius:9999px;font-size:12px;background:#e2e8f0;color:#334155}
+.inp{flex:1 1 200px;border:1px solid #cbd5e1;border-radius:10px;padding:10px 12px;font-size:14px;min-width:0}
 
-/* ====== Login ====== */
-.login-bar{position:fixed; inset:0; background:rgba(15,23,42,.35); display:none; align-items:center; justify-content:center; z-index:120}
-.login-card{width:min(520px,92vw); background:#fff; border-radius:14px; border:1px solid var(--border); padding:16px}
-.login-title{font-weight:700; margin-bottom:10px}
-.login-row{display:flex; gap:8px; flex-wrap:wrap}
-
-/* ====== Ticket (印刷) ====== */
-.ticket{width:100%; max-width:980px; margin:0 auto; border:2px solid #000; background:#fff}
-.ticket table{width:100%; border-collapse:collapse}
-.ticket th,.ticket td{border:2px solid #000; padding:6px}
-.ticket .thick{border-width:3px}
-.ticket .ttl{font-weight:800; font-size:20px}
-
-/* ====== 出荷予定 (印刷) ====== */
-.shipdoc{width:100%; max-width:980px; margin:0 auto; border:2px solid #000; background:#fff}
-.shipdoc table{width:100%; border-collapse:collapse}
-.shipdoc th,.shipdoc td{border:2px solid #000; padding:6px}
-.shipdoc .title{font-weight:800; font-size:20px;}
-
-/* ====== CHARTS ====== */
-.chart-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px}
-@media (max-width: 920px){ .chart-grid{grid-template-columns:1fr} }
-canvas{max-width:100%}
-
-/* Modal kecil (QR) */
-.modal{position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.45); z-index:110}
-.modal .box{background:#fff; border-radius:12px; padding:16px; border:1px solid var(--border); width:min(420px,92vw)}
-.modal.show{display:flex}
+/* ===== Login ===== */
+.login-bar{position:fixed;inset:0;background:rgba(15,23,42,.35);display:none;align-items:center;justify-content:center;z-index:120}
+.login-card{width:min(520px,92vw);background:#fff;border-radius:14px;border:1px solid var(--border);padding:16px}
+.login-title{font-weight:700;margin-bottom:10px}
+.login-row{display:flex;gap:8px;flex-wrap:wrap}
 
 /* Print */
 @media print{
-  .no-print{display:none !important}
+  .no-print{display:none!important}
   body{background:#fff}
   .topbar{position:static}
-  .backdrop{display:none !important}
-  .drawer{display:none !important}
+  .backdrop{display:none!important}
+  .drawer{display:none!important}
 }
