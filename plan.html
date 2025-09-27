@@ -2,18 +2,22 @@
 <meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>ERPシステム • 生産計画</title>
 <link rel="stylesheet" href="style.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head><body>
 <div id="loginBar" class="login-bar"></div>
-<!-- TOPBAR -->
 <header class="topbar">
-  <div class="brand"><img src="tsh.png" class="logo" alt="TSH"><div><div class="brand-title">ERPシステム</div><div class="brand-sub">東京精密発條株式会社</div></div></div>
-  <nav class="nav">
+  <div class="brand">
+    <button class="burger no-print" id="burger"><span></span><span></span><span></span></button>
+    <img src="tsh.png" class="logo" alt="TSH"/><div><div class="brand-title">ERPシステム</div><div class="brand-sub">東京精密発條株式会社</div></div>
+  </div>
+  <nav class="nav" id="mainNav">
     <a href="index.html">ダッシュボード</a>
     <a href="plan.html" class="active">生産計画</a>
     <a href="ship.html">出荷計画</a>
-    <a href="confirm.html">出荷確認書</a>
+    <a href="confirm.html">出荷予定</a>
     <a href="scan.html">QRスキャン</a>
     <a href="ticket.html">生産現品票</a>
+    <a href="charts.html">チャート</a>
   </nav>
   <div class="actions"><button id="btnLogout" class="btn btn-outline">ログアウト</button></div>
 </header>
@@ -38,14 +42,14 @@
   <section class="card">
     <table class="gridtbl">
       <thead><tr>
-        <th>得意先</th><th>製造番号</th><th>品名</th><th>品番</th><th>開始</th><th>プロセス</th><th>場所</th><th>ステータス</th><th>更新</th><th style="width:160px">操作</th>
+        <th>得意先</th><th>製造番号</th><th>品名</th><th>品番</th><th>開始</th><th>プロセス</th><th>場所</th><th>ステータス</th><th>更新</th><th style="width:240px">操作</th>
       </tr></thead>
       <tbody id="planBody"></tbody>
     </table>
   </section>
 </main>
 
-<!-- Modal -->
+<!-- Plan Modal -->
 <div id="planModal" class="login-bar">
   <div class="login-card" style="width:min(680px,92vw)">
     <div id="planModalTitle" class="login-title">生産計画：追加</div>
@@ -66,7 +70,20 @@
       <button id="btnPlanSave" class="btn btn-primary">保存</button>
       <button id="planModalClose" class="btn btn-outline">閉じる</button>
     </div>
-    <div class="text-muted" style="margin-top:8px">「得意先 → 図番」を選ぶと品名が自動入力（MASTER参照）。</div>
+  </div>
+</div>
+
+<!-- QR Modal -->
+<div id="qrModal" class="modal no-print">
+  <div class="box">
+    <div style="font-weight:700; margin-bottom:6px">QRコード</div>
+    <div id="qrBox" style="display:flex;justify-content:center;margin:8px 0"></div>
+    <div id="qrMeta" class="text-muted" style="font-size:12px"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
+      <button id="btnQrDownload" class="btn btn-outline">保存（PNG）</button>
+      <button id="btnQrPrint" class="btn btn-outline">ラベル印刷</button>
+      <button id="btnQrClose" class="btn">閉じる</button>
+    </div>
   </div>
 </div>
 
