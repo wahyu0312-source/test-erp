@@ -1,25 +1,25 @@
-/* ================== ERP Mini (Dashboard only slice) ================== */
+/* ================== ERP Mini (Dashboard) ================== */
 const App = (function(){
   // === CONFIG ===
-  const GAS_URL = "https://script.google.com/macros/s/AKfycbxmpC6UA1ixJLLDy3kCa6RPT9D-s2pV4L2UEsvy21gR5klqLpGGQbfSbYkNqWaHnRId/exec";      // <— GANTI
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbxmpC6UA1ixJLLDy3kCa6RPT9D-s2pV4L2UEsvy21gR5klqLpGGQbfSbYkNqWaHnRId/exec"; // <- GANTI ke WebApp GAS kamu
   const ENDPOINT = {
     ROOT: GAS_URL,
     AUTH: GAS_URL,
     PING: GAS_URL + "?action=ping"
   };
 
-  // Paksa sembunyikan sync di semua role? (true = sembunyi total)
+  // Sembunyikan total menu Sync untuk semua role (true = sembunyi)
   const FORCE_HIDE_SYNC = false;
-
-  // Role yang boleh lihat menu Sync
+  // Role yang boleh melihat Sync
   const SYNC_ROLES = new Set(["管理者","生産管理部"]);
 
-  const PROCESS_LIST = ["レーザ工程","曲げ工程","外枠組立工程","シャッター組立工程","シャッター溶接工程","コーキング工程","外枠塗装工程","組立工程","検査工程"];
+  const PROCESS_LIST = [
+    "レーザ工程","曲げ工程","外枠組立工程","シャッター組立工程",
+    "シャッター溶接工程","コーキング工程","外枠塗装工程","組立工程","検査工程"
+  ];
 
-  // === STATE ===
   const $ = (q)=>document.querySelector(q);
   const today = ()=> new Date().toISOString().slice(0,10);
-
   const state = {
     user: localStorage.getItem('tsh_user') || "",
     dept: localStorage.getItem('tsh_dept') || "",
@@ -35,12 +35,13 @@ const App = (function(){
     localStorage.setItem('tsh_master', JSON.stringify(state.master));
   }
   function clearLocal(){
-    ['tsh_user','tsh_dept','tsh_token','tsh_plan','tsh_ship','tsh_master'].forEach(k=>localStorage.removeItem(k));
+    ['tsh_user','tsh_dept','tsh_token','tsh_plan','tsh_ship','tsh_master']
+      .forEach(k=>localStorage.removeItem(k));
     location.reload();
   }
   function logSync(m){ const el=$("#syncLog"); if(el) el.textContent=m; }
 
-  // ===== Login (sederhana) =====
+  /* ===== Login (overlay sederhana) ===== */
   function ensureLogin(){
     const bar=$("#loginBar"); if(!bar) return;
     if(!state.user || !state.token){
@@ -60,7 +61,9 @@ const App = (function(){
         const n=(name.value||"").trim(), p=pass.value||"";
         if(!n||!p){ out.textContent="ユーザー名とパスワードを入力してください。"; return; }
         btn.disabled=true; const old=btn.textContent; btn.textContent="ログイン中…";
-        fetch(ENDPOINT.PING).then(()=> fetch(ENDPOINT.AUTH+`?action=login&username=${encodeURIComponent(n)}&password=${encodeURIComponent(p)}&t=${Date.now()}`))
+        // ping + login GET
+        fetch(ENDPOINT.PING)
+        .then(()=> fetch(ENDPOINT.AUTH+`?action=login&username=${encodeURIComponent(n)}&password=${encodeURIComponent(p)}&t=${Date.now()}`))
         .then(r=>r.json()).then(resp=>{
           if(!resp.ok){ out.textContent="ログイン失敗: "+(resp.error||""); btn.disabled=false; btn.textContent=old; return; }
           state.user=resp.user; state.dept=resp.dept; state.token=resp.token;
@@ -81,47 +84,7 @@ const App = (function(){
   }
   function bindLogout(){ $("#btnLogout")?.addEventListener('click', clearLocal); }
 
-  // ===== Burger / Drawer: FIX untuk Chrome mobile =====
-  function initBurger(){
-    const burger=$("#burger"), drawer=$("#drawer"), backdrop=$("#backdrop");
-    if(!burger || !drawer || !backdrop) return;
-
-    const toggle=(open)=>{
-      const want = (typeof open==='boolean') ? open : !drawer.classList.contains('open');
-      drawer.classList.toggle('open', want);
-      backdrop.classList.toggle('show', want);
-      burger.setAttribute('aria-expanded', want ? 'true' : 'false');
-      document.body.style.overflow = want ? 'hidden' : '';
-    };
-
-    const fire=(e)=>{ e.preventDefault(); e.stopPropagation(); toggle(); };
-
-    // Pointer events paling stabil (Chrome/Android + iOS)
-    burger.addEventListener('pointerup', fire, {passive:false});
-    // fallback
-    burger.addEventListener('click', fire, {passive:false});
-    burger.addEventListener('touchend', fire, {passive:false});
-
-    const close=(e)=>{ e.preventDefault(); toggle(false); };
-    backdrop.addEventListener('pointerup', close, {passive:false});
-    backdrop.addEventListener('click', close, {passive:false});
-    backdrop.addEventListener('touchend', close, {passive:false});
-
-    // Tutup saat resize ke desktop
-    window.addEventListener('resize', ()=>{ if(window.innerWidth>920) toggle(false); });
-
-    // Tutup saat tekan Escape
-    document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') toggle(false); });
-
-    // Tutup ketika klik link di drawer
-    drawer.querySelectorAll('a').forEach(a=>{
-      a.addEventListener('pointerup', ()=>toggle(false), {passive:true});
-      a.addEventListener('click', ()=>toggle(false), {passive:true});
-      a.addEventListener('touchend', ()=>toggle(false), {passive:true});
-    });
-  }
-
-  // ===== Role-based UI (sembunyikan sync) =====
+  /* ===== Role-based UI (hide Sync) ===== */
   function applyRoleVisibility(){
     const sync = $("#syncSection");
     if(!sync) return;
@@ -130,11 +93,11 @@ const App = (function(){
     else sync.classList.remove('hidden');
   }
 
-  // ===== Dashboard =====
+  /* ===== Dashboard ===== */
   function pageDashboard(){
-    ensureLogin(); bindLogout(); initBurger(); applyRoleVisibility();
+    ensureLogin(); bindLogout(); applyRoleVisibility();
 
-    // Now list
+    // Daftar pekerjaan terkini
     const nowList=$("#nowList");
     const items = state.plan.slice(0,10).map(p=>`
       <div class='card' style="padding:8px;display:flex;align-items:center;justify-content:space-between">
@@ -149,7 +112,7 @@ const App = (function(){
       </div>`).join('');
     nowList.innerHTML = items || '<div class="text-muted">データがありません。</div>';
 
-    // Chart proses
+    // Chart jumlah per proses
     if(window.Chart){
       const counts=PROCESS_LIST.map(proc=>state.plan.filter(p=>p.process===proc).length);
       const ctx=document.getElementById('byProcessChart');
@@ -165,14 +128,14 @@ const App = (function(){
       </div>`).join('');
     const shipToday=$("#shipToday"); if(shipToday) shipToday.innerHTML=list||'<div class="text-muted">本日の出荷予定はありません。</div>';
 
-    // SYNC buttons (hanya kalau kelihatan)
+    // Sync (admin only)
     $("#btnPull")?.addEventListener('click', pullSheet);
     $("#btnPush")?.addEventListener('click', pushSheet);
     $("#btnClearLocal")?.addEventListener('click', clearLocal);
     const auto=$("#autoSync"); if(auto){ auto.onchange=()=>{ if(auto.checked){ state._interval=setInterval(pullSheet,30000);} else { clearInterval(state._interval);} } }
   }
 
-  // ===== Sync =====
+  /* ===== Sync ===== */
   async function pullSheet(){
     try{
       const r=await fetch(ENDPOINT.ROOT);
@@ -195,11 +158,19 @@ const App = (function(){
     }catch(e){ logSync('送信エラー'); }
   }
 
-  // ===== Init =====
+  /* ===== Init ===== */
   function initPage(page){
     if(page==='dashboard') pageDashboard();
-    // panggil umum terakhir supaya burger pasti aktif
-    ensureLogin(); bindLogout(); initBurger(); applyRoleVisibility();
+    // Pastikan login & role-applied di semua halaman yang include app.js
+    ensureLogin(); bindLogout(); applyRoleVisibility();
+
+    // A11y: update aria-expanded pada burger (opsional, non-fatal)
+    const navToggle = document.getElementById('navToggle');
+    const burgerLbl = document.querySelector('label.burger');
+    if(navToggle && burgerLbl){
+      const setAria = ()=> burgerLbl.setAttribute('aria-expanded', navToggle.checked ? 'true' : 'false');
+      navToggle.addEventListener('change', setAria); setAria();
+    }
   }
 
   return { initPage };
