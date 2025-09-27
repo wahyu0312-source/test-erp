@@ -1,90 +1,109 @@
-<!DOCTYPE html><html lang="ja"><head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>ERPシステム • ダッシュボード</title>
-<link rel="stylesheet" href="style.css"/>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head><body>
-<div id="loginBar" class="login-bar"></div>
-
-<header class="topbar">
-  <!-- 1) Checkbox trigger HARUS sejajar dengan mobile-menu -->
-  <input type="checkbox" id="navToggle" aria-label="メニューを開く/閉じる" />
-
-  <!-- 2) Tombol burger -->
-  <label for="navToggle" class="burger no-print" aria-controls="mobileNav" aria-expanded="false">
-    <span></span><span></span><span></span>
-  </label>
-
-  <!-- 3) Brand -->
-  <div class="brand">
-    <img src="tsh.png" class="logo" alt="TSH" />
-    <div>
-      <div class="brand-title">ERPシステム</div>
-      <div class="brand-sub">東京精密発條株式会社</div>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ERPシステム 東京精密発條株式会社 • ダッシュボード</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+  <div id="loginBar" class="loginbar"></div>
+  <header class="topbar">
+    <div class="max">
+      <a href="index.html" class="brand">
+        <img src="tsh.png" class="logo" alt="TSH">
+        <div><div class="brand-title">ERPシステム</div><div class="brand-sub">東京精密発條株式会社</div></div>
+      </a>
+      <nav class="hide-sm md:flex items-center gap-2">
+        <a href="index.html" class="navlink" data-menu-link>ダッシュボード</a>
+        <a href="plan.html"  class="navlink" data-menu-link>生産計画</a>
+        <a href="ship.html"  class="navlink" data-menu-link>出荷計画</a>
+        <a href="confirm.html" class="navlink" data-menu-link>出荷確認書</a>
+        <a href="scan.html"  class="navlink" data-menu-link>QRスキャン</a>
+        <a href="ticket.html" class="navlink" data-menu-link>生産現品票</a>
+        <button id="btnLogout" class="btn btn-outline">ログアウト</button>
+      </nav>
+      <button id="btnBurger" class="md:hidden btn-ghost" aria-expanded="false" aria-controls="mobileMenu">☰</button>
     </div>
-  </div>
-
-  <!-- 4) Desktop nav -->
-  <nav class="nav" aria-label="デスクトップメニュー">
-    <a href="index.html" class="active">ダッシュボード</a>
-    <a href="plan.html">生産計画</a>
-    <a href="ship.html">出荷計画</a>
-    <a href="confirm.html">出荷予定</a>
-    <a href="scan.html">QRスキャン</a>
-    <a href="ticket.html">生産現品票</a>
-    <a href="charts.html">チャート</a>
-  </nav>
-
-  <!-- 5) Actions -->
-  <div class="actions">
-    <button id="btnLogout" class="btn btn-outline">ログアウト</button>
-  </div>
-
-  <!-- 6) Mobile menu (HARUS saudara dari #navToggle) -->
-  <nav id="mobileNav" class="mobile-menu no-print" aria-label="モバイルメニュー">
-    <a href="index.html" class="active">ダッシュボード</a>
-    <a href="plan.html">生産計画</a>
-    <a href="ship.html">出荷計画</a>
-    <a href="confirm.html">出荷予定</a>
-    <a href="scan.html">QRスキャン</a>
-    <a href="ticket.html">生産現品票</a>
-    <a href="charts.html">チャート</a>
-  </nav>
-</header>
-
-
-<main class="container">
-  <section class="card">
-    <h3>現在の生産状況</h3>
-    <div id="nowList" class="space-y-2"></div>
-  </section>
-
-  <section class="card">
-    <h3>在庫の所在（工程別）</h3>
-    <canvas id="byProcessChart" height="220"></canvas>
-  </section>
-
-  <section class="card">
-    <h3>本日の出荷予定</h3>
-    <div id="shipToday" class="space-y-2"></div>
-  </section>
-
-  <!-- SYNC（Google Sheets）— auto hide for non-admin -->
-  <section class="card no-print admin-only" id="syncSection">
-    <h3>同期（Google Sheets）</h3>
-    <div class="text-muted" style="margin-bottom:8px">
-      シートから取得＝サーバー→アプリ、シートへ送信＝アプリ→サーバー。
+    <div id="navOverlay" class="hidden fixed inset-0 z-40"></div>
+    <div id="mobileMenu" class="hidden fixed inset-y-0 right-0 w-64 bg-white shadow-xl border-l z-50">
+      <div class="p-4 flex items-center justify-between border-b">
+        <div class="font-semibold text-sm">メニュー</div>
+        <button id="btnCloseMenu" class="btn-ghost" aria-label="閉じる">✕</button>
+      </div>
+      <nav class="p-3 grid gap-1 text-sm">
+        <a href="index.html"   class="mnav" data-menu-link>ダッシュボード</a>
+        <a href="plan.html"    class="mnav" data-menu-link>生産計画</a>
+        <a href="ship.html"    class="mnav" data-menu-link>出荷計画</a>
+        <a href="confirm.html" class="mnav" data-menu-link>出荷確認書</a>
+        <a href="scan.html"    class="mnav" data-menu-link>QRスキャン</a>
+        <a href="ticket.html"  class="mnav" data-menu-link>生産現品票</a>
+        <button id="btnLogoutMobile" class="btn mt-2">ログアウト</button>
+      </nav>
     </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-      <button id="btnPull" class="btn btn-outline">シートから取得</button>
-      <button id="btnPush" class="btn btn-primary">シートへ送信</button>
-      <label class="text-sm"><input type="checkbox" id="autoSync"> 自動（30秒毎）</label>
-      <button id="btnClearLocal" class="btn btn-outline">ローカル削除</button>
-      <span id="syncLog" class="text-muted"></span>
-    </div>
-  </section>
-</main>
+  </header>
 
-<script src="app.js"></script>
-<script>App.initPage('dashboard')</script>
-</body></html>
+  <main class="container grid">
+    <!-- Login inline (opsional) -->
+    <section class="card two" style="grid-template-columns:1fr auto;align-items:end">
+      <div class="grid two" style="grid-template-columns:1fr 1fr">
+        <div>
+          <div class="text-sm">ユーザー</div>
+          <input id="loginUser" placeholder="例：admin"/>
+        </div>
+        <div>
+          <div class="text-sm">パスワード</div>
+          <input id="loginPass" type="password" placeholder="••••"/>
+        </div>
+      </div>
+      <div class="grid" style="grid-template-columns:auto auto;gap:8px">
+        <button data-login-btn class="btn"><i data-lucide="log-in"></i>ログイン</button>
+        <span id="loginStatus" class="text-sm"></span>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2><i data-lucide="activity"></i> 現在の生産状況</h2>
+      <div id="nowList" class="grid" style="grid-template-columns:1fr;gap:10px"></div>
+    </section>
+
+    <section class="grid" style="grid-template-columns:1fr 1fr">
+      <div class="card">
+        <h3><i data-lucide="boxes"></i> 在庫の所在（工程別）</h3>
+        <canvas id="byProcessChart" height="220"></canvas>
+      </div>
+      <div class="card">
+        <h3><i data-lucide="calendar-days"></i> 本日の出荷予定</h3>
+        <div id="shipToday" class="grid" style="grid-template-columns:1fr;gap:10px"></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h3><i data-lucide="warehouse"></i> 完成品在庫（完成数量 − 出荷数量）</h3>
+      <table class="gridtbl">
+        <thead><tr><th>品名</th><th>品番</th><th>完成数量</th><th>出荷数量</th><th>在庫</th></tr></thead>
+        <tbody id="stockBody"></tbody>
+      </table>
+    </section>
+
+    <!-- Tombol sinkron minimal (admin bisa pakai) -->
+    <section class="card no-print">
+      <h3><i data-lucide="database"></i> 同期（Google Sheets）</h3>
+      <div class="flex items-center gap-8" style="display:flex;gap:8px;flex-wrap:wrap">
+        <button id="btnPull" class="btn-outline"><i data-lucide="download"></i>シートから取得</button>
+        <button id="btnPush" class="btn-outline"><i data-lucide="upload"></i>シートへ送信</button>
+        <span class="text-sm">※ これらのボタンは管理者のみ操作してください。</span>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <span>© 東京精密発條株式会社</span>
+    <span>Design by Wahyu</span>
+  </footer>
+
+  <script src="app.js"></script>
+  <script>App.initPage('dashboard');</script>
+</body>
+</html>
