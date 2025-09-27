@@ -6,31 +6,22 @@
 </head><body>
 <div id="loginBar" class="login-bar"></div>
 
-<!-- Drawer & Backdrop (mobile) -->
-<div id="backdrop" class="backdrop no-print"></div>
-<nav id="drawer" class="drawer no-print" aria-label="モバイルメニュー">
-  <a href="index.html" class="active">ダッシュボード</a>
-  <a href="plan.html">生産計画</a>
-  <a href="ship.html">出荷計画</a>
-  <a href="confirm.html">出荷予定</a>
-  <a href="scan.html">QRスキャン</a>
-  <a href="ticket.html">生産現品票</a>
-  <a href="charts.html">チャート</a>
-</nav>
-
-<!-- TOPBAR -->
 <header class="topbar">
   <div class="brand">
-    <button class="burger no-print" id="burger" aria-label="メニュー" aria-expanded="false" aria-controls="drawer">
+    <!-- CSS-only Burger: input + label -->
+    <input type="checkbox" id="navToggle" aria-label="メニューを開く/閉じる"/>
+    <label for="navToggle" class="burger no-print" aria-controls="mobileNav" aria-expanded="false">
       <span></span><span></span><span></span>
-    </button>
+    </label>
     <img src="tsh.png" class="logo" alt="TSH"/>
     <div>
       <div class="brand-title">ERPシステム</div>
       <div class="brand-sub">東京精密発條株式会社</div>
     </div>
   </div>
-  <nav class="nav" id="mainNav" aria-label="デスクトップメニュー">
+
+  <!-- Desktop nav -->
+  <nav class="nav" aria-label="デスクトップメニュー">
     <a href="index.html" class="active">ダッシュボード</a>
     <a href="plan.html">生産計画</a>
     <a href="ship.html">出荷計画</a>
@@ -39,10 +30,22 @@
     <a href="ticket.html">生産現品票</a>
     <a href="charts.html">チャート</a>
   </nav>
+
   <div class="actions">
     <button id="btnLogout" class="btn btn-outline">ログアウト</button>
   </div>
 </header>
+
+<!-- Mobile nav (CSS-only open/close) -->
+<nav id="mobileNav" class="mobile-menu no-print" aria-label="モバイルメニュー">
+  <a href="index.html" class="active">ダッシュボード</a>
+  <a href="plan.html">生産計画</a>
+  <a href="ship.html">出荷計画</a>
+  <a href="confirm.html">出荷予定</a>
+  <a href="scan.html">QRスキャン</a>
+  <a href="ticket.html">生産現品票</a>
+  <a href="charts.html">チャート</a>
+</nav>
 
 <main class="container">
   <section class="card">
@@ -60,7 +63,7 @@
     <div id="shipToday" class="space-y-2"></div>
   </section>
 
-  <!-- SYNC (ADMIN ONLY) -->
+  <!-- SYNC（Google Sheets）— auto hide for non-admin -->
   <section class="card no-print admin-only" id="syncSection">
     <h3>同期（Google Sheets）</h3>
     <div class="text-muted" style="margin-bottom:8px">
