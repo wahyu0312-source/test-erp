@@ -1,60 +1,83 @@
-<!DOCTYPE html><html lang="ja"><head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>ERPシステム • チャート</title>
-<link rel="stylesheet" href="style.css"/>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head><body>
-<div id="loginBar" class="login-bar"></div>
+<script>
+/* … App = { … } sudah ada …  tambahkan fungsi berikut di dalam objek App  */
 
-<header class="topbar">
-  <div class="brand">
-    <button class="burger no-print" id="burger"><span></span><span></span><span></span></button>
-    <img src="tsh.png" class="logo" alt="TSH"/><div><div class="brand-title">ERPシステム</div><div class="brand-sub">東京精密発條株式会社</div></div>
-  </div>
-  <nav class="nav" id="mainNav">
-    <a href="index.html">ダッシュボード</a>
-    <a href="plan.html">生産計画</a>
-    <a href="ship.html">出荷計画</a>
-    <a href="confirm.html">出荷予定</a>
-    <a href="scan.html">QRスキャン</a>
-    <a href="ticket.html">生産現品票</a>
-    <a href="charts.html" class="active">チャート</a>
-  </nav>
-  <div class="actions"><button id="btnLogout" class="btn btn-outline">ログアウト</button></div>
-</header>
+  pageCharts(){
+    this.guard(['管理者','生産管理部','検査部','製造部']);
+    this._refreshPage=()=>this.pageCharts();
 
-<main class="container">
-  <section class="card">
-    <h3>在庫（完成数量 − 出荷数量）</h3>
-    <div class="chart-grid">
-      <canvas id="stockPie"></canvas>
-      <canvas id="stockPareto"></canvas>
-    </div>
-  </section>
+    // Burger + login sudah diinit di initPage()
 
-  <section class="card">
-    <h3>NG（数量）</h3>
-    <div class="chart-grid">
-      <canvas id="ngPie"></canvas>
-      <canvas id="ngPareto"></canvas>
-    </div>
-  </section>
+    const plan=this.state.plan||[];
+    const ship=this.state.ship||[];
 
-  <section class="card">
-    <h3>出荷（顧客別）</h3>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
-      <select id="shipAgg" class="inp" style="max-width:220px">
-        <option value="month">月次（当年）</option>
-        <option value="year">年次</option>
-      </select>
-    </div>
-    <div class="chart-grid">
-      <canvas id="shipPie"></canvas>
-      <canvas id="shipPareto"></canvas>
-    </div>
-  </section>
-</main>
+    // 1) Stock finished goods (完成 − 出荷)
+    const agg = {};
+    plan.forEach(p=>{
+      const k=p.itemNo||p.itemName||'?';
+      if(!agg[k]) agg[k]={name:p.itemName||k, done:0, ship:0};
+      agg[k].done += Number(p.qtyDone||0);
+      agg[k].ship += Number(p.qtyShip||0);
+    });
+    const stockL = Object.values(agg).map(o=>({name:o.name, val:(o.done-o.ship)}))
+                    .filter(o=>o.val>0).sort((a,b)=>b.val-a.val).slice(0,12);
+    const ctx1 = document.getElementById('chartStock').getContext('2d');
+    if(window._c1) window._c1.destroy();
+    window._c1 = new Chart(ctx1,{type:'bar',data:{labels:stockL.map(x=>x.name),datasets:[{data:stockL.map(x=>x.val)}]},options:{plugins:{legend:{display:false}}}});
 
-<script src="app.js"></script>
-<script>App.initPage('charts')</script>
-</body></html>
+    // 2) NG (不良) share by process (assume status==='不良')
+    const ngByProc = {};
+    plan.filter(p=>String(p.status||'')==='不良').forEach(p=>{
+      const k=p.process||'工程未設定'; ngByProc[k]=(ngByProc[k]||0)+1;
+    });
+    const procL = Object.entries(ngByProc); // [proc, count]
+    const ctx2 = document.getElementById('chartNG').getContext('2d');
+    if(window._c2) window._c2.destroy();
+    window._c2 = new Chart(ctx2,{type:'pie',data:{labels:procL.map(x=>x[0]),datasets:[{data:procL.map(x=>x[1])}]}});
+
+    // 3) Monthly shipment per customer (Pareto)
+    const byMonthCust = {}; // {YYYY-MM:{cust:qty}}
+    ship.forEach(s=>{
+      const m=(s.date||'').slice(0,7); if(!m) return;
+      byMonthCust[m] ||= {};
+      const c=s.customer||'N/A';
+      byMonthCust[m][c] = (byMonthCust[m][c]||0) + Number(s.qty||0);
+    });
+    const months = Object.keys(byMonthCust).sort().slice(-1); // ambil bulan terakhir
+    const latest=months[0]||'';
+    const custMap = byMonthCust[latest]||{};
+    // sort desc & pareto cumulative
+    const pairs = Object.entries(custMap).sort((a,b)=>b[1]-a[1]);
+    let cum=0, total=pairs.reduce((t,[_c,v])=>t+v,0)||1;
+    const cumPct = pairs.map(([c,v])=>{ cum+=v; return Math.round(100*cum/total); });
+
+    const ctx3=document.getElementById('chartPareto').getContext('2d');
+    if(window._c3) window._c3.destroy();
+    window._c3 = new Chart(ctx3,{
+      data:{
+        labels:pairs.map(p=>p[0]),
+        datasets:[
+          {type:'bar', label:'数量', data:pairs.map(p=>p[1]), yAxisID:'y'},
+          {type:'line',label:'累積(%)',data:cumPct,yAxisID:'y1'}
+        ]
+      },
+      options:{scales:{y:{beginAtZero:true},y1:{beginAtZero:true,max:100,position:'right'}},plugins:{title:{display:true,text:latest||'月未選択'}}}
+    });
+
+    // 4) Yearly shipment pie (choose year)
+    const years=Array.from(new Set((ship||[]).map(s=>(s.date||'').slice(0,4)).filter(Boolean))).sort();
+    const sel=document.getElementById('yearSel'); sel.innerHTML=years.map(y=>`<option>${y}</option>`).join('');
+    const drawYear=(y)=>{
+      const byCust={};
+      ship.filter(s=>(s.date||'').startsWith(y)).forEach(s=>{
+        const c=s.customer||'N/A'; byCust[c]=(byCust[c]||0)+Number(s.qty||0);
+      });
+      const pairs=Object.entries(byCust).sort((a,b)=>b[1]-a[1]).slice(0,12);
+      const ctx=document.getElementById('chartYearPie').getContext('2d');
+      if(window._c4) window._c4.destroy();
+      window._c4=new Chart(ctx,{type:'pie',data:{labels:pairs.map(p=>p[0]),datasets:[{data:pairs.map(p=>p[1])}]},options:{plugins:{title:{display:true,text:y}}});
+    };
+    if(years.length){ sel.value=years.at(-1); drawYear(sel.value); }
+    sel.onchange=()=>drawYear(sel.value);
+  },
+/* … akhir tambahan … */
+</script>
