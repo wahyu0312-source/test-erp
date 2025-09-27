@@ -1,64 +1,68 @@
-<!DOCTYPE html><html lang="ja"><head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>ERPシステム • 出荷計画</title>
-<link rel="stylesheet" href="style.css"/>
-</head><body>
-<div id="loginBar" class="login-bar"></div>
-<header class="topbar">
-  <div class="brand">
-    <button class="burger no-print" id="burger"><span></span><span></span><span></span></button>
-    <img src="tsh.png" class="logo"><div><div class="brand-title">ERPシステム</div><div class="brand-sub">東京精密発條株式会社</div></div>
-  </div>
-  <nav class="nav" id="mainNav">
-    <a href="index.html">ダッシュボード</a>
-    <a href="plan.html">生産計画</a>
-    <a href="ship.html" class="active">出荷計画</a>
-    <a href="confirm.html">出荷予定</a>
-    <a href="scan.html">QRスキャン</a>
-    <a href="ticket.html">生産現品票</a>
-    <a href="charts.html">チャート</a>
-  </nav>
-  <div class="actions"><button id="btnLogout" class="btn btn-outline">ログアウト</button></div>
-</header>
-
-<main class="container">
-  <section class="card">
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button id="btnAddShip" class="btn btn-primary">＋ 新規</button>
-      <button id="btnMarkShipped" class="btn btn-outline">準備→出荷済に更新</button>
-      <button id="btnPull" class="btn btn-outline">シートから取得</button>
-      <button id="btnPush" class="btn btn-outline">シートへ送信</button>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>ERPシステム • 出荷計画</title>
+  <link rel="stylesheet" href="style.css"/>
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+  <div id="loginBar" class="loginbar"></div>
+  <header class="topbar">
+    <div class="max">
+      <a href="index.html" class="brand"><img src="tsh.png" class="logo" alt="TSH">
+        <div><div class="brand-title">ERPシステム</div><div class="brand-sub">東京精密発條株式会社</div></div></a>
+      <nav class="hide-sm md:flex items-center gap-2">
+        <a href="index.html" class="navlink" data-menu-link>ダッシュボード</a>
+        <a href="plan.html"  class="navlink" data-menu-link>生産計画</a>
+        <a href="ship.html"  class="navlink" data-menu-link>出荷計画</a>
+        <a href="confirm.html" class="navlink" data-menu-link>出荷確認書</a>
+        <a href="scan.html"  class="navlink" data-menu-link>QRスキャン</a>
+        <a href="ticket.html" class="navlink" data-menu-link>生産現品票</a>
+        <button id="btnLogout" class="btn btn-outline">ログアウト</button>
+      </nav>
+      <button id="btnBurger" class="md:hidden btn-ghost" aria-expanded="false" aria-controls="mobileMenu">☰</button>
     </div>
-  </section>
-
-  <section class="card">
-    <table class="gridtbl">
-      <thead><tr><th>日付</th><th>得意先</th><th>品名</th><th>品番</th><th>数量</th><th>ステータス</th><th>備考</th><th>更新</th><th>操作</th></tr></thead>
-      <tbody id="shipBody"></tbody>
-    </table>
-  </section>
-</main>
-
-<!-- Ship Modal -->
-<div id="shipModal" class="login-bar">
-  <div class="login-card" style="width:min(680px,92vw)">
-    <div class="login-title">出荷計画</div>
-    <div class="grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <input id="sDate" type="date" class="inp"/>
-      <select id="sCustomer" class="inp"><option value="">得意先</option></select>
-      <input id="sItemName" class="inp" placeholder="品名"/>
-      <select id="sItemNo" class="inp"><option value="">図番/品番</option></select>
-      <input id="sQty" type="number" class="inp" placeholder="数量"/>
-      <select id="sStatus" class="inp"><option>出荷準備</option><option>出荷済</option></select>
-      <input id="sNote" class="inp" placeholder="備考"/>
+    <div id="navOverlay" class="hidden fixed inset-0 z-40"></div>
+    <div id="mobileMenu" class="hidden fixed inset-y-0 right-0 w-64 bg-white shadow-xl border-l z-50">
+      <div class="p-4 flex items-center justify-between border-b">
+        <div class="font-semibold text-sm">メニュー</div>
+        <button id="btnCloseMenu" class="btn-ghost" aria-label="閉じる">✕</button>
+      </div>
+      <nav class="p-3 grid gap-1 text-sm">
+        <a href="index.html"   class="mnav" data-menu-link>ダッシュボード</a>
+        <a href="plan.html"    class="mnav" data-menu-link>生産計画</a>
+        <a href="ship.html"    class="mnav" data-menu-link>出荷計画</a>
+        <a href="confirm.html" class="mnav" data-menu-link>出荷確認書</a>
+        <a href="scan.html"    class="mnav" data-menu-link>QRスキャン</a>
+        <a href="ticket.html"  class="mnav" data-menu-link>生産現品票</a>
+        <button id="btnLogoutMobile" class="btn mt-2">ログアウト</button>
+      </nav>
     </div>
-    <div style="display:flex;gap:8px;margin-top:10px;justify-content:flex-end">
-      <button id="btnShipSave" class="btn btn-primary">保存</button>
-      <button id="shipModalClose" class="btn btn-outline">閉じる</button>
-    </div>
-  </div>
-</div>
+  </header>
 
-<script src="app.js"></script>
-<script>App.initPage('ship')</script>
-</body></html>
+  <main class="container grid">
+    <section class="card">
+      <div class="grid" style="grid-template-columns:auto auto auto 1fr;gap:8px">
+        <button id="btnAddShip" class="btn"><i data-lucide="plus-circle"></i>追加（デモ）</button>
+        <button id="btnMarkShipped" class="btn-outline"><i data-lucide="send"></i>出荷済へ一括</button>
+        <button id="btnPull" class="btn-outline"><i data-lucide="download"></i>取得</button>
+        <button id="btnPush" class="btn-outline"><i data-lucide="upload"></i>送信</button>
+      </div>
+    </section>
+    <section class="card">
+      <table class="gridtbl">
+        <thead><tr>
+          <th>日付</th><th>得意先</th><th>品名</th><th>品番</th><th>数量</th><th>ステータス</th><th>備考</th><th>更新</th><th>操作</th>
+        </tr></thead>
+        <tbody id="shipBody"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <footer class="site-footer"><span>© 東京精密発條株式会社</span><span>Design by Wahyu</span></footer>
+
+  <script src="app.js"></script>
+  <script>App.initPage('ship');</script>
+</body>
+</html>
