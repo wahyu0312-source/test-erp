@@ -1,57 +1,74 @@
-<!DOCTYPE html><html lang="ja"><head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>ERPシステム • 生産現品票</title>
-<link rel="stylesheet" href="style.css"/>
-</head><body>
-<div id="loginBar" class="login-bar"></div>
-
-<header class="topbar">
-  <div class="brand">
-    <button class="burger no-print" id="burger"><span></span><span></span><span></span></button>
-    <img src="tsh.png" class="logo" alt="TSH"/><div><div class="brand-title">ERPシステム</div><div class="brand-sub">東京精密発條株式会社</div></div>
-  </div>
-  <nav class="nav" id="mainNav">
-    <a href="index.html">ダッシュボード</a>
-    <a href="plan.html">生産計画</a>
-    <a href="ship.html">出荷計画</a>
-    <a href="confirm.html">出荷予定</a>
-    <a href="scan.html">QRスキャン</a>
-    <a href="ticket.html" class="active">生産現品票</a>
-    <a href="charts.html">チャート</a>
-  </nav>
-  <div class="actions"><button id="btnLogout" class="btn btn-outline">ログアウト</button></div>
-</header>
-
-<main class="container">
-  <section class="card no-print">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <input id="ticketProdNo" class="inp" placeholder="製造番号">
-      <input id="ticketItemNo" class="inp" placeholder="品番">
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>ERPシステム • 生産現品票</title>
+  <link rel="stylesheet" href="style.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+  <div id="loginBar" class="loginbar"></div>
+  <header class="topbar">
+    <div class="max">
+      <a href="index.html" class="brand"><img src="tsh.png" class="logo" alt="TSH">
+        <div><div class="brand-title">ERPシステム</div><div class="brand-sub">東京精密発條株式会社</div></div></a>
+      <nav class="hide-sm md:flex items-center gap-2">
+        <a href="index.html" class="navlink" data-menu-link>ダッシュボード</a>
+        <a href="plan.html"  class="navlink" data-menu-link>生産計画</a>
+        <a href="ship.html"  class="navlink" data-menu-link>出荷計画</a>
+        <a href="confirm.html" class="navlink" data-menu-link>出荷確認書</a>
+        <a href="scan.html"  class="navlink" data-menu-link>QRスキャン</a>
+        <a href="ticket.html" class="navlink" data-menu-link>生産現品票</a>
+        <button id="btnLogout" class="btn btn-outline">ログアウト</button>
+      </nav>
+      <button id="btnBurger" class="md:hidden btn-ghost" aria-expanded="false" aria-controls="mobileMenu">☰</button>
     </div>
-    <div style="display:flex;gap:8px;margin-top:8px">
-      <button id="btnLoadTicket" class="btn btn-primary">読込</button>
-      <button id="btnPrint" class="btn btn-outline">印刷</button>
+    <div id="navOverlay" class="hidden fixed inset-0 z-40"></div>
+    <div id="mobileMenu" class="hidden fixed inset-y-0 right-0 w-64 bg-white shadow-xl border-l z-50">
+      <div class="p-4 flex items-center justify-between border-b">
+        <div class="font-semibold text-sm">メニュー</div>
+        <button id="btnCloseMenu" class="btn-ghost" aria-label="閉じる">✕</button>
+      </div>
+      <nav class="p-3 grid gap-1 text-sm">
+        <a href="index.html"   class="mnav" data-menu-link>ダッシュボード</a>
+        <a href="plan.html"    class="mnav" data-menu-link>生産計画</a>
+        <a href="ship.html"    class="mnav" data-menu-link>出荷計画</a>
+        <a href="confirm.html" class="mnav" data-menu-link>出荷確認書</a>
+        <a href="scan.html"    class="mnav" data-menu-link>QRスキャン</a>
+        <a href="ticket.html"  class="mnav" data-menu-link>生産現品票</a>
+        <button id="btnLogoutMobile" class="btn mt-2">ログアウト</button>
+      </nav>
     </div>
-  </section>
+  </header>
 
-  <section class="ticket">
-    <table>
-      <tr>
-        <th colspan="3" class="ttl">生産現品票</th>
-        <th style="width:120px"><div id="tQR"></div></th>
-      </tr>
-      <tr><td style="width:140px">得意先</td><td id="tCustomer"></td><td style="width:140px">製造番号</td><td id="tProdNo"></td></tr>
-      <tr><td>品名</td><td id="tItemName"></td><td>品番</td><td id="tItemNo"></td></tr>
-      <tr><td>開始</td><td id="tStart"></td><td>担当</td><td id="tUser"></td></tr>
-      <tr class="thick">
-        <th>工程名</th><th>重要ポイント</th><th>作業者／着手／完了／判定</th><th>不合格理由／処置／修正内容</th>
-      </tr>
-      <tbody id="tProcessRows"></tbody>
-    </table>
-  </section>
-</main>
+  <main class="container grid">
+    <section class="card grid" style="grid-template-columns:1fr 1fr auto auto;gap:8px;align-items:end">
+      <div><div class="text-sm">製造番号</div><input id="ticketProdNo" /></div>
+      <div><div class="text-sm">品番</div><input id="ticketItemNo" /></div>
+      <button id="btnLoadTicket" class="btn"><i data-lucide="search"></i>読込</button>
+      <button class="btn-outline no-print" onclick="window.print()"><i data-lucide="printer"></i>印刷</button>
+    </section>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="app.js"></script>
-<script>App.initPage('ticket')</script>
-</body></html>
+    <section class="card">
+      <div style="overflow-x:auto">
+        <table class="gridtbl" style="min-width:820px">
+          <thead><tr><th colspan="3">生産現品票</th><th style="width:140px">製造番号</th><th style="width:160px" id="tProdNo"></th></tr></thead>
+          <tbody>
+            <tr><td style="width:120px">得意先</td><td id="tCustomer"></td><td style="width:120px">品名</td><td colspan="2" id="tItemName"></td></tr>
+            <tr><td>開始</td><td id="tStart"></td><td>品番</td><td colspan="2" id="tItemNo"></td></tr>
+            <tr><td>担当</td><td id="tUser"></td><td>QR</td><td colspan="2"><div id="tQR"></div></td></tr>
+            <tr><td>工程名</td><td>重要ポイント</td><td>作業者</td><td>着手/完了/判定</td><td>不合格理由/処置/修正内容</td></tr>
+            <tbody id="tProcessRows"></tbody>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer"><span>© 東京精密発條株式会社</span><span>Design by Wahyu</span></footer>
+
+  <script src="app.js"></script>
+  <script>App.initPage('ticket');</script>
+</body>
+</html>
