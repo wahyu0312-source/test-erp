@@ -76,6 +76,28 @@ G. 同期 Google Sheets
 
 H. MASTER & USERS
 
+flowchart TD
+  A[PPIC: 生産計画 立案<br/>入力: 得意先/製造番号/図番(→品名自動)/開始] --> B{MASTER参照}
+  B -->|図番一致| A1[品名 自動入力]
+  B -->|見つからない| A2[手入力 or MASTER追加]
+
+  A --> C[票を発行: 生産現品票<br/>(QR: 製造番号|品番)]
+  C --> D[製造: 工程処理<br/>レーザ → 曲げ → 外枠組立 → ... → 外注 → 組立]
+  D --> E[検査: 検査工程]
+  E -->|合格| G[完成数量 反映]
+  E -->|不合格(NG)| F[検査保留/リペア → 製造へ戻す]
+
+  G --> H[PPIC: 出荷計画 作成]
+  H --> I[出荷確認書 印刷/Excel出力]
+  I --> J[物流: 出荷準備 → 出荷済 更新]
+  J --> K[在庫 = 完成数量 − 出荷数量 更新]
+
+  %% QR 更新
+  C -.QRスキャン.-> D
+  D -.QRスキャン.-> E
+  E -.QRスキャン.-> H
+
+
 MASTER: mapping 得意先 / 品番 / 品名 (aktifkan dengan kolom 有効 = TRUE). Dipakai untuk dropdown & auto-fill.
 
 PICS: daftar PIC per 部署 (opsional untuk stamp/assignment).
