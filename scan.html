@@ -1,61 +1,73 @@
-<!DOCTYPE html><html lang="ja"><head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>ERPシステム • QRスキャン</title>
-<link rel="stylesheet" href="style.css"/>
-</head><body>
-<div id="loginBar" class="login-bar"></div>
-
-<header class="topbar">
-  <div class="brand">
-    <button class="burger no-print" id="burger"><span></span><span></span><span></span></button>
-    <img src="tsh.png" class="logo" alt="TSH"/><div><div class="brand-title">ERPシステム</div><div class="brand-sub">東京精密発條株式会社</div></div>
-  </div>
-  <nav class="nav" id="mainNav">
-    <a href="index.html">ダッシュボード</a>
-    <a href="plan.html">生産計画</a>
-    <a href="ship.html">出荷計画</a>
-    <a href="confirm.html">出荷予定</a>
-    <a href="scan.html" class="active">QRスキャン</a>
-    <a href="ticket.html">生産現品票</a>
-    <a href="charts.html">チャート</a>
-  </nav>
-  <div class="actions"><button id="btnLogout" class="btn btn-outline">ログアウト</button></div>
-</header>
-
-<main class="container">
-  <section class="card">
-    <h3>スキャン</h3>
-    <div id="reader" style="max-width:480px"></div>
-    <div class="text-muted" style="margin:8px 0">※ カメラ不可の場合、手入力を使用。</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <input id="manualProd" class="inp" placeholder="製造番号（手入力）">
-      <input id="manualItem" class="inp" placeholder="品番（手入力）">
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>ERPシステム • QRスキャン</title>
+  <link rel="stylesheet" href="style.css"/>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+  <div id="loginBar" class="loginbar"></div>
+  <header class="topbar">
+    <div class="max">
+      <a href="index.html" class="brand"><img src="tsh.png" class="logo" alt="TSH">
+        <div><div class="brand-title">ERPシステム</div><div class="brand-sub">東京精密発條株式会社</div></div></a>
+      <nav class="hide-sm md:flex items-center gap-2">
+        <a href="index.html" class="navlink" data-menu-link>ダッシュボード</a>
+        <a href="plan.html"  class="navlink" data-menu-link>生産計画</a>
+        <a href="ship.html"  class="navlink" data-menu-link>出荷計画</a>
+        <a href="confirm.html" class="navlink" data-menu-link>出荷確認書</a>
+        <a href="scan.html"  class="navlink" data-menu-link>QRスキャン</a>
+        <a href="ticket.html" class="navlink" data-menu-link>生産現品票</a>
+        <button id="btnLogout" class="btn btn-outline">ログアウト</button>
+      </nav>
+      <button id="btnBurger" class="md:hidden btn-ghost" aria-expanded="false" aria-controls="mobileMenu">☰</button>
     </div>
-  </section>
-
-  <section class="card">
-    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-      <select id="scanProcess" class="inp" style="max-width:240px"></select>
-      <select id="scanStatus" class="inp" style="max-width:200px">
-        <option>進行中</option><option>保留</option><option>完了</option>
-      </select>
-      <button id="btnApplyScan" class="btn btn-primary">更新</button>
-      <span id="scanInfo" class="text-muted"></span>
+    <div id="navOverlay" class="hidden fixed inset-0 z-40"></div>
+    <div id="mobileMenu" class="hidden fixed inset-y-0 right-0 w-64 bg-white shadow-xl border-l z-50">
+      <div class="p-4 flex items-center justify-between border-b">
+        <div class="font-semibold text-sm">メニュー</div>
+        <button id="btnCloseMenu" class="btn-ghost" aria-label="閉じる">✕</button>
+      </div>
+      <nav class="p-3 grid gap-1 text-sm">
+        <a href="index.html"   class="mnav" data-menu-link>ダッシュボード</a>
+        <a href="plan.html"    class="mnav" data-menu-link>生産計画</a>
+        <a href="ship.html"    class="mnav" data-menu-link>出荷計画</a>
+        <a href="confirm.html" class="mnav" data-menu-link>出荷確認書</a>
+        <a href="scan.html"    class="mnav" data-menu-link>QRスキャン</a>
+        <a href="ticket.html"  class="mnav" data-menu-link>生産現品票</a>
+        <button id="btnLogoutMobile" class="btn mt-2">ログアウト</button>
+      </nav>
     </div>
-  </section>
+  </header>
 
-  <section class="card">
-    <h3>NG登録（検査保留）</h3>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <input id="ngQty" type="number" class="inp" placeholder="NG数量">
-      <input id="ngReason" class="inp" placeholder="不合格理由／処置／修正内容">
-      <button id="btnSaveNG" class="btn btn-outline">NG登録</button>
-    </div>
-    <div class="text-muted" style="margin-top:6px">※ 製造番号・品番は上のスキャン／手入力を使ってセットしてください。</div>
-  </section>
-</main>
+  <main class="container grid">
+    <section class="card">
+      <h3><i data-lucide="scan-line"></i> スキャン</h3>
+      <div id="reader" style="max-width:420px"></div>
 
-<script src="https://unpkg.com/html5-qrcode"></script>
-<script src="app.js"></script>
-<script>App.initPage('scan')</script>
-</body></html>
+      <div class="grid" style="grid-template-columns:220px 220px;gap:8px;margin-top:10px">
+        <div><div class="text-sm">工程</div><select id="scanProcess"></select></div>
+        <div><div class="text-sm">ステータス</div>
+          <select id="scanStatus"><option>進行中</option><option>停止</option><option>完了</option></select>
+        </div>
+      </div>
+
+      <div class="grid" style="grid-template-columns:auto auto auto;gap:8px;margin-top:10px">
+        <button id="btnApplyScan" class="btn"><i data-lucide="refresh-ccw"></i>更新</button>
+        <input id="manualText" placeholder="手入力例: 製造番号|品番" />
+        <button id="btnApplyManual" class="btn-outline"><i data-lucide="keyboard"></i>手入力で適用</button>
+      </div>
+
+      <div id="scanInfo" class="text-sm" style="margin-top:8px"></div>
+    </section>
+  </main>
+
+  <footer class="site-footer"><span>© 東京精密発條株式会社</span><span>Design by Wahyu</span></footer>
+
+  <script src="app.js"></script>
+  <script>App.initPage('scan');</script>
+</body>
+</html>
