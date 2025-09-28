@@ -1,32 +1,36 @@
-<!doctype html><html lang="ja"><head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>分析チャート • ERP</title>
-<link rel="stylesheet" href="style.css"/>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head><body>
-<header class="topbar"><div class="container wrap">
-  <img src="tsh.png" class="logo" alt="TSH"/><span class="brand">ERP</span>
-  <nav id="mainNav" class="nav">
-    <a href="index.html">ダッシュボード</a><a href="plan.html">生産計画</a>
-    <a href="ship.html">出荷計画</a><a href="confirm.html">出荷確認書</a>
-    <a href="scan.html">QRスキャン</a><a href="ticket.html">生産現品票</a>
-    <a href="charts.html" class="active">分析チャート</a><a href="master.html">マスター</a>
-  </nav><div class="menu-spacer"></div><button id="burgerBtn" class="burger">☰</button></div></header>
-<div id="loginBar" class="container login-bar"></div>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>ERPシステム — 分析チャート</title>
+  <link rel="stylesheet" href="style.css"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="container wrap">
+      <img src="tsh.png" class="logo" alt="TSH">
+      <nav class="nav" id="mainNav">
+        <a href="index.html">ダッシュボード</a><a href="plan.html">生産計画</a>
+        <a href="ship.html">出荷計画</a><a href="confirm.html">出荷確認書</a>
+        <a href="ticket.html">生産現品票</a><a href="charts.html">分析チャート</a>
+        <a href="master.html">マスター</a><a href="scan.html">QRスキャン</a>
+      </nav>
+      <div class="menu-spacer"></div><div id="authSlot"></div>
+      <button id="burgerBtn" class="burger">☰</button>
+    </div>
+  </header>
 
-<main class="container grid">
-  <section class="card"><h3>在庫（完成品 − 出荷品）</h3><canvas id="chartStock" height="220"></canvas></section>
-  <section class="grid grid-2">
-    <div class="card"><h3>NG（不良）比率</h3><canvas id="chartNG" height="220"></canvas></div>
-    <div class="card"><h3>月次出荷（得意先別・パレート）</h3><canvas id="chartPareto" height="220"></canvas></div>
-  </section>
-  <section class="card">
-    <h3>年次出荷（得意先合計・円グラフ）</h3>
-    <div class="row wrap"><select id="yearSel" class="input" style="max-width:140px"></select></div>
-    <canvas id="chartYearPie" height="220"></canvas>
-  </section>
-</main>
+  <main class="container" style="padding:16px;display:grid;gap:16px">
+    <section class="grid-2">
+      <div class="card"><h3>在庫（完成 − 出荷）Pie</h3><canvas id="chartStock" height="220"></canvas></div>
+      <div class="card"><h3>客先別 出荷数量 Pareto</h3><canvas id="chartPareto" height="220"></canvas></div>
+    </section>
+  </main>
 
-<script src="app.js"></script>
-<script>App.initPage('charts');</script>
-</body></html>
+  <script src="app.js"></script>
+  <script>App.initPage('charts');</script>
+</body>
+</html>
