@@ -1,47 +1,56 @@
-<!doctype html><html lang="ja"><head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>生産現品票 • ERP</title>
-<link rel="stylesheet" href="style.css"/></head><body>
-<header class="topbar"><div class="container wrap">
-  <img src="tsh.png" class="logo"><span class="brand">ERP</span>
-  <nav id="mainNav" class="nav">
-    <a href="index.html">ダッシュボード</a><a href="plan.html">生産計画</a>
-    <a href="ship.html">出荷計画</a><a href="confirm.html">出荷確認書</a>
-    <a href="scan.html">QRスキャン</a><a href="ticket.html" class="active">生産現品票</a><a href="charts.html">分析チャート</a><a href="master.html">マスター</a>
-  </nav><div class="menu-spacer"></div><button id="burgerBtn" class="burger">☰</button></div></header>
-<div id="loginBar" class="container login-bar"></div>
-
-<main class="container grid">
-  <section class="card">
-    <h3>票読込</h3>
-    <div class="row wrap">
-      <input id="ticketProdNo" class="input" placeholder="製造番号">
-      <input id="ticketItemNo" class="input" placeholder="品番">
-      <button id="btnLoadTicket" class="btn">読込</button>
-      <button id="btnPrint" class="btn outline">印刷</button>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>ERPシステム — 生産現品票</title>
+  <link rel="stylesheet" href="style.css"/>
+  <style>@media print{ .no-print{display:none} }</style>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="container wrap">
+      <img src="tsh.png" class="logo" alt="TSH">
+      <nav class="nav" id="mainNav">
+        <a href="index.html">ダッシュボード</a><a href="plan.html">生産計画</a>
+        <a href="ship.html">出荷計画</a><a href="confirm.html">出荷確認書</a>
+        <a href="ticket.html">生産現品票</a><a href="charts.html">分析チャート</a>
+        <a href="master.html">マスター</a><a href="scan.html">QRスキャン</a>
+      </nav>
+      <div class="menu-spacer"></div><div id="authSlot"></div>
+      <button id="burgerBtn" class="burger">☰</button>
     </div>
-  </section>
-  <section class="card">
-    <div style="border:2px solid #000;border-radius:12px;padding:10px">
-      <h3 style="text-align:center;margin:6px 0">生産現品票</h3>
-      <table class="table">
-        <tr><td style="width:25%">得意先</td><td id="tCustomer"></td><td style="width:25%">製造番号</td><td id="tProdNo"></td></tr>
-        <tr><td>品名</td><td id="tItemName"></td><td>品番</td><td id="tItemNo"></td></tr>
-        <tr><td>開始</td><td id="tStart"></td><td>担当</td><td id="tUser"></td></tr>
-      </table>
-      <div class="space"></div>
-      <table class="table"><thead><tr><th>工程名</th><th>重要ポイント</th><th>作業者</th><th>着手</th><th>完了</th><th>判定</th><th>不合格理由/処置/修正内容</th></tr></thead><tbody id="tProcessRows"></tbody></table>
-      <div class="space"></div><div id="tQR"></div>
-    </div>
-  </section>
-</main>
+  </header>
 
-<script src="qrcode.min.js"></script>
-<script src="app.js"></script>
-<script>
-  const PROC=['レーザ工程','曲げ工程','外枠組立工程','シャッター溶接工程','コーキング工程','外枠塗装工程','組立工程','検査工程','外注'];
-  const imp=['表面のキズ/変色/サビ','曲げ角度・割れ','外枠組付け','シャッター組立','溶接状態','コーキング','塗装','組立仕上げ','最終検査'];
-  document.getElementById('tProcessRows').innerHTML=PROC.map((n,i)=>`<tr><td>${n}</td><td>${imp[i]||''}</td><td></td><td></td><td></td><td></td><td></td></tr>`).join('');
-  App.initPage('ticket');
-</script>
-</body></html>
+  <main class="container" style="padding:16px;display:grid;gap:16px">
+    <section class="card no-print">
+      <div class="row">
+        <div class="col"><label>製造番号</label><input class="input" placeholder=""></div>
+        <div class="col"><label>図番</label><input class="input"></div>
+      </div>
+      <div class="row"><div class="col"><button id="btnTicketPrint" class="btn">印刷</button></div></div>
+    </section>
+
+    <section class="card">
+      <h3>生産現品票</h3>
+      <div style="margin-top:10px;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden">
+        <table class="table">
+          <tbody>
+            <tr><td style="width:25%">得意先</td><td></td><td style="width:25%">製造番号</td><td></td></tr>
+            <tr><td>品名</td><td></td><td>品番</td><td></td></tr>
+            <tr><td>開始</td><td></td><td>担当</td><td></td></tr>
+          </tbody>
+        </table>
+        <table class="table">
+          <thead><tr><th>工程名</th><th>重要ポイント</th><th>作業者</th><th>着手</th><th>完了</th><th>判定</th><th>不合格理由/処置/修正内容</th></tr></thead>
+          <tbody><tr><td colspan="7" style="height:200px"></td></tr></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+  <script>App.initPage('ticket');</script>
+</body>
+</html>
