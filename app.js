@@ -55,24 +55,31 @@ const App = (()=>{
   }
 
   /* ====== LOGIN PAGE ====== */
-  function initLogin(){
-    const form = $('#loginForm'), u=$('#lgUser'), p=$('#lgPass'), btn=$('#btnLogin');
-    on(form,'submit', async (e)=>{
-      e.preventDefault();
-      btn.disabled=true;
-      try{
-        const q=new URLSearchParams({action:'login',username:u.value.trim(),password:p.value.trim()});
-        const r=await fetchJSON(`${API_URL}?${q.toString()}`);
-        if(r.ok){
-          authStore.set({user:r.user,role:r.role,token:r.token});
-          location.replace('dashboard.html');
-        }else{
-          toast('ログイン失敗'); btn.disabled=false;
-        }
-      }catch(_){ toast('サーバー通信エラー'); btn.disabled=false; }
-    });
-    on(p,'keydown', e=>{ if(e.key==='Enter') form.requestSubmit(); });
+ async function tryLogin() {
+  const u = document.getElementById('lgUser').value.trim();
+  const p = document.getElementById('lgPass').value.trim();
+  const url = GAS_URL + '?action=login&username=' + encodeURIComponent(u) + '&password=' + encodeURIComponent(p);
+  const res = await fetch(url, { cache: 'no-store' });
+  const data = await res.json();
+
+  if (data.ok) {
+    localStorage.setItem('erpUser', JSON.stringify({user:data.user, role:data.role, token:data.token}));
+    location.href = 'index.html';
+  } else {
+    let msg = 'ログイン失敗';
+    if (data.error === 'WRONG_PASSWORD' && data.debug) {
+      msg += `\n(typed=${data.debug.typed}, stored=${data.debug.stored})`;
+    } else if (data.error === 'USER_INACTIVE') {
+      msg += '（ユーザーが無効です）';
+    } else if (data.error === 'USER_NOT_FOUND') {
+      msg += '（ユーザーが見つかりません）';
+    }
+    toast(msg); // gunakan komponen toast Anda
   }
+}
+document.getElementById('btnLogin')?.addEventListener('click', tryLogin);
+document.getElementById('lgPass')?.addEventListener('keydown', e => { if (e.key === 'Enter') tryLogin(); });
+
 
   /* ====== DASHBOARD ====== */
   async function loadAll(){ const r=await fetchJSON(API_URL); return r.ok?r:{plan:[],ship:[],master:[]}; }
