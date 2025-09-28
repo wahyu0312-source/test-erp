@@ -7,40 +7,45 @@
   <nav id="mainNav" class="nav">
     <a href="index.html">ダッシュボード</a><a href="plan.html">生産計画</a>
     <a href="ship.html">出荷計画</a><a href="confirm.html">出荷確認書</a>
-    <a href="scan.html">QRスキャン</a><a href="ticket.html">生産現品票</a><a href="master.html" class="active">マスター</a>
+    <a href="scan.html">QRスキャン</a><a href="ticket.html">生産現品票</a><a href="charts.html">分析チャート</a>
+    <a href="master.html" class="active">マスター</a>
   </nav><div class="menu-spacer"></div><button id="burgerBtn" class="burger">☰</button></div></header>
 <div id="loginBar" class="container login-bar"></div>
 
 <main class="container grid">
   <section class="card">
-    <h3>得意先/図番/品名 マスター</h3>
+    <h3>検索・新規</h3>
     <div class="row wrap">
       <input id="mq" class="input" placeholder="検索: 得意先/図番/品名/品番" style="min-width:260px">
       <select id="mp" class="input" style="max-width:120px"><option>10</option><option>25</option><option>50</option></select>
-      <button id="btnAddMaster" class="btn">追加</button>
+      <div class="menu-spacer"></div>
+      <button id="btnAddMaster" class="btn icon">➕ 新規</button>
     </div>
   </section>
-
   <section class="card">
     <table class="table">
-      <thead><tr><th>得意先</th><th>図番</th><th>品名</th><th>品番</th><th></th></tr></thead>
+      <thead><tr><th>ID</th><th>得意先</th><th>図番</th><th>品名</th><th>品番</th><th>更新</th><th></th></tr></thead>
       <tbody id="masterBody"></tbody>
     </table>
     <div id="masterPager" style="margin-top:10px"></div>
   </section>
+</main>
 
-  <section id="masterForm" class="card hidden">
-    <h3>マスター編集</h3>
-    <div class="grid grid-2">
-      <div><label>得意先</label><input id="mfCustomer" class="input"></div>
-      <div><label>図番</label><input id="mfDraw" class="input"></div>
-      <div><label>品名</label><input id="mfName" class="input"></div>
-      <div><label>品番</label><input id="mfNo" class="input"></div>
+<!-- Modal -->
+<div id="masterModal" class="hidden" style="position:fixed;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.3);padding:16px">
+  <div class="card" style="max-width:720px;width:100%">
+    <div class="row" style="justify-content:space-between"><h3 id="mmTitle">マスター</h3><button id="mmClose" class="btn outline">閉じる</button></div>
+    <input id="mId" type="hidden">
+    <div class="grid grid-2" style="margin-top:10px">
+      <div><label>得意先</label><input id="mCustomer" class="input"></div>
+      <div><label>図番</label><input id="mDrawing" class="input"></div>
+      <div><label>品名</label><input id="mItemName" class="input"></div>
+      <div><label>品番</label><input id="mItemNo" class="input"></div>
     </div>
     <div class="space"></div>
-    <div class="row"><button id="btnSaveMaster" class="btn">保存</button><button id="btnCancelMaster" class="btn outline">キャンセル</button></div>
-  </section>
-</main>
+    <button id="btnMasterSave" class="btn icon">💾 保存</button>
+  </div>
+</div>
 
 <script src="app.js"></script>
 <script>App.initPage('master');</script>
