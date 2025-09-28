@@ -1,43 +1,91 @@
-<!doctype html><html lang="ja"><head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>ダッシュボード • ERP</title>
-<link rel="stylesheet" href="style.css"/>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head><body>
-<header class="topbar"><div class="container wrap">
-  <img src="tsh.png" class="logo" alt="TSH"/><span class="brand">ERPシステム 東京精密発條株式会社</span>
-  <nav id="mainNav" class="nav">
-    <a href="index.html" class="active">ダッシュボード</a>
-    <a href="plan.html">生産計画</a>
-    <a href="ship.html">出荷計画</a>
-    <a href="confirm.html">出荷確認書</a>
-    <a href="scan.html">QRスキャン</a>
-    <a href="ticket.html">生産現品票</a>
-    <a href="charts.html">分析チャート</a>
-    <a href="master.html">マスター</a>
-  </nav><div class="menu-spacer"></div><button id="burgerBtn" class="burger" aria-label="menu">☰</button></div></header>
-<div id="loginBar" class="container login-bar"></div>
-
-<main class="container grid">
-  <section class="card"><h3>現在の生産状況</h3><div id="nowList" class="grid"></div></section>
-  <section class="grid grid-2">
-    <div class="card"><h3>在庫の所在（工程別）</h3><canvas id="byProcessChart" height="220"></canvas></div>
-    <div class="card"><h3>本日の出荷予定</h3><div id="shipToday" class="grid"></div></div>
-  </section>
-  <section class="card">
-    <h3>完成品在庫（完成数量 − 出荷数量）</h3>
-    <table class="table"><thead><tr><th>品名</th><th>品番</th><th class="t-right">完成数量</th><th class="t-right">出荷数量</th><th class="t-right">在庫</th></tr></thead><tbody id="stockBody"></tbody></table>
-  </section>
-  <section class="card sync-section">
-    <h3>同期（Google Sheets）</h3>
-    <div class="row wrap">
-      <button id="btnPull" class="btn icon" onclick="App.pullSheet()">🔄 シートから取得</button>
-      <span class="text-muted">※ 送信は登録時に自動</span>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>ERPシステム 東京精密発條株式会社 — ダッシュボード</title>
+  <link rel="stylesheet" href="style.css"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+  <!-- Mini login bar -->
+  <div id="loginBar" class="loginbar">
+    <div class="container wrap">
+      <span class="text-muted">ログイン：</span>
+      <input id="loginUser" class="input" placeholder="例：admin" style="max-width:200px">
+      <input id="loginPass" class="input" type="password" placeholder="パスワード" style="max-width:200px">
+      <button id="btnLogin" class="btn outline">ログイン</button>
+      <span class="text-muted">（Enter でも実行可）</span>
     </div>
-  </section>
-</main>
+  </div>
 
-<script src="qrcode.min.js"></script>
-<script src="app.js"></script>
-<script>App.initPage('dashboard');</script>
-</body></html>
+  <!-- Header -->
+  <header class="topbar">
+    <div class="container wrap">
+      <img src="tsh.png" class="logo" alt="TSH">
+      <nav id="mainNav" class="nav">
+        <a href="index.html">ダッシュボード</a>
+        <a href="plan.html">生産計画</a>
+        <a href="ship.html">出荷計画</a>
+        <a href="confirm.html">出荷確認書</a>
+        <a href="ticket.html">生産現品票</a>
+        <a href="charts.html">分析チャート</a>
+        <a href="master.html">マスター</a>
+        <a href="scan.html">QRスキャン</a>
+      </nav>
+      <div class="menu-spacer"></div>
+      <div id="authSlot" class="hidden md:block"></div>
+      <button id="burgerBtn" class="burger" aria-label="Menu">☰</button>
+    </div>
+    <div id="mobileMenu" class="container">
+      <div class="card" style="margin:10px 0;display:grid;gap:8px">
+        <a href="index.html">ダッシュボード</a>
+        <a href="plan.html">生産計画</a>
+        <a href="ship.html">出荷計画</a>
+        <a href="confirm.html">出荷確認書</a>
+        <a href="ticket.html">生産現品票</a>
+        <a href="charts.html">分析チャート</a>
+        <a href="master.html">マスター</a>
+        <a href="scan.html">QRスキャン</a>
+        <div id="authSlotMobile"></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container" style="padding:16px;display:grid;gap:16px">
+    <section class="card">
+      <h3>現在の生産状況</h3>
+      <div class="text-muted">データがありません。</div>
+    </section>
+
+    <section class="grid-2">
+      <div class="card"><h3>在庫の所在（工程別）</h3><div class="text-muted">チャート準備領域</div></div>
+      <div class="card"><h3>本日の出荷予定</h3><div class="text-muted">データがありません。</div></div>
+    </section>
+
+    <section class="card">
+      <h3>完成品在庫（完成数量 − 出荷数量）</h3>
+      <table class="table">
+        <thead><tr><th>品名</th><th>図番</th><th>完成数量</th><th>出荷数量</th><th>在庫</th></tr></thead>
+        <tbody id="stockBody"><tr><td colspan="5" class="text-muted">データがありません。</td></tr></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    async function doLogin(){
+      const u = document.getElementById('loginUser').value.trim();
+      const p = document.getElementById('loginPass').value.trim();
+      if(!u||!p){ alert('ユーザー/パスワードを入力'); return; }
+      const r = await App.login(u,p);
+      if(r.ok) location.reload();
+      else alert('ログイン失敗：'+(r.error||''));
+    }
+    document.getElementById('btnLogin').onclick = doLogin;
+    document.getElementById('loginPass').addEventListener('keyup', e=>{ if(e.key==='Enter') doLogin(); });
+
+    App.initPage('dashboard');
+  </script>
+</body>
+</html>
