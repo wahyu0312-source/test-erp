@@ -1,73 +1,73 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>ERPシステム 東京精密発條株式会社 — 生産計画</title>
-  <link rel="stylesheet" href="style.css"/>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body>
-  <!-- Header -->
-  <header class="topbar">
-    <div class="container wrap">
-      <img src="tsh.png" class="logo" alt="TSH">
-      <nav id="mainNav" class="nav">
-        <a href="index.html">ダッシュボード</a>
-        <a href="plan.html">生産計画</a>
-        <a href="ship.html">出荷計画</a>
-        <a href="confirm.html">出荷確認書</a>
-        <a href="ticket.html">生産現品票</a>
-        <a href="charts.html">分析チャート</a>
-        <a href="master.html">マスター</a>
-        <a href="scan.html">QRスキャン</a>
-      </nav>
-      <div class="menu-spacer"></div>
-      <div id="authSlot" class="hidden md:block"></div>
-      <button id="burgerBtn" class="burger" aria-label="Menu">☰</button>
-    </div>
-    <div id="mobileMenu" class="container">
-      <div class="card" style="margin:10px 0;display:grid;gap:8px">
-        <a href="index.html">ダッシュボード</a>
-        <a href="plan.html">生産計画</a>
-        <a href="ship.html">出荷計画</a>
-        <a href="confirm.html">出荷確認書</a>
-        <a href="ticket.html">生産現品票</a>
-        <a href="charts.html">分析チャート</a>
-        <a href="master.html">マスター</a>
-        <a href="scan.html">QRスキャン</a>
-      </div>
-    </div>
-  </header>
+<!DOCTYPE html><html lang="ja"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>ERP • 生産計画</title>
+<link rel="stylesheet" href="style.css"/>
+</head><body class="u-bg">
+<aside id="drawer" class="drawer" aria-hidden="true">
+  <nav class="drawer__nav">
+    <a href="dashboard.html" class="drawer__link">ダッシュボード</a>
+    <a href="plan.html" class="drawer__link is-active">生産計画</a>
+    <a href="ship.html" class="drawer__link">出荷計画</a>
+    <a href="confirm.html" class="drawer__link">出荷確認書</a>
+    <a href="scan.html" class="drawer__link">QRスキャン</a>
+    <a href="ticket.html" class="drawer__link">生産現品票</a>
+    <a href="master.html" class="drawer__link">マスター</a>
+    <a href="charts.html" class="drawer__link">チャート</a>
+    <button id="drawerLogout" class="btn btn--ghost" style="margin-top:8px;width:100%;">ログアウト</button>
+  </nav><footer class="drawer__footer"><small>© TSH • design by wahyu</small></footer>
+</aside><div id="scrim" class="scrim" hidden></div>
 
-  <main class="container" style="padding:16px;display:grid;gap:16px">
-    <section class="card">
-      <div class="row" style="align-items:center;justify-content:space-between">
-        <h3>生産計画</h3>
-        <button id="btnPlanNew" class="btn icon">＋ 新規作成</button>
-      </div>
-    </section>
-    <div id="planTableWrap"></div>
-  </main>
+<header class="topbar">
+  <button id="btnBurger" class="icon-btn" aria-label="メニュー" aria-controls="drawer" aria-expanded="false">☰</button>
+  <a class="brand"><img src="tsh.png" class="brand__logo"/><div class="brand__text"><strong>ERPシステム</strong><span>東京精密発條株式会社</span></div></a>
+  <div class="topbar__spacer"></div><button id="btnLogout" class="btn btn--ghost">ログアウト</button>
+</header>
 
-  <!-- Modal -->
-  <div id="planModal" class="modal">
-    <div class="backdrop" data-close="1"></div>
-    <div class="panel">
-      <div class="row" style="align-items:center;justify-content:space-between">
-        <h3>生産計画</h3>
-        <button class="btn outline" data-close="1">閉じる</button>
+<main class="container stack">
+  <section class="card">
+    <header class="card__head">
+      <h3 class="card__title">生産計画</h3>
+      <div class="row wrap gap-sm">
+        <input id="planSearch" class="input" placeholder="検索…"/>
+        <label class="row gap-sm text-sm">件数<select id="planPageSize" class="input"><option>10</option><option selected>20</option><option>50</option></select></label>
+        <div id="planPager" class="row gap-sm"></div>
+        <div class="topbar__spacer"></div>
+        <button id="btnNewPlan" class="btn">新規作成</button>
       </div>
-      <div id="planModalBody" style="margin-top:10px">読み込み中…</div>
+    </header>
+    <div class="table-scroll"><table class="gridtbl">
+      <thead><tr><th>得意先</th><th>製造番号</th><th>品名</th><th>品番</th><th>開始</th><th>工程</th><th>場所</th><th>状態</th><th>更新</th><th></th></tr></thead>
+      <tbody id="planBody"><tr><td colspan="10" class="u-muted">読み込み中…</td></tr></tbody>
+    </table></div>
+  </section>
+</main>
+
+<!-- Modal Plan -->
+<div class="modal" id="modalPlan" aria-hidden="true">
+  <div class="modal__panel card">
+    <header class="card__head"><h3 class="card__title">生産計画 • 新規</h3><button data-close class="icon-btn">✕</button></header>
+    <div class="stack">
+      <div class="grid grid--2">
+        <label>得意先<select id="mpCustomer" class="input"></select></label>
+        <label>図番<select id="mpDrawing" class="input"></select></label>
+        <label>品名<input id="mpItemName" class="input" placeholder="MASTER選択で自動入力"/></label>
+        <label>品番<input id="mpItemNo" class="input" placeholder="MASTER選択で自動入力"/></label>
+      </div>
+      <div class="grid grid--2">
+        <label>製造番号<input id="mpProdNo" class="input"/></label>
+        <label>開始<input id="mpStart" type="date" class="input"/></label>
+      </div>
+      <div class="grid grid--3">
+        <label>工程<input id="mpProcess" class="input"/></label>
+        <label>場所<input id="mpLocation" class="input"/></label>
+        <label>ステータス<select id="mpStatus" class="input"><option>計画</option><option>進行中</option><option>保留</option><option>完了</option></select></label>
+      </div>
     </div>
+    <footer class="card__foot row"><button id="mpSave" class="btn">保存</button><button data-close class="btn btn--ghost">閉じる</button></footer>
   </div>
+</div>
 
-  <script src="app.js"></script>
-  <script>
-    App.initPage('plan');
-    document.getElementById('planModal').addEventListener('click', (e)=>{
-      if(e.target?.dataset?.close) App.closeModal('planModal');
-    });
-  </script>
-</body>
-</html>
+<script>window.APP_SCRIPT_URL='https://script.google.com/macros/s/AKfycbxmpC6UA1ixJLLDy3kCa6RPT9D-s2pV4L2UEsvy21gR5klqLpGGQbfSbYkNqWaHnRId/exec';</script>
+<script src="app.js"></script>
+<script>App.initPage('plan');</script>
+</body></html>
