@@ -1,65 +1,34 @@
-<!DOCTYPE html><html lang="ja"><head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<!doctype html><html lang="ja"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ERP • マスター</title>
-<link rel="stylesheet" href="style.css"/>
-</head><body class="u-bg">
-<aside id="drawer" class="drawer" aria-hidden="true">
-  <nav class="drawer__nav">
-    <a href="dashboard.html" class="drawer__link">ダッシュボード</a>
-    <a href="plan.html" class="drawer__link">生産計画</a>
-    <a href="ship.html" class="drawer__link">出荷計画</a>
-    <a href="confirm.html" class="drawer__link">出荷確認書</a>
-    <a href="scan.html" class="drawer__link">QRスキャン</a>
-    <a href="ticket.html" class="drawer__link">生産現品票</a>
-    <a href="master.html" class="drawer__link is-active">マスター</a>
-    <a href="charts.html" class="drawer__link">チャート</a>
-    <button id="drawerLogout" class="btn btn--ghost" style="margin-top:8px;width:100%;">ログアウト</button>
-  </nav><footer class="drawer__footer"><small>© TSH • design by wahyu</small></footer>
-</aside><div id="scrim" class="scrim" hidden></div>
+<link rel="stylesheet" href="style.css"></head><body>
+<header class="top"><div class="brand">
+  <img src="tsh.png"><strong>ERPシステム</strong>
+  <button id="burger">☰</button><div class="userchip" id="topUser"></div>
+  <button id="btnLogout" class="btn-outline">ログアウト</button>
+</div><nav id="navMenu"><div class="container nav">
+  <a href="index.html">ダッシュボード</a><a href="plan.html">生産計画</a>
+  <a href="ship.html">出荷計画</a><a href="confirm.html">出荷確認書</a>
+  <a href="scan.html">QRスキャン</a><a href="ticket.html">生産現品票</a>
+  <a href="charts.html">チャート</a><a class="active">マスター</a>
+</div></nav></header>
 
-<header class="topbar">
-  <button id="btnBurger" class="icon-btn" aria-label="メニュー" aria-controls="drawer" aria-expanded="false">☰</button>
-  <a class="brand"><img src="tsh.png" class="brand__logo"/><div class="brand__text"><strong>ERPシステム</strong><span>東京精密発條株式会社</span></div></a>
-  <div class="topbar__spacer"></div><button id="btnLogout" class="btn btn--ghost">ログアウト</button>
-</header>
-
-<main class="container stack">
+<main class="container">
   <section class="card">
-    <header class="card__head">
-      <h3 class="card__title">製品マスター</h3>
-      <div class="row wrap gap-sm">
-        <input id="mstSearch" class="input" placeholder="検索…"/>
-        <label class="row gap-sm text-sm">件数<select id="mstPageSize" class="input"><option>10</option><option selected>20</option><option>50</option></select></label>
-        <div id="mstPager" class="row gap-sm"></div>
-        <div class="topbar__spacer"></div>
-        <button id="btnNewMaster" class="btn">追加</button>
-      </div>
-    </header>
-    <div class="table-scroll"><table class="gridtbl">
-      <thead><tr><th>ID</th><th>得意先</th><th>図番</th><th>品名</th><th>品番</th><th></th></tr></thead>
-      <tbody id="mstBody"><tr><td colspan="6" class="u-muted">読み込み中…</td></tr></tbody>
-    </table></div>
+    <div class="toolbar">
+      <h3 style="margin-right:auto">製品マスター</h3>
+      <input id="mq" class="input" placeholder="検索（得意先/図番/品名/品番）">
+      <button id="mAdd" class="btn">新規追加</button>
+    </div>
+    <table id="mTable" class="table">
+      <thead><tr><th>得意先</th><th>図番</th><th>品名</th><th>品番</th><th>操作</th></tr></thead>
+      <tbody id="mBody"></tbody>
+    </table>
+    <div class="pager" id="mPager" style="margin-top:8px">
+      <button class="prev">←</button><span class="info">1/1頁</span><button class="next">→</button>
+    </div>
   </section>
 </main>
-
-<!-- Modal -->
-<div class="modal" id="modalMaster" aria-hidden="true">
-  <div class="modal__panel card">
-    <header class="card__head"><h3 class="card__title">マスター編集</h3><button data-close class="icon-btn">✕</button></header>
-    <div class="stack">
-      <input id="mmId" type="hidden"/>
-      <div class="grid grid--2">
-        <label>得意先<input id="mmCustomer" class="input"/></label>
-        <label>図番<input id="mmDrawing" class="input"/></label>
-        <label>品名<input id="mmItemName" class="input"/></label>
-        <label>品番<input id="mmItemNo" class="input"/></label>
-      </div>
-    </div>
-    <footer class="card__foot row"><button id="mmSave" class="btn">保存</button><button data-close class="btn btn--ghost">閉じる</button></footer>
-  </div>
-</div>
-
-<script>window.APP_SCRIPT_URL='https://script.google.com/macros/s/AKfycbxmpC6UA1ixJLLDy3kCa6RPT9D-s2pV4L2UEsvy21gR5klqLpGGQbfSbYkNqWaHnRId/exec';</script>
 <script src="app.js"></script>
-<script>App.initPage('master');</script>
+<script>App.initMaster();</script>
 </body></html>
