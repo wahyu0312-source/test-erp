@@ -231,16 +231,147 @@ const App = {
     };
     $('#btnLoadTicket').onclick=load; $('#btnPrint').onclick=()=>window.print();
   },
-  pageScan(){ /* ... sama ... */ 
+    // ===== スキャン（カメラ＋手入力） =====
+  pageScan(){
     this.guard(['管理者','生産管理部','製造部','検査部']);
-    $('#btnApplyScan').onclick=()=>{
-      const txt=val('#scanText').trim(); if(!txt) return alert('QR/テキストを入力');
-      const [prodNo,itemNo]=txt.split('|'); const p=(this.state.plan||[]).find(x=>x.prodNo===prodNo&&x.itemNo===itemNo);
-      if(!p) return alert('計画なし');
-      p.process = val('#scanProcess'); p.status = val('#scanStatus'); p.updated = this.stamp();
-      this.pushPlanRow({...p,user:this.state.user}); alert('更新しました');
+    this._refreshPage = () => this.pageScan();
+
+    const camSel = document.getElementById('camSelect');
+    const btnStart = document.getElementById('btnStart');
+    const btnStop  = document.getElementById('btnStop');
+    const qrboxSel = document.getElementById('qrbox');
+    const info     = document.getElementById('scanInfo');
+    const last     = document.getElementById('scanLast');
+    const readerId = 'reader';
+
+    let html5QrCode = null;
+    let currentCamId = null;
+    let lastText = '';
+    let lastTs = 0;
+
+    const setLast = (t) => { lastText=t; last.textContent = '読み取り: ' + t; };
+    const stamp = () => new Date().toLocaleTimeString();
+
+    const onScanSuccess = (decodedText, decodedResult) => {
+      // anti-bounce 1.2s
+      const now = Date.now();
+      if (decodedText === lastText && now - lastTs < 1200) return;
+      lastTs = now;
+      setLast(decodedText);
+
+      // 期待フォーマット: 製造番号|品番
+      const [prodNo, itemNo] = String(decodedText).split('|');
+      if(!prodNo || !itemNo){
+        info.textContent = 'フォーマット不正（製造番号|品番）: ' + decodedText;
+        return;
+      }
+
+      // 反映候補を手入力欄にも流し込む（編集可）
+      document.getElementById('scanText').value = prodNo + '|' + itemNo;
+
+      // 小さな音（非ブロッキング）
+      try { new AudioContext().close(); } catch(_){}
+      // （モバイルのオート再生制限を避けるため、ここで音を出さない実装にしてあります）
     };
+
+    const startScanner = async () => {
+      if (location.protocol !== 'https:' && location.hostname !== 'localhost'){
+        alert('HTTPS接続が必要です（GitHub Pages を推奨）。'); 
+        return;
+      }
+      if (html5QrCode) await stopScanner();
+      html5QrCode = new Html5Qrcode(readerId, { formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE] });
+
+      const fps = 10;
+      const qrbox = Number(qrboxSel.value || 280);
+      const config = { fps, qrbox: { width: qrbox, height: qrbox }, aspectRatio: 1.777 };
+
+      // カメラID
+      currentCamId = (camSel.value || '').trim() || undefined;
+      try{
+        if(currentCamId){
+          await html5QrCode.start({ deviceId: { exact: currentCamId } }, config, onScanSuccess);
+        }else{
+          // prefer back camera
+          await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess);
+        }
+      }catch(e){
+        console.warn(e);
+        alert('カメラ起動に失敗しました。権限やHTTPSを確認してください。');
+      }
+    };
+
+    const stopScanner = async () => {
+      if(html5QrCode){
+        try{ await html5QrCode.stop(); }catch(_){}
+        try{ await html5QrCode.clear(); }catch(_){}
+        html5QrCode = null;
+      }
+    };
+
+    // カメラ一覧
+    const listCameras = async () => {
+      camSel.innerHTML = `<option value="">（自動選択：背面優先）</option>`;
+      try{
+        const devices = await Html5Qrcode.getCameras();
+        devices.forEach(d => {
+          const label = d.label || d.id || 'Camera';
+          camSel.insertAdjacentHTML('beforeend', `<option value="${d.id}">${label}</option>`);
+        });
+      }catch(e){
+        console.warn(e);
+        // ここで失敗しても、facingMode:environment で start 可能
+      }
+    };
+
+    // イベント
+    btnStart.onclick = startScanner;
+    btnStop.onclick  = stopScanner;
+    window.addEventListener('pagehide', stopScanner);
+    window.addEventListener('beforeunload', stopScanner);
+
+    // 代替：手入力→反映
+    document.getElementById('btnApplyScan').onclick = () => {
+      const raw = (document.getElementById('scanText').value || '').trim();
+      if(!raw) return alert('QR/テキストを入力してください');
+      const [prodNo,itemNo] = raw.split('|');
+      if(!prodNo || !itemNo) return alert('フォーマット: 製造番号|品番');
+
+      const p = (this.state.plan || []).find(x => x.prodNo === prodNo && x.itemNo === itemNo);
+      if(!p) return alert('計画が見つかりません');
+
+      p.process = document.getElementById('scanProcess').value;
+      p.status  = document.getElementById('scanStatus').value;
+      p.updated = this.stamp();
+
+      this.pushPlanRow({ ...p, user: this.state.user });
+      setLast(`${prodNo}|${itemNo}（${stamp()} 更新）`);
+      alert('更新しました');
+    };
+
+    // 同期ボタン（管理者のみ表示。ほかページと統一）
+    const pull=document.getElementById('btnPull');
+    const push=document.getElementById('btnPush');
+    const auto=document.getElementById('autoSync');
+    const clearLocal=document.getElementById('btnClearLocal');
+
+    pull && (pull.onclick = () => this.pullSheet());
+    push && (push.onclick = async () => { // kirim semua cache lokal ke GAS
+      try{
+        for(const p of (this.state.plan||[])) await this.pushPlanRow(p);
+        alert('送信完了');
+      }catch{ alert('送信失敗'); }
+    });
+    auto && (auto.onchange = ()=>{ if(auto.checked){ this._interval=setInterval(()=>this.pullSheet(),30000);} else { clearInterval(this._interval); } });
+    clearLocal && (clearLocal.onclick = ()=>{ localStorage.removeItem('erp-session'); alert('ローカル情報を削除しました（要再ログイン）'); });
+
+    // 初期：カメラ列挙（ユーザー操作後でOK。iOSはボタンクリックでstart）
+    listCameras().then(()=>{/*noop*/});
+
+    // ナビ（バーガー）
+    this.attachBurger();
   },
+
   pageCharts(){ /* ... sama seperti paket sebelumnya ... */ this._refreshPage=()=>this.pageCharts();
     this.guard(['管理者','生産管理部','製造部','検査部']);
     const plan=this.state.plan||[], ship=this.state.ship||[];
