@@ -1,63 +1,15 @@
 <!DOCTYPE html><html lang="ja"><head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>ERP • 出荷確認書</title>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>出荷確認書</title>
 <link rel="stylesheet" href="style.css"/>
-</head><body>
-  <div id="headerMount"></div>
-
-  <main class="container py-6 space-y-4">
-    <section class="card">
-      <h3>出荷確認書</h3>
-      <div class="grid md:grid-cols-3 gap-3">
-        <label>日付<input id="cDate" class="input" type="date"/></label>
-        <label>得意先（空白=全件）<input id="cCust" class="input"/></label>
-      </div>
-      <div class="mt-3 flex gap-2">
-        <button id="btnBuild" class="btn primary">作成</button>
-        <button id="btnCSV" class="btn">CSV</button>
-        <button id="btnPrint" class="btn">印刷</button>
-      </div>
-    </section>
-
-    <section class="card">
-      <table class="table" id="tblConfirm">
-        <thead><tr><th>No</th><th>得意先</th><th>品名</th><th>品番</th><th>数量</th><th>備考</th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </section>
-  </main>
-
-  <script src="app.js"></script>
-  <script>
-    fetch('header.html').then(r=>r.text()).then(h=>{document.getElementById('headerMount').outerHTML=h; App.initPage('confirm'); init();});
-    async function init(){
-      document.getElementById('cDate').value = App.todayDate();
-      document.getElementById('btnBuild').onclick = build;
-      document.getElementById('btnCSV').onclick = downloadCSV;
-      document.getElementById('btnPrint').onclick = ()=>window.print();
-    }
-    async function build(){
-      const {ship}=await App.fetchAll();
-      const d = document.getElementById('cDate').value;
-      const cust = (document.getElementById('cCust').value||'').trim();
-      const list = (ship||[]).filter(r=>{
-        const dateOk = !d || (String(r.date||'').slice(0,10)===d);
-        const custOk = !cust || String(r.customer||'').includes(cust);
-        return dateOk && custOk;
-      });
-      const tb = document.querySelector('#tblConfirm tbody'); tb.innerHTML='';
-      list.forEach((r,i)=>{
-        const tr=document.createElement('tr');
-        tr.innerHTML=`<td>${i+1}</td><td>${App.esc(r.customer)}</td><td>${App.esc(r.itemName)}</td><td>${App.esc(r.itemNo)}</td><td class="num">${r.qty||0}</td><td>${App.esc(r.note||'')}</td>`;
-        tb.appendChild(tr);
-      });
-    }
-    async function downloadCSV(){
-      const rows=[['No','得意先','品名','品番','数量','備考']];
-      document.querySelectorAll('#tblConfirm tbody tr').forEach(tr=>{
-        rows.push([...tr.children].map(td=>td.textContent));
-      });
-      App.saveCSV(`出荷確認_${Date.now()}.csv`, rows);
-    }
-  </script>
+</head><body class="bg-slate-50 text-slate-800">
+<main class="app-shell" style="margin-top:14px">
+  <div class="card">
+    <h3 style="font-weight:700;margin-bottom:.6rem">出荷確認書</h3>
+    <p class="text-slate-600">Template print akan kamu sesuaikan. (Halaman ini sudah guard + navbar + logout.)</p>
+  </div>
+</main>
+<div id="flash" class="flash"></div>
+<script src="app.js"></script>
+<script>App.init('confirm');</script>
 </body></html>
