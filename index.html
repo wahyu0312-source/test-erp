@@ -1,30 +1,432 @@
-<!DOCTYPE html><html lang="ja"><head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>ERPシステム • ログイン</title>
-<link rel="stylesheet" href="style.css"/>
-<script src="https://cdn.tailwindcss.com"></script>
-</head><body class="bg-slate-50 text-slate-800">
-<header class="app-topbar">
-  <div class="app-shell" style="display:flex;align-items:center;justify-content:space-between;height:56px">
-    <div class="brand"><img src="tsh.png" alt="TSH"><b>ERPシステム</b><span class="hidden sm:inline" style="color:#64748b">東京精密発條株式会社</span></div>
-  </div>
-</header>
-
-<main class="app-shell" style="min-height:calc(100vh - 56px);display:flex;align-items:center;justify-content:center">
-  <form id="loginForm" class="card" style="width:min(700px,100%);padding:24px">
-    <h2 style="font-weight:800;font-size:1.25rem;margin-bottom:10px">ログイン</h2>
-    <label class="label">ユーザー</label>
-    <input id="loginUser" class="input" placeholder="admin" autocomplete="username"/>
-    <label class="label" style="margin-top:10px">パスワード</label>
-    <input id="loginPass" type="password" class="input" autocomplete="current-password"/>
-    <div style="display:flex;align-items:center;gap:10px;margin-top:12px">
-      <button class="btn btn-primary" id="btnLogin" type="submit">ログイン</button>
-      <span id="loginMsg" class="text-slate-500" style="font-size:.9rem"></span>
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title><?= appName ?></title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root{ --card:#101738; --bg:#0b1020; --border:#1e2a5a; --ink:#e8ecf8 }
+    body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+    .card{background:#121838;border:1px solid var(--border);border-radius:18px}
+    .navbar{background:#0e1530;border-bottom:1px solid var(--border)}
+    .btn-primary{background:#3a5bfd;border-color:#3a5bfd;border-radius:12px}
+    .btn-outline-light{border-color:#3a4570;color:var(--ink);border-radius:12px}
+    .form-control, .form-select{background:#0e1530;color:var(--ink);border:1px solid #253163;border-radius:12px}
+    .table{color:#c9d5ff}
+    .badge{font-weight:600;border-radius:10px}
+    .status-badge{background:#1b244a}
+    .logo{height:40px}
+    .paper{background:#fff;color:#000;border-radius:8px}
+    .paper .tt{font-size:12px;color:#555}
+    @media (max-width: 576px){ .navbar-brand span{display:none} }
+    @media print{ .no-print{ display:none !important } }
+  </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg sticky-top no-print">
+  <div class="container-fluid">
+    <a class="navbar-brand d-flex align-items-center gap-2" href="#">
+      <img src="<?= logoUrl ?>" class="logo" alt="Logo"/>
+      <span>ERP Mini</span>
+    </a>
+    <div class="ms-auto d-flex align-items-center gap-2">
+      <span id="userInfo" class="small text-secondary"></span>
+      <button class="btn btn-sm btn-outline-light" onclick="logout()">Logout</button>
     </div>
-  </form>
-</main>
+  </div>
+</nav>
 
-<div id="flash" class="flash"></div>
-<script src="app.js"></script>
-<script>App.init('login');</script>
-</body></html>
+<div class="container py-3">
+  <!-- Login -->
+  <div id="loginPanel" class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card p-4">
+        <h4 class="mb-3">Login</h4>
+        <div class="mb-3">
+          <label class="form-label">Username</label>
+          <input id="inUser" class="form-control"/>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Password</label>
+          <input id="inPass" type="password" class="form-control"/>
+        </div>
+        <button class="btn btn-primary w-100" onclick="doLogin()">Masuk</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- App -->
+  <div id="appPanel" class="d-none">
+    <div class="row g-3">
+      <div class="col-lg-8">
+        <div class="card p-3 mb-3">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h5 class="mb-0">Dashboard</h5>
+            <div class="d-flex gap-2 no-print">
+              <button class="btn btn-sm btn-outline-light" onclick="refreshAll()">Refresh</button>
+              <button class="btn btn-sm btn-outline-light" onclick="window.print()">Print</button>
+            </div>
+          </div>
+          <div class="row g-3">
+            <div class="col-md-4">
+              <div class="p-3 rounded" style="background:#0e1530;border:1px solid #253163">
+                <div class="small text-secondary">Stok Barang Jadi</div>
+                <div class="display-6 fw-bold" id="finishedStock">-</div>
+                <div class="small"><span id="readyCount">-</span> ready • <span id="shippedCount">-</span> shipped</div>
+              </div>
+            </div>
+            <div class="col-md-8">
+              <div class="p-3 rounded" style="background:#0e1530;border:1px solid #253163">
+                <div class="small text-secondary">Rencana Pengiriman (Hari Ini)</div>
+                <div id="todayShipments" class="small"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card p-3 mb-3">
+          <h6 class="mb-3">Proses Produksi & Lokasi Barang</h6>
+          <div id="procGrid" class="row g-2"></div>
+        </div>
+
+        <div class="card p-3 mb-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">Daftar Order</h6>
+            <div class="d-flex gap-2 no-print">
+              <input id="searchQ" class="form-control form-control-sm" placeholder="Cari..." oninput="loadOrders()"/>
+              <button class="btn btn-sm btn-outline-light" onclick="exportOrders()">Export Orders CSV</button>
+              <button class="btn btn-sm btn-outline-light" onclick="exportShipments()">Export Shipments CSV</button>
+            </div>
+          </div>
+          <div class="table-responsive mt-3">
+            <table class="table table-sm align-middle">
+              <thead><tr>
+                <th>PO</th><th>得意先</th><th>製番号</th><th>品名</th><th>品番</th><th>図番</th>
+                <th>Status</th><th>Process</th><th>Updated</th><th>By</th><th class="no-print">Aksi</th>
+              </tr></thead>
+              <tbody id="ordersBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="card p-3 mb-3 no-print">
+          <h6 class="mb-3">Rencana Produksi Baru</h6>
+          <div class="row g-2">
+            <div class="col-12"><input class="form-control" placeholder="通知書番号 (opsional)" id="c_tsuchi"/></div>
+            <div class="col-6"><input class="form-control" placeholder="得意先" id="c_tokui" list="dl_tokui"/></div>
+            <div class="col-6"><input class="form-control" placeholder="得意先品番" id="c_tokui_hin"/></div>
+            <div class="col-6"><input class="form-control" placeholder="製番号" id="c_sei"/></div>
+            <div class="col-6"><input class="form-control" placeholder="品名" id="c_hinmei" list="dl_hinmei"/></div>
+            <div class="col-6"><input class="form-control" placeholder="品番" id="c_hinban" list="dl_hinban"/></div>
+            <div class="col-6"><input class="form-control" placeholder="図番" id="c_zuban" list="dl_zuban"/></div>
+            <div class="col-12"><input class="form-control" placeholder="管理No (opsional)" id="c_kanri"/></div>
+            <div class="col-12"><button class="btn btn-primary w-100" onclick="createOrder()">生産現品票 発行</button></div>
+            <datalist id="dl_tokui"></datalist>
+            <datalist id="dl_hinmei"></datalist>
+            <datalist id="dl_hinban"></datalist>
+            <datalist id="dl_zuban"></datalist>
+          </div>
+        </div>
+
+        <div class="card p-3 mb-3 no-print">
+          <h6 class="mb-3">Rencana Pengiriman</h6>
+          <div class="row g-2">
+            <div class="col-12"><input id="s_po" class="form-control" placeholder="PO ID"/></div>
+            <div class="col-7"><input id="s_date" type="date" class="form-control"/></div>
+            <div class="col-5"><input id="s_qty" type="number" min="0" class="form-control" placeholder="Qty"/></div>
+            <div class="col-12 d-grid gap-2">
+              <button class="btn btn-primary" onclick="scheduleShipment()">Jadwalkan</button>
+              <button class="btn btn-outline-light" onclick="openShipConfirmByPo()">出荷確認書（PO）</button>
+              <button class="btn btn-outline-light" onclick="openShipConfirmByShipId()">出荷確認書（Ship ID）</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card p-3">
+          <h6 class="mb-3">Charts</h6>
+          <canvas id="chartMonthly" height="160"></canvas>
+          <hr>
+          <canvas id="chartCustomer" height="160"></canvas>
+          <hr>
+          <canvas id="chartStock" height="160"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 生産現品票 Modal -->
+<div class="modal fade" id="ticketModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content" style="background:#0e1530;color:#e8ecf8">
+      <div class="modal-header">
+        <h5 class="modal-title">生産現品票</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="ticketBody"></div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-light" onclick="window.print()">Print</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 出荷確認書 Modal -->
+<div class="modal fade" id="shipModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content" style="background:#0e1530;color:#e8ecf8">
+      <div class="modal-header">
+        <h5 class="modal-title">出荷確認書</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="shipBody"></div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-light" onclick="window.print()">Print</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let SESSION = null;
+
+function showToast(msg){ alert(msg); }
+
+function doLogin(){
+  const u = document.getElementById('inUser').value.trim();
+  const p = document.getElementById('inPass').value.trim();
+  google.script.run.withSuccessHandler(user=>{
+    SESSION = user;
+    document.getElementById('loginPanel').classList.add('d-none');
+    document.getElementById('appPanel').classList.remove('d-none');
+    document.getElementById('userInfo').textContent = user.full_name + ' • ' + user.department;
+    loadMasters();
+    refreshAll();
+  }).withFailureHandler(err=> showToast(err.message)).login(u,p);
+}
+function logout(){ location.reload(); }
+
+function refreshAll(){ loadStats(); loadProcGrid(); loadOrders(); loadCharts(); loadTodayShipments(); }
+
+function loadStats(){
+  google.script.run.withSuccessHandler(stat=>{
+    document.getElementById('finishedStock').textContent = stat.finishedStock;
+    document.getElementById('readyCount').textContent = stat.ready;
+    document.getElementById('shippedCount').textContent = stat.shipped;
+  }).getStockStatus();
+}
+
+function loadTodayShipments(){
+  google.script.run.withSuccessHandler(rows=>{
+    const wrap = document.getElementById('todayShipments');
+    if (!rows.length){ wrap.innerHTML = '<div class="text-secondary">Tidak ada jadwal hari ini</div>'; return; }
+    wrap.innerHTML = rows.map(r=>{
+      const dt = new Date(r.scheduled_date);
+      return `<div class="d-flex justify-content-between"><span>${r.po_id}</span><span>${dt.toLocaleDateString()} ${dt.toLocaleTimeString()} • Qty ${r.qty}</span></div>`;
+    }).join('');
+  }).getTodayShipments();
+}
+
+function loadProcGrid(){
+  google.script.run.withSuccessHandler(map=>{
+    const container = document.getElementById('procGrid');
+    const keys = ['レーザ工程','曲げ工程','外枠組立工程','シャッター組立工程','シャッター溶接工程','コーキング工程','外枠塗装工程','組立工程（組立中）','組立工程（組立済）','外注','検査工程'];
+    container.innerHTML = keys.map(k=>{
+      const val = map[k]||0;
+      return `<div class="col-6 col-md-4 col-xl-3"><div class="p-3 rounded" style="background:#0e1530;border:1px solid #253163"><div class="small text-secondary">${k}</div><div class="h3 mb-0">${val}</div></div></div>`;
+    }).join('');
+  }).getLocationSnapshot();
+}
+
+function loadOrders(){
+  const q = document.getElementById('searchQ').value.trim();
+  google.script.run.withSuccessHandler(rows=>{
+    const body = document.getElementById('ordersBody');
+    body.innerHTML = rows.map(r=>{
+      const updatedAt = r.updated_at ? new Date(r.updated_at).toLocaleString() : '';
+      return `<tr>
+        <td class="fw-semibold">${r.po_id}</td>
+        <td>${r['得意先']||''}</td>
+        <td>${r['製番号']||''}</td>
+        <td>${r['品名']||''}</td>
+        <td>${r['品番']||''}</td>
+        <td>${r['図番']||''}</td>
+        <td><span class="badge status-badge">${r.status}</span></td>
+        <td>${r.current_process}</td>
+        <td class="small text-secondary">${updatedAt}</td>
+        <td class="small text-secondary">${r.updated_by||''}</td>
+        <td class="no-print">
+          <div class="btn-group btn-group-sm">
+            <button class="btn btn-outline-light" onclick="openTicket('${r.po_id}')">現品票</button>
+            <button class="btn btn-outline-light" onclick="promptUpdate('${r.po_id}','${r.status}','${r.current_process}')">Update</button>
+            <button class="btn btn-outline-light" onclick="openShipConfirmByPo('${r.po_id}')">出荷確認</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+  }).listOrders({ q });
+}
+
+// === Documents ===
+function openTicket(po){
+  google.script.run.withSuccessHandler(o=>{
+    const el = document.getElementById('ticketBody');
+    const nowStr = new Date().toLocaleString();
+    el.innerHTML = `
+    <div class="paper p-4">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <img src="<?= logoUrl ?>" class="logo"/>
+        <div class="text-end">
+          <div class="fw-bold">シャトルガード・生産現品票</div>
+          <div class="tt">発行: ${nowStr}</div>
+        </div>
+      </div>
+      <div class="row g-2">
+        <div class="col-6"><strong>管理No</strong><div>${o['管理No']||'-'}</div></div>
+        <div class="col-6"><strong>通知書番号</strong><div>${o['通知書番号']||'-'}</div></div>
+        <div class="col-6"><strong>得意先</strong><div>${o['得意先']||''}</div></div>
+        <div class="col-6"><strong>得意先品番</strong><div>${o['得意先品番']||''}</div></div>
+        <div class="col-6"><strong>製番号</strong><div>${o['製番号']||''}</div></div>
+        <div class="col-6"><strong>投入日</strong><div>${o['created_at']? new Date(o['created_at']).toLocaleDateString() : '-'}</div></div>
+        <div class="col-6"><strong>品名</strong><div>${o['品名']||''}</div></div>
+        <div class="col-6"><strong>品番/図番</strong><div>${(o['品番']||'')+' / '+(o['図番']||'')}</div></div>
+      </div>
+      <hr/>
+      <table class="table table-bordered table-sm">
+        <thead><tr><th style="width:18%">工程名</th><th>作業者</th><th>作業日</th><th>投入数</th><th>合格数</th><th>不合格数</th><th>修正数</th></tr></thead>
+        <tbody>
+          ${['レーザ工程','曲げ工程','外枠組立工程','シャッター組立工程','シャッター溶接工程','コーキング工程','外枠塗装工程','組立工程（組立中）','組立工程（組立済）','外注','検査工程'].map(p=>`<tr><td>${p}</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`).join('')}
+        </tbody>
+      </table>
+      <div class="row g-2 mt-2">
+        <div class="col-12"><strong>現在ステータス</strong>：${o.status} / <strong>工程</strong>：${o.current_process}</div>
+        <div class="col-12 tt">更新: ${new Date(o.updated_at).toLocaleString()} / ${o.updated_by||''}</div>
+      </div>
+    </div>`;
+    new bootstrap.Modal(document.getElementById('ticketModal')).show();
+  }).getProductionTicket(po);
+}
+
+function shipTemplateHTML(doc){
+  const s = doc.shipment, o = doc.order;
+  const dt = s.scheduled_date ? new Date(s.scheduled_date) : null;
+  return `
+  <div class="paper p-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <img src="<?= logoUrl ?>" class="logo"/>
+      <div class="text-end">
+        <div class="fw-bold">出荷確認書</div>
+        <div class="tt">発行: ${new Date().toLocaleString()}</div>
+      </div>
+    </div>
+    <div class="row g-2">
+      <div class="col-6"><strong>得意先</strong><div>${o['得意先']||''}</div></div>
+      <div class="col-6"><strong>出荷日</strong><div>${dt? dt.toLocaleDateString(): '-'}</div></div>
+      <div class="col-6"><strong>品名</strong><div>${o['品名']||''}</div></div>
+      <div class="col-6"><strong>品番/図番</strong><div>${(o['品番']||'')+' / '+(o['図番']||'')}</div></div>
+      <div class="col-6"><strong>PO</strong><div>${o.po_id||s.po_id}</div></div>
+      <div class="col-3"><strong>数量</strong><div>${s.qty||0}</div></div>
+      <div class="col-3"><strong>出荷ステータス</strong><div>${s.status}</div></div>
+      <div class="col-12"><strong>備考</strong><div style="min-height:40px"></div></div>
+    </div>
+    <hr/>
+    <div class="row g-3">
+      <div class="col-4"><strong>検品者</strong><div style="height:40px;border-bottom:1px solid #000"></div></div>
+      <div class="col-4"><strong>出荷検査</strong><div style="height:40px;border-bottom:1px solid #000"></div></div>
+      <div class="col-4"><strong>品質管理</strong><div style="height:40px;border-bottom:1px solid #000"></div></div>
+    </div>
+  </div>`;
+}
+
+function openShipConfirmByPo(po){
+  if (typeof po !== 'string'){
+    const v = document.getElementById('s_po').value.trim();
+    if (!v) return showToast('Isi PO terlebih dahulu');
+    po = v;
+  }
+  google.script.run.withSuccessHandler(doc=>{
+    document.getElementById('shipBody').innerHTML = shipTemplateHTML(doc);
+    new bootstrap.Modal(document.getElementById('shipModal')).show();
+  }).withFailureHandler(err=> showToast(err.message)).getShippingConfirmByPo(po);
+}
+function openShipConfirmByShipId(){
+  const v = prompt('Masukkan Ship ID:'); if (!v) return;
+  google.script.run.withSuccessHandler(doc=>{
+    document.getElementById('shipBody').innerHTML = shipTemplateHTML(doc);
+    new bootstrap.Modal(document.getElementById('shipModal')).show();
+  }).withFailureHandler(err=> showToast(err.message)).getShippingConfirmByShipId(v.trim());
+}
+
+function promptUpdate(po_id, curStatus, curProc){
+  const targetStatus = prompt('Status baru (生産開始/検査保留/検査済/出荷準備/出荷済/不良品（要リペア）):', curStatus||'');
+  if (targetStatus===null) return;
+  const targetProc = prompt('Proses baru:', curProc||'');
+  if (targetProc===null) return;
+  const note = prompt('Catatan (opsional):', '')||'';
+  google.script.run.withSuccessHandler(()=>{ showToast('Updated'); loadOrders(); loadStats(); loadProcGrid(); })
+    .withFailureHandler(err=> showToast(err.message))
+    .updateOrder(po_id, { status: targetStatus, current_process: targetProc, note }, SESSION);
+}
+
+function createOrder(){
+  const payload = {
+    '通知書番号': document.getElementById('c_tsuchi').value.trim(),
+    '得意先': document.getElementById('c_tokui').value.trim(),
+    '得意先品番': document.getElementById('c_tokui_hin').value.trim(),
+    '製番号': document.getElementById('c_sei').value.trim(),
+    '品名': document.getElementById('c_hinmei').value.trim(),
+    '品番': document.getElementById('c_hinban').value.trim(),
+    '図番': document.getElementById('c_zuban').value.trim(),
+    '管理No': document.getElementById('c_kanri').value.trim(),
+  };
+  google.script.run.withSuccessHandler(res=>{ showToast('Order dibuat: '+res.po_id); loadOrders(); })
+    .withFailureHandler(err=> showToast(err.message)).createOrder(payload, SESSION);
+}
+
+function scheduleShipment(){
+  const po = document.getElementById('s_po').value.trim();
+  const dt = document.getElementById('s_date').value;
+  const qty = document.getElementById('s_qty').value;
+  if (!po || !dt) return showToast('Isi PO dan tanggal');
+  google.script.run.withSuccessHandler(res=>{ showToast('Shipment dibuat: '+res.ship_id); loadTodayShipments(); loadOrders(); })
+    .withFailureHandler(err=> showToast(err.message))
+    .scheduleShipment(po, dt, qty, SESSION);
+}
+
+function exportOrders(){ google.script.run.withSuccessHandler(url=>{ downloadDataUrl(url, 'orders.csv'); }).exportOrdersCsv(); }
+function exportShipments(){ google.script.run.withSuccessHandler(url=>{ downloadDataUrl(url, 'shipments.csv'); }).exportShipmentsCsv(); }
+function downloadDataUrl(url, filename){ const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); }
+
+// Charts & Masters
+let chMonthly, chCustomer, chStock;
+function loadCharts(){
+  google.script.run.withSuccessHandler(d=>{
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    if (chMonthly) chMonthly.destroy();
+    chMonthly = new Chart(document.getElementById('chartMonthly'), { type:'bar', data:{ labels: months, datasets:[{ label: 'Total Pengiriman '+d.year, data: d.perMonth }] }});
+    if (chCustomer) chCustomer.destroy();
+    chCustomer = new Chart(document.getElementById('chartCustomer'), { type:'bar', data:{ labels: Object.keys(d.perCust), datasets:[{ label:'Per Customer', data: Object.values(d.perCust) }] }});
+    if (chStock) chStock.destroy();
+    chStock = new Chart(document.getElementById('chartStock'), { type:'pie', data:{ labels: Object.keys(d.stockBuckets), datasets:[{ label:'Stok', data: Object.values(d.stockBuckets) }] }});
+  }).getChartsData();
+}
+function loadMasters(){
+  google.script.run.withSuccessHandler(opts=>{
+    const fill = (id, arr)=>{ const dl=document.getElementById(id); dl.innerHTML = (arr||[]).map(v=>`<option value="${v}"></option>`).join(''); };
+    fill('dl_tokui', opts['得意先']);
+    fill('dl_hinmei', opts['品名']);
+    fill('dl_hinban', opts['品番']);
+    fill('dl_zuban', opts['図番']);
+  }).getMasterOptions(['得意先','品名','品番','図番']);
+}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
