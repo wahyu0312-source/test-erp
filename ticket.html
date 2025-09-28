@@ -1,153 +1,154 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>生産現品票 | ERPシステム</title>
-  <link rel="stylesheet" href="style.css"/>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-slate-50 text-slate-800" onload="TicketPage.init()">
-  <header class="topbar">
-    <div class="brand">
-      <img src="tsh.png" alt="TSH" class="h-8"/>
-      <span class="ml-2 font-semibold">ERPシステム</span>
-    </div>
-    <nav class="nav desktop">
-      <a href="index.html">ダッシュボード</a>
-      <a href="plan.html">生産計画</a>
-      <a href="ship.html">出荷計画</a>
-      <a href="confirm.html">出荷確認書</a>
-      <a href="ticket.html" class="active">生産現品票</a>
-      <a href="charts.html">分析チャート</a>
-      <a href="master.html">マスター</a>
-      <a href="scan.html">QRスキャン</a>
-    </nav>
-    <div class="flex items-center gap-2">
-      <button id="burger" class="burger md:hidden" aria-label="menu">☰</button>
-      <button class="btn-outline" onclick="App.logout()">ログアウト</button>
-    </div>
-  </header>
+<!DOCTYPE html><html lang="ja"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>ERP • 生産現品票</title>
+<link rel="stylesheet" href="style.css"/>
+<style>
+  /* print */
+  @media print{
+    #headerMount, .no-print, .topbar{ display:none !important; }
+    body{ background:#fff }
+    .ticket{ border:1px solid #111 !important }
+    .ticket th,.ticket td{ border:1px solid #111 !important }
+  }
+  .ticket{ width:100%; border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+  .ticket th,.ticket td{ border-top:1px solid var(--line); padding:8px; }
+  .ticket thead th{ background:#f8fafc; text-align:left }
+  .grid2{ display:grid; grid-template-columns:1fr 120px; gap:12px; }
+  .qrbox{ display:grid; place-items:center; border:1px dashed var(--line); border-radius:10px; padding:12px; }
+  .qrbox canvas{ width:110px; height:110px; }
+</style>
+</head><body>
+  <div id="headerMount"></div>
 
-  <nav id="mobileMenu" class="mobile-menu hidden">
-    <a href="index.html">ダッシュボード</a>
-    <a href="plan.html">生産計画</a>
-    <a href="ship.html">出荷計画</a>
-    <a href="confirm.html">出荷確認書</a>
-    <a href="ticket.html" class="active">生産現品票</a>
-    <a href="charts.html">分析チャート</a>
-    <a href="master.html">マスター</a>
-    <a href="scan.html">QRスキャン</a>
-  </nav>
-
-  <main class="container space-y-6">
-    <section class="card">
-      <h3 class="card-title">読込／印刷</h3>
-      <div class="grid md:grid-cols-2 gap-3">
-        <label class="form-row">
-          <span>製造番号</span>
-          <input id="prodNo" class="input" placeholder="例：1111"/>
-        </label>
-        <div class="flex items-end gap-2">
-          <button class="btn" onclick="TicketPage.load()">読込</button>
-          <button class="btn-outline" onclick="window.print()">印刷</button>
-        </div>
+  <main class="container py-6 space-y-6">
+    <!-- フォーム -->
+    <section class="card no-print">
+      <h3 class="title" style="font-size:20px;margin-bottom:8px">現品票の作成</h3>
+      <div class="grid md:grid-cols-2 gap-4">
+        <label>製造番号 <input id="fProdNo" class="input" placeholder="例: 30110-100-1234-00"/></label>
+        <label>品番 <input id="fItemNo" class="input" placeholder="例: KI-4500"/></label>
+        <label>得意先 <input id="fCustomer" class="input" placeholder="例: TSH"/></label>
+        <label>品名 <input id="fItemName" class="input" placeholder="例: ワッシャ"/></label>
+        <label>担当 <input id="fStaff" class="input" placeholder="例: 田村"/></label>
+        <label>開始 <input id="fStart" class="input" type="date"/></label>
+        <label class="md:col-span-2">重要ポイント <input id="fPoint" class="input" placeholder="例: 面取り・バリ・寸法"/></label>
       </div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button id="btnBuild" class="btn">読込/作成</button>
+        <button id="btnPrint" class="btn primary">印刷</button>
+        <button id="btnClear" class="btn">クリア</button>
+      </div>
+      <p class="text-sm text-slate-600" id="note"></p>
     </section>
 
-    <section class="card printable">
-      <div class="flex justify-between items-center">
-        <h3 class="card-title">生産現品票</h3>
-        <div id="qrcode" class="mr-1"></div>
-      </div>
-
-      <div class="ring-1 ring-slate-300">
-        <table class="ticket w-full">
-          <tbody>
-            <tr>
-              <th class="w-32">得意先</th>
-              <td id="t_customer"></td>
-              <th class="w-32">製造番号</th>
-              <td id="t_prodNo"></td>
-            </tr>
-            <tr>
-              <th>品名</th><td id="t_itemName"></td>
-              <th>品番</th><td id="t_itemNo"></td>
-            </tr>
-            <tr>
-              <th>開始</th><td id="t_start"></td>
-              <th>担当</th><td id="t_user"></td>
-            </tr>
-          </tbody>
-        </table>
-
-        <table class="ticket w-full">
-          <tbody>
-            <tr>
-              <th class="w-32">工程名</th>
-              <td id="t_process"></td>
-              <th class="w-32">重要ポイント</th>
-              <td id="t_points"></td>
-            </tr>
-            <tr>
-              <th>作業者</th><td></td>
-              <th>着手</th><td></td>
-            </tr>
-            <tr>
-              <th>完了</th><td></td>
-              <th>判定</th><td></td>
-            </tr>
-            <tr>
-              <th>不合格理由/処置/修正内容</th>
-              <td colspan="3" style="height:80px"></td>
-            </tr>
-          </tbody>
-        </table>
+    <!-- 現品票プレビュー -->
+    <section class="card">
+      <div class="grid2">
+        <div>
+          <table class="ticket">
+            <thead>
+              <tr><th colspan="4">生産現品票</th></tr>
+            </thead>
+            <tbody id="ticketBody">
+              <!-- rows injected -->
+            </tbody>
+          </table>
+        </div>
+        <div class="qrbox">
+          <canvas id="qr"></canvas>
+          <div class="text-sm text-slate-600" id="qrText" style="text-align:center;margin-top:6px"></div>
+        </div>
       </div>
     </section>
   </main>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <!-- qrcode lib (軽量) -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <script src="app.js"></script>
   <script>
-    const TicketPage = {
-      data:null, qr:null,
-      init(){ App.ensureAuth(); App.mountBurger(); },
-      async load(){
-        const prodNo = document.getElementById('prodNo').value.trim();
-        if(!prodNo){ alert('製造番号を入力'); return; }
-        const {plan} = await App.fetchAll();             // PLAN sheet
-        const r = (plan||[]).find(x=>String(x.prodNo||'')===prodNo);
-        if(!r){ alert('見つかりません。'); return; }
-        // fill
-        this.data=r;
-        document.getElementById('t_customer').textContent=r.customer||'';
-        document.getElementById('t_prodNo').textContent=r.prodNo||'';
-        document.getElementById('t_itemName').textContent=r.itemName||'';
-        document.getElementById('t_itemNo').textContent=r.itemNo||'';
-        document.getElementById('t_start').textContent=r.start||'';
-        document.getElementById('t_user').textContent=App.me()?.user||'';
-        document.getElementById('t_process').textContent=r.process||'';
-        document.getElementById('t_points').textContent='';
+    fetch('header.html').then(r=>r.text()).then(h=>{
+      document.getElementById('headerMount').outerHTML=h;
+      App.initPage('ticket');
+      init();
+    });
 
-        // QR: encode JSON ringkas
-        const payload = {type:'ticket', prodNo:r.prodNo, item:r.itemNo};
-        const elm = document.getElementById('qrcode');
-        elm.innerHTML='';
-        this.qr=new QRCode(elm, {text: JSON.stringify(payload), width:96, height:96});
-      }
+    function el(id){return document.getElementById(id)}
+    function row(label,val){ return `<tr><th style="width:140px">${App.esc(label)}</th><td colspan="3">${App.esc(val||'')}</td></tr>`; }
+
+    async function init(){
+      el('btnPrint').addEventListener('click', ()=> window.print());
+      el('btnClear').addEventListener('click', ()=>{ ['fProdNo','fItemNo','fCustomer','fItemName','fStaff','fStart','fPoint'].forEach(id=>el(id).value=''); buildTicket(); });
+
+      // 該当製造番号・品番がMASTER/PLANにある時は入力補完
+      el('btnBuild').addEventListener('click', async ()=>{
+        const {master=[], plan=[]} = await App.fetchAll();
+        const prodNo=(el('fProdNo').value||'').trim();
+        const itemNo=(el('fItemNo').value||'').trim();
+
+        // 補完：PLAN優先→MASTER
+        let src = plan.find(r=> (r.prodNo||'').trim()===prodNo ) ||
+                  master.find(m=> (m.itemNo||'').trim()===itemNo );
+        if(src){
+          if(!el('fCustomer').value) el('fCustomer').value = src.customer||'';
+          if(!el('fItemName').value) el('fItemName').value = src.itemName||'';
+          if(!el('fItemNo').value)   el('fItemNo').value   = src.itemNo||'';
+        }
+        el('note').textContent = src ? '候補データを適用しました。' : '候補データは見つかりませんでした。';
+        buildTicket();
+      });
+
+      buildTicket();
+    }
+
+    function buildTicket(){
+      const p = {
+        customer: el('fCustomer').value,
+        itemName: el('fItemName').value,
+        itemNo  : el('fItemNo').value,
+        prodNo  : el('fProdNo').value,
+        staff   : el('fStaff').value,
+        start   : el('fStart').value,
+        point   : el('fPoint').value
+      };
+
+      const tb = el('ticketBody'); tb.innerHTML = `
+        ${row('得意先', p.customer)}
+        <tr>
+          <th style="width:140px">品名</th><td>${App.esc(p.itemName)}</td>
+          <th style="width:140px">品番</th><td>${App.esc(p.itemNo)}</td>
+        </tr>
+        <tr>
+          <th>製造番号</th><td>${App.esc(p.prodNo)}</td>
+          <th>担当</th><td>${App.esc(p.staff)}</td>
+        </tr>
+        <tr>
+          <th>開始</th><td>${App.esc(p.start)}</td>
+          <th>工程名</th><td>（記入）</td>
+        </tr>
+        <tr>
+          <th>重要ポイント</th><td colspan="3">${App.esc(p.point)}</td>
+        </tr>
+        <tr>
+          <th>作業者</th><td></td>
+          <th>着手</th><td></td>
+        </tr>
+        <tr>
+          <th>完了</th><td></td>
+          <th>判定</th><td></td>
+        </tr>
+        <tr>
+          <th>不合格理由/処置/修正内容</th><td colspan="3" style="height:80px"></td>
+        </tr>
+      `;
+
+      // QR= JSONにしておく（製造番号/品番/品名/得意先）
+      const payload = {
+        type:'ticket', prodNo:p.prodNo, itemNo:p.itemNo, itemName:p.itemName, customer:p.customer
+      };
+      const txt = JSON.stringify(payload);
+      const canvas = el('qr');
+      QRCode.toCanvas(canvas, txt, {width:110, margin:0}, _=>{});
+      el('qrText').textContent = p.prodNo || p.itemNo || '';
     }
   </script>
-
-  <style>
-    /* cetak */
-    @media print{
-      header, .btn, .btn-outline, .burger, #mobileMenu { display:none !important; }
-      .card { box-shadow:none; border:0; padding:0 }
-      .printable{ page-break-inside:avoid }
-    }
-    .ticket th{ @apply bg-slate-100 text-slate-700 p-2 border border-slate-300 text-sm; }
-    .ticket td{ @apply p-2 border border-slate-300 text-sm; }
-  </style>
-</body>
-</html>
+</body></html>
