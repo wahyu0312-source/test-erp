@@ -1,26 +1,24 @@
-<!DOCTYPE html><html lang="ja"><head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>ERP • ログイン</title>
-<link rel="stylesheet" href="style.css"/>
-</head><body class="u-bg">
-<header class="topbar">
-  <a class="brand"><img src="tsh.png" class="brand__logo"/><div class="brand__text"><strong>ERPシステム</strong><span>東京精密発條株式会社</span></div></a>
+<!doctype html><html lang="ja"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ERPシステム • ログイン</title>
+<link rel="stylesheet" href="style.css">
+</head><body>
+<header class="top">
+  <div class="brand"><img src="tsh.png" alt="TSH"><strong>ERPシステム 東京精密発條株式会社</strong></div>
 </header>
-
-<main class="container" style="max-width:640px">
-  <section class="card">
-    <header class="card__head"><h3 class="card__title">ログイン</h3></header>
-    <form id="loginForm" class="stack">
-      <label>ユーザー<input id="lgUser" class="input" placeholder="例: admin" autocomplete="username" required/></label>
-      <label>パスワード<input id="lgPass" class="input" type="password" placeholder="••••" autocomplete="current-password" required/></label>
-      <button id="btnLogin" class="btn" type="submit">ログイン</button>
-    </form>
-    <p class="text-sm u-muted" style="margin-top:8px">Enter でも送信可 / 初回ユーザーはシート <strong>USERS</strong> で作成</p>
-  </section>
+<main class="container">
+  <div class="card login-card">
+    <h3>ログイン</h3>
+    <div class="grid2">
+      <label>ユーザー <input id="lgUser" class="input" placeholder="admin"></label>
+      <label>パスワード <input id="lgPass" class="input" type="password" placeholder="••••"></label>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
+      <button id="btnLogin" class="btn">ログイン</button>
+      <span class="muted" style="color:#64748b;font-size:12px">Enter キーでも送信可</span>
+    </div>
+  </div>
 </main>
-
-<!-- CONFIG: ganti URL ini -->
-<script>window.APP_SCRIPT_URL='https://script.google.com/macros/s/AKfycbxmpC6UA1ixJLLDy3kCa6RPT9D-s2pV4L2UEsvy21gR5klqLpGGQbfSbYkNqWaHnRId/exec';</script>
 <script src="app.js"></script>
-<script>App.initPage('login');</script>
+<script>App.initLogin();</script>
 </body></html>
