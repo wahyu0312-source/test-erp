@@ -1,15 +1,13 @@
 <!doctype html><html lang="ja"><head>
 <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>生産計画 • ERP</title>
-<link rel="stylesheet" href="style.css"/>
-</head><body>
-<!-- header -->
+<link rel="stylesheet" href="style.css"/></head><body>
 <header class="topbar"><div class="container wrap">
-  <img src="tsh.png" class="logo" alt="TSH"/><span class="brand">ERP</span>
+  <img src="tsh.png" class="logo"><span class="brand">ERP</span>
   <nav id="mainNav" class="nav">
     <a href="index.html">ダッシュボード</a><a href="plan.html" class="active">生産計画</a>
     <a href="ship.html">出荷計画</a><a href="confirm.html">出荷確認書</a>
-    <a href="scan.html">QRスキャン</a><a href="ticket.html">生産現品票</a><a href="master.html">マスター</a>
+    <a href="scan.html">QRスキャン</a><a href="ticket.html">生産現品票</a><a href="charts.html">分析チャート</a><a href="master.html">マスター</a>
   </nav><div class="menu-spacer"></div><button id="burgerBtn" class="burger">☰</button></div></header>
 <div id="loginBar" class="container login-bar"></div>
 
@@ -20,23 +18,43 @@
       <input id="q" class="input" placeholder="検索: 得意先/品名/品番/製造番号" style="min-width:240px">
       <select id="fltProcess" class="input" style="max-width:180px"></select>
       <select id="fltStatus" class="input" style="max-width:160px">
-        <option value="">(すべて)</option><option>計画</option><option>進行中</option><option>完了</option>
+        <option value="">(すべて)</option><option>計画</option><option>進行中</option><option>完了</option><option>不良</option>
       </select>
       <select id="pageSize" class="input" style="max-width:120px"><option>10</option><option>25</option><option>50</option></select>
       <button id="btnClearFilter" class="btn outline">クリア</button>
+      <div class="menu-spacer"></div>
+      <button id="btnAddPlan" class="btn icon">➕ 新規作成</button>
     </div>
   </section>
 
   <section class="card">
     <table class="table">
-      <thead><tr><th>得意先</th><th>製造番号</th><th>品名</th><th>品番</th><th>開始</th><th>工程</th><th>場所</th><th>ステータス</th><th>更新</th></tr></thead>
+      <thead><tr><th>得意先</th><th>製造番号</th><th>品名</th><th>品番</th><th>開始</th><th>工程</th><th>場所</th><th>ステータス</th><th>更新</th><th></th></tr></thead>
       <tbody id="planBody"></tbody>
     </table>
     <div id="planPager" style="margin-top:10px"></div>
   </section>
 </main>
 
-<script src="qrcode.min.js"></script>
+<!-- Modal -->
+<div id="planModal" class="hidden" style="position:fixed;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.3);padding:16px">
+  <div class="card" style="max-width:720px;width:100%">
+    <div class="row" style="justify-content:space-between"><h3 id="pmTitle">生産計画</h3><button id="pmClose" class="btn outline">閉じる</button></div>
+    <div class="grid grid-2" style="margin-top:10px">
+      <div><label>得意先</label><input id="fCustomer" class="input"></div>
+      <div><label>製造番号</label><input id="fProdNo" class="input"></div>
+      <div><label>品名</label><input id="fItemName" class="input"></div>
+      <div><label>品番</label><input id="fItemNo" class="input"></div>
+      <div><label>開始</label><input id="fStart" type="date" class="input"></div>
+      <div><label>工程</label><select id="fProcess" class="input"></select></div>
+      <div><label>場所</label><input id="fLocation" class="input" placeholder="PPIC/現場など"></div>
+      <div><label>ステータス</label><select id="fStatus" class="input"><option>計画</option><option>進行中</option><option>完了</option><option>不良</option></select></div>
+    </div>
+    <div class="space"></div>
+    <button id="btnPlanSave" class="btn icon">💾 保存</button>
+  </div>
+</div>
+
 <script src="app.js"></script>
 <script>App.initPage('plan');</script>
 </body></html>
