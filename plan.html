@@ -1,31 +1,73 @@
-<!-- Modal -->
-<div id="planModal" class="hidden" style="position:fixed;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.3);padding:16px">
-  <div class="card" style="max-width:820px;width:100%">
-    <div class="row" style="justify-content:space-between"><h3 id="pmTitle">生産計画</h3><button id="pmClose" class="btn outline">閉じる</button></div>
-
-    <!-- Selector dari MASTER -->
-    <div class="row wrap" style="margin-top:10px">
-      <div style="min-width:240px;flex:1">
-        <label class="text-muted">得意先（MASTER）</label>
-        <select id="fCustomerSel" class="input"></select>
-      </div>
-      <div style="min-width:240px;flex:1">
-        <label class="text-muted">図番（MASTER）</label>
-        <select id="fDrawingSel" class="input"></select>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>ERPシステム 東京精密発條株式会社 — 生産計画</title>
+  <link rel="stylesheet" href="style.css"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+  <!-- Header -->
+  <header class="topbar">
+    <div class="container wrap">
+      <img src="tsh.png" class="logo" alt="TSH">
+      <nav id="mainNav" class="nav">
+        <a href="index.html">ダッシュボード</a>
+        <a href="plan.html">生産計画</a>
+        <a href="ship.html">出荷計画</a>
+        <a href="confirm.html">出荷確認書</a>
+        <a href="ticket.html">生産現品票</a>
+        <a href="charts.html">分析チャート</a>
+        <a href="master.html">マスター</a>
+        <a href="scan.html">QRスキャン</a>
+      </nav>
+      <div class="menu-spacer"></div>
+      <div id="authSlot" class="hidden md:block"></div>
+      <button id="burgerBtn" class="burger" aria-label="Menu">☰</button>
+    </div>
+    <div id="mobileMenu" class="container">
+      <div class="card" style="margin:10px 0;display:grid;gap:8px">
+        <a href="index.html">ダッシュボード</a>
+        <a href="plan.html">生産計画</a>
+        <a href="ship.html">出荷計画</a>
+        <a href="confirm.html">出荷確認書</a>
+        <a href="ticket.html">生産現品票</a>
+        <a href="charts.html">分析チャート</a>
+        <a href="master.html">マスター</a>
+        <a href="scan.html">QRスキャン</a>
       </div>
     </div>
+  </header>
 
-    <div class="grid grid-2" style="margin-top:10px">
-      <div><label>得意先</label><input id="fCustomer" class="input" placeholder="MASTER選択で自動入力、手修正可"></div>
-      <div><label>製造番号</label><input id="fProdNo" class="input"></div>
-      <div><label>品名</label><input id="fItemName" class="input" placeholder="MASTER選択で自動入力、手修正可"></div>
-      <div><label>品番</label><input id="fItemNo" class="input" placeholder="MASTER選択で自動入力、手修正可"></div>
-      <div><label>開始</label><input id="fStart" type="date" class="input"></div>
-      <div><label>工程</label><select id="fProcess" class="input"></select></div>
-      <div><label>場所</label><input id="fLocation" class="input" placeholder="PPIC/現場など"></div>
-      <div><label>ステータス</label><select id="fStatus" class="input"><option>計画</option><option>進行中</option><option>完了</option><option>不良</option></select></div>
+  <main class="container" style="padding:16px;display:grid;gap:16px">
+    <section class="card">
+      <div class="row" style="align-items:center;justify-content:space-between">
+        <h3>生産計画</h3>
+        <button id="btnPlanNew" class="btn icon">＋ 新規作成</button>
+      </div>
+    </section>
+    <div id="planTableWrap"></div>
+  </main>
+
+  <!-- Modal -->
+  <div id="planModal" class="modal">
+    <div class="backdrop" data-close="1"></div>
+    <div class="panel">
+      <div class="row" style="align-items:center;justify-content:space-between">
+        <h3>生産計画</h3>
+        <button class="btn outline" data-close="1">閉じる</button>
+      </div>
+      <div id="planModalBody" style="margin-top:10px">読み込み中…</div>
     </div>
-    <div class="space"></div>
-    <button id="btnPlanSave" class="btn icon">💾 保存</button>
   </div>
-</div>
+
+  <script src="app.js"></script>
+  <script>
+    App.initPage('plan');
+    document.getElementById('planModal').addEventListener('click', (e)=>{
+      if(e.target?.dataset?.close) App.closeModal('planModal');
+    });
+  </script>
+</body>
+</html>
