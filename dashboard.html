@@ -1,55 +1,19 @@
 <!DOCTYPE html><html lang="ja"><head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>ERP • ダッシュボード</title>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>ダッシュボード</title>
 <link rel="stylesheet" href="style.css"/>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head><body>
-  <div id="headerMount"></div>
-
-  <main class="container space-y-6 py-6">
-    <section class="card"><h3>現在の生産状況</h3><div id="nowList" class="text-sm text-slate-600"></div></section>
-    <section class="grid md:grid-cols-2 gap-4">
-      <div class="card"><h3>在庫の所在（工程別）</h3><canvas id="byProcessChart" height="220"></canvas></div>
-      <div class="card"><h3>本日の出荷予定</h3><div id="shipToday" class="text-sm text-slate-600"></div></div>
-    </section>
-    <section class="card">
-      <h3>完成品在庫（完成数量 − 出荷数量）</h3>
-      <table class="table">
-        <thead><tr><th>品名</th><th>品番</th><th>完成数量</th><th>出荷数量</th><th>在庫</th></tr></thead>
-        <tbody id="stockBody"></tbody>
-      </table>
-    </section>
-  </main>
-
-  <script src="app.js"></script>
-  <script>
-    fetch('header.html').then(r=>r.text()).then(h=>{
-      document.getElementById('headerMount').outerHTML=h; App.initPage('dashboard'); load();
-    });
-    async function load(){
-      const {plan=[], ship=[]}=await App.fetchAll();
-      document.getElementById('nowList').textContent = plan.length ? `${plan.length} 件` : 'データがありません。';
-      document.getElementById('shipToday').textContent = ship.length ? `${ship.length} 件` : '本日の出荷予定はありません。';
-
-      const stock = new Map();
-      plan.forEach(r=>{
-        const k=(r.itemName||'')+'|'+(r.itemNo||'');
-        const o=stock.get(k)||{name:r.itemName,no:r.itemNo,done:0,ship:0};
-        o.done+=Number(r.qtyDone||0); o.ship+=Number(r.qtyShip||0); stock.set(k,o);
-      });
-      const tb=$('#stockBody'); tb.innerHTML='';
-      [...stock.values()].forEach(x=>{
-        const tr=document.createElement('tr');
-        tr.innerHTML = `<td>${App.esc(x.name)}</td><td>${App.esc(x.no)}</td><td class="num">${x.done}</td><td class="num">${x.ship}</td><td class="num">${x.done-x.ship}</td>`;
-        tb.appendChild(tr);
-      });
-
-      const byProc={}; plan.forEach(r=>{ byProc[r.process||'-']=(byProc[r.process||'-']||0)+1; });
-      new Chart(document.getElementById('byProcessChart'),{
-        type:'bar', data:{labels:Object.keys(byProc), datasets:[{data:Object.values(byProc)}]},
-        options:{plugins:{legend:{display:false}}}
-      });
-    }
-    function $(q){return document.querySelector(q)}
-  </script>
+</head><body class="bg-slate-50 text-slate-800">
+<main class="app-shell" id="dashWrap" style="margin-top:14px">
+  <div class="grid grid-2">
+    <section class="card"><h3 style="font-weight:700;margin-bottom:.6rem">現在の生産状況</h3><div id="nowList" class="text-slate-500">…</div></section>
+    <section class="card"><h3 style="font-weight:700;margin-bottom:.6rem">本日の出荷予定</h3><div id="shipToday" class="text-slate-500">…</div></section>
+  </div>
+  <section class="card" style="margin-top:12px">
+    <h3 style="font-weight:700;margin-bottom:.6rem">完成品在庫（完成数量 − 出荷数量）</h3>
+    <table class="table"><thead><tr><th>品名</th><th>品番</th><th>完成数量</th><th>出荷数量</th><th>在庫</th></tr></thead><tbody id="stockBody"></tbody></table>
+  </section>
+</main>
+<div id="flash" class="flash"></div>
+<script src="app.js"></script>
+<script>App.init('dashboard');</script>
 </body></html>
