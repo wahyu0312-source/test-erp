@@ -1,52 +1,65 @@
-<!doctype html><html lang="ja"><head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>マスター • ERP</title>
-<link rel="stylesheet" href="style.css"/></head><body>
-<header class="topbar"><div class="container wrap">
-  <img src="tsh.png" class="logo"><span class="brand">ERP</span>
-  <nav id="mainNav" class="nav">
-    <a href="index.html">ダッシュボード</a><a href="plan.html">生産計画</a>
-    <a href="ship.html">出荷計画</a><a href="confirm.html">出荷確認書</a>
-    <a href="scan.html">QRスキャン</a><a href="ticket.html">生産現品票</a><a href="charts.html">分析チャート</a>
-    <a href="master.html" class="active">マスター</a>
-  </nav><div class="menu-spacer"></div><button id="burgerBtn" class="burger">☰</button></div></header>
-<div id="loginBar" class="container login-bar"></div>
-
-<main class="container grid">
-  <section class="card">
-    <h3>検索・新規</h3>
-    <div class="row wrap">
-      <input id="mq" class="input" placeholder="検索: 得意先/図番/品名/品番" style="min-width:260px">
-      <select id="mp" class="input" style="max-width:120px"><option>10</option><option>25</option><option>50</option></select>
-      <div class="menu-spacer"></div>
-      <button id="btnAddMaster" class="btn icon">➕ 新規</button>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>ERPシステム — マスター</title>
+  <link rel="stylesheet" href="style.css"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="container wrap">
+      <img src="tsh.png" class="logo" alt="TSH">
+      <nav class="nav" id="mainNav">
+        <a href="index.html">ダッシュボード</a><a href="plan.html">生産計画</a>
+        <a href="ship.html">出荷計画</a><a href="confirm.html">出荷確認書</a>
+        <a href="ticket.html">生産現品票</a><a href="charts.html">分析チャート</a>
+        <a href="master.html">マスター</a><a href="scan.html">QRスキャン</a>
+      </nav>
+      <div class="menu-spacer"></div><div id="authSlot"></div>
+      <button id="burgerBtn" class="burger">☰</button>
     </div>
-  </section>
-  <section class="card">
-    <table class="table">
-      <thead><tr><th>ID</th><th>得意先</th><th>図番</th><th>品名</th><th>品番</th><th>更新</th><th></th></tr></thead>
-      <tbody id="masterBody"></tbody>
-    </table>
-    <div id="masterPager" style="margin-top:10px"></div>
-  </section>
-</main>
+  </header>
 
-<!-- Modal -->
-<div id="masterModal" class="hidden" style="position:fixed;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.3);padding:16px">
-  <div class="card" style="max-width:720px;width:100%">
-    <div class="row" style="justify-content:space-between"><h3 id="mmTitle">マスター</h3><button id="mmClose" class="btn outline">閉じる</button></div>
-    <input id="mId" type="hidden">
-    <div class="grid grid-2" style="margin-top:10px">
-      <div><label>得意先</label><input id="mCustomer" class="input"></div>
-      <div><label>図番</label><input id="mDrawing" class="input"></div>
-      <div><label>品名</label><input id="mItemName" class="input"></div>
-      <div><label>品番</label><input id="mItemNo" class="input"></div>
+  <main class="container" style="padding:16px;display:grid;gap:16px">
+    <section class="card">
+      <div class="row" style="align-items:center;justify-content:space-between">
+        <div class="row" style="flex:1">
+          <div class="col"><label>検索</label><input id="mSearch" class="input" placeholder="得意先 図番 品名 品番"></div>
+        </div>
+        <button id="btnMNew" class="btn icon">＋ 新規</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <table class="table">
+        <thead><tr><th>ID</th><th>得意先</th><th>図番</th><th>品名</th><th>品番</th><th>操作</th></tr></thead>
+        <tbody id="mBody"></tbody>
+      </table>
+      <div class="row" style="justify-content:flex-end;gap:8px;margin-top:8px">
+        <button id="mPrev" class="btn outline">前</button>
+        <span id="mPageInfo" class="text-muted" style="align-self:center">1</span>
+        <button id="mNext" class="btn outline">次</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal -->
+  <div class="modal" id="mModal">
+    <div class="backdrop" data-close="1"></div>
+    <div class="panel">
+      <div class="row" style="align-items:center;justify-content:space-between">
+        <h3>マスター編集</h3><button class="btn outline" data-close="1">閉じる</button>
+      </div>
+      <div id="mModalBody" style="margin-top:10px">読み込み中…</div>
     </div>
-    <div class="space"></div>
-    <button id="btnMasterSave" class="btn icon">💾 保存</button>
   </div>
-</div>
 
-<script src="app.js"></script>
-<script>App.initPage('master');</script>
-</body></html>
+  <script src="app.js"></script>
+  <script>
+    App.initPage('master');
+    document.getElementById('mModal')?.addEventListener('click',e=>{ if(e.target?.dataset?.close) App.closeModal('mModal'); });
+  </script>
+</body>
+</html>
