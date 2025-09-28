@@ -1,53 +1,30 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>ERPシステム — QRスキャン</title>
-  <link rel="stylesheet" href="style.css"/>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- ZXing -->
-  <script src="https://unpkg.com/@zxing/library@latest"></script>
-</head>
-<body>
-  <header class="topbar">
-    <div class="container wrap">
-      <img src="tsh.png" class="logo" alt="TSH">
-      <nav class="nav" id="mainNav">
-        <a href="index.html">ダッシュボード</a><a href="plan.html">生産計画</a>
-        <a href="ship.html">出荷計画</a><a href="confirm.html">出荷確認書</a>
-        <a href="ticket.html">生産現品票</a><a href="charts.html">分析チャート</a>
-        <a href="master.html">マスター</a><a href="scan.html">QRスキャン</a>
-      </nav>
-      <div class="menu-spacer"></div><div id="authSlot"></div>
-      <button id="burgerBtn" class="burger">☰</button>
+<!doctype html><html lang="ja"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ERP • QRスキャン</title>
+<link rel="stylesheet" href="style.css"></head><body>
+<header class="top"><div class="brand">
+  <img src="tsh.png"><strong>ERPシステム</strong>
+  <button id="burger">☰</button><div class="userchip" id="topUser"></div>
+  <button id="btnLogout" class="btn-outline">ログアウト</button>
+</div><nav id="navMenu"><div class="container nav">
+  <a href="index.html">ダッシュボード</a><a href="plan.html">生産計画</a>
+  <a href="ship.html">出荷計画</a><a href="confirm.html">出荷確認書</a>
+  <a class="active">QRスキャン</a><a href="ticket.html">生産現品票</a>
+  <a href="charts.html">チャート</a><a href="master.html">マスター</a>
+</div></nav></header>
+
+<main class="container">
+  <section class="card">
+    <h3>スキャン（手入力フォールバック）</h3>
+    <div class="grid2">
+      <label>読み取りコード<input id="scanCode" class="input" placeholder="例) 製造番号|図番"></label>
+      <label>工程<select class="select"><option>レーザ工程</option><option>曲げ工程</option><option>外枠塗装工程</option></select></label>
+      <label>ステータス<select class="select"><option>進行中</option><option>完了</option></select></label>
     </div>
-  </header>
-
-  <main class="container" style="padding:16px;display:grid;gap:16px">
-    <section class="card">
-      <div class="row">
-        <div class="col"><label>カメラ</label><select id="videoSource" class="input"></select></div>
-        <div class="col" style="display:flex;gap:8px;align-items:flex-end">
-          <button id="btnScanStart" class="btn">開始</button>
-          <button id="btnScanStop" class="btn outline">停止</button>
-        </div>
-      </div>
-      <video id="preview" style="width:100%;margin-top:10px;border:1px solid #e5e7eb;border-radius:10px" muted playsinline></video>
-      <div style="margin-top:10px"><b>結果：</b> <span id="scanResult" class="text-muted">...</span></div>
-    </section>
-
-    <section class="card">
-      <h3>手入力（バックアップ）</h3>
-      <div class="row">
-        <div class="col"><label>コード</label><input id="manualCode" class="input"></div>
-        <div class="col" style="display:flex;align-items:flex-end"><button id="btnManualCommit" class="btn">受け取り</button></div>
-      </div>
-      <div class="text-muted" style="margin-top:8px">※ ステータス更新APIは未実装。Code.gsにUPDATEエンドポイントを追加後、連動します。</div>
-    </section>
-  </main>
-
-  <script src="app.js"></script>
-  <script>App.initPage('scan');</script>
-</body>
-</html>
+    <div style="margin-top:10px"><button id="btnApply" class="btn">更新</button></div>
+    <p class="muted" style="color:#64748b">※ カメラ許可が無い端末でも運用できるように手入力を用意</p>
+  </section>
+</main>
+<script src="app.js"></script>
+<script>App.initScan();</script>
+</body></html>
