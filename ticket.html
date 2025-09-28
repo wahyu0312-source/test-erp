@@ -1,14 +1,13 @@
 <!doctype html><html lang="ja"><head>
 <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>生産現品票 • ERP</title>
-<link rel="stylesheet" href="style.css"/>
-</head><body>
+<link rel="stylesheet" href="style.css"/></head><body>
 <header class="topbar"><div class="container wrap">
   <img src="tsh.png" class="logo"><span class="brand">ERP</span>
   <nav id="mainNav" class="nav">
     <a href="index.html">ダッシュボード</a><a href="plan.html">生産計画</a>
     <a href="ship.html">出荷計画</a><a href="confirm.html">出荷確認書</a>
-    <a href="scan.html">QRスキャン</a><a href="ticket.html" class="active">生産現品票</a><a href="master.html">マスター</a>
+    <a href="scan.html">QRスキャン</a><a href="ticket.html" class="active">生産現品票</a><a href="charts.html">分析チャート</a><a href="master.html">マスター</a>
   </nav><div class="menu-spacer"></div><button id="burgerBtn" class="burger">☰</button></div></header>
 <div id="loginBar" class="container login-bar"></div>
 
@@ -22,7 +21,6 @@
       <button id="btnPrint" class="btn outline">印刷</button>
     </div>
   </section>
-
   <section class="card">
     <div style="border:2px solid #000;border-radius:12px;padding:10px">
       <h3 style="text-align:center;margin:6px 0">生産現品票</h3>
@@ -32,11 +30,8 @@
         <tr><td>開始</td><td id="tStart"></td><td>担当</td><td id="tUser"></td></tr>
       </table>
       <div class="space"></div>
-      <table class="table"><thead><tr><th>工程名</th><th>重要ポイント</th><th>作業者</th><th>着手</th><th>完了</th><th>判定</th><th>不合格理由/処置/修正内容</th></tr></thead>
-        <tbody id="tProcessRows"></tbody>
-      </table>
-      <div class="space"></div>
-      <div class="row"><div id="tQR"></div></div>
+      <table class="table"><thead><tr><th>工程名</th><th>重要ポイント</th><th>作業者</th><th>着手</th><th>完了</th><th>判定</th><th>不合格理由/処置/修正内容</th></tr></thead><tbody id="tProcessRows"></tbody></table>
+      <div class="space"></div><div id="tQR"></div>
     </div>
   </section>
 </main>
@@ -44,10 +39,9 @@
 <script src="qrcode.min.js"></script>
 <script src="app.js"></script>
 <script>
-  // Rows (固定の表示ヘッダ)
-  const PROC=['レーザ工程','曲げ工程','外枠組立工程','シャッター溶接工程','コーキング工程','外枠塗装工程','組立工程','検査工程'];
+  const PROC=['レーザ工程','曲げ工程','外枠組立工程','シャッター溶接工程','コーキング工程','外枠塗装工程','組立工程','検査工程','外注'];
   const imp=['表面のキズ/変色/サビ','曲げ角度・割れ','外枠組付け','シャッター組立','溶接状態','コーキング','塗装','組立仕上げ','最終検査'];
-  tProcessRows.innerHTML=PROC.map((n,i)=>`<tr><td>${n}</td><td>${imp[i]||''}</td><td></td><td></td><td></td><td></td><td></td></tr>`).join('');
+  document.getElementById('tProcessRows').innerHTML=PROC.map((n,i)=>`<tr><td>${n}</td><td>${imp[i]||''}</td><td></td><td></td><td></td><td></td><td></td></tr>`).join('');
   App.initPage('ticket');
 </script>
 </body></html>
