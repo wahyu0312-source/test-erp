@@ -6,7 +6,7 @@
 /* ---------- CONFIG ---------- */
 const App = (() => {
   const S = {
-    API: 'https://script.google.com/macros/s/AKfycbxmpC6UA1ixJLLDy3kCa6RPT9D-s2pV4L2UEsvy21gR5klqLpGGQbfSbYkNqWaHnRId/exec', // TODO: ganti
+    API: 'https://script.google.com/macros/s/AKfycbxdxK93a2UJFKg5mmLi_P7OrAWv4DMUbvWX3bHGEntndIEEHWZc_dqN-iyqarKQvIFS/exec', // TODO: ganti
     // pakai localStorage agar tahan pindah tab / pwa
     LS_USER: 'erp_user_v2',
     LS_CACHE: 'erp_cache_all',
