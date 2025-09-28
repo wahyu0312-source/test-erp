@@ -1,56 +1,12 @@
 <!DOCTYPE html><html lang="ja"><head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>ERP • マスター</title><link rel="stylesheet" href="style.css"/></head><body>
-<div id="headerMount"></div>
-<main class="container py-6 space-y-4">
-  <section class="card"><h3>マスター 登録/更新</h3>
-    <div class="grid md:grid-cols-4 gap-3">
-      <label>ID（空白=新規）<input id="mId" class="input"/></label>
-      <label>得意先<input id="mCust" class="input"/></label>
-      <label>図番<input id="mDraw" class="input"/></label>
-      <label>品名<input id="mName" class="input"/></label>
-      <label>品番<input id="mNo" class="input"/></label>
-    </div>
-    <div class="mt-3 flex gap-2">
-      <button id="btnMUp" class="btn primary">保存</button>
-      <button id="btnMDel" class="btn danger">削除</button>
-    </div>
-  </section>
-  <section class="card"><h3>マスター一覧</h3>
-    <input id="mSearch" class="input" placeholder="検索（得意先/図番/品名/品番）"/>
-    <table class="table" id="tblMaster"><thead><tr><th>ID</th><th>得意先</th><th>図番</th><th>品名</th><th>品番</th></tr></thead><tbody></tbody></table>
-  </section>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>マスター</title>
+<link rel="stylesheet" href="style.css"/>
+</head><body class="bg-slate-50 text-slate-800">
+<main class="app-shell" style="margin-top:14px">
+  <div id="masterBox"></div>
 </main>
+<div id="flash" class="flash"></div>
 <script src="app.js"></script>
-<script>
-fetch('header.html').then(r=>r.text()).then(h=>{document.getElementById('headerMount').outerHTML=h; App.initPage('master'); init();});
-let M_ALL=[];
-async function init(){
-  const data = await App.fetchMasterOnly(); M_ALL=data.master||[];
-  render(M_ALL);
-  document.getElementById('mSearch').addEventListener('input', e=>{
-    const v=e.target.value||''; render(App.searchFilter(M_ALL, v, ['customer','drawing','itemName','itemNo']));
-  });
-  document.getElementById('btnMUp').onclick = async ()=>{
-    const row={id:$('#mId').value, customer:$('#mCust').value, drawing:$('#mDraw').value, itemName:$('#mName').value, itemNo:$('#mNo').value};
-    const r=await App.masterUpsert(row); alert('保存しました'); location.reload();
-  };
-  document.getElementById('btnMDel').onclick = async ()=>{
-    const id=($('#mId').value||'').trim(); if(!id) return alert('IDを入力してください');
-    await App.masterDelete(id); alert('削除しました'); location.reload();
-  };
-}
-function $(q){return document.querySelector(q)}
-function render(list){
-  const tb=document.querySelector('#tblMaster tbody'); tb.innerHTML='';
-  list.forEach(r=>{
-    const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${App.esc(r.id)}</td><td>${App.esc(r.customer)}</td><td>${App.esc(r.drawing)}</td><td>${App.esc(r.itemName)}</td><td>${App.esc(r.itemNo)}</td>`;
-    tr.addEventListener('click',()=>{
-      $('#mId').value=r.id; $('#mCust').value=r.customer; $('#mDraw').value=r.drawing; $('#mName').value=r.itemName; $('#mNo').value=r.itemNo;
-    });
-    tb.appendChild(tr);
-  });
-}
-</script>
+<script>App.init('master');</script>
 </body></html>
