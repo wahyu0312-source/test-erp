@@ -7,7 +7,7 @@
   <nav id="mainNav" class="nav">
     <a href="index.html">ダッシュボード</a><a href="plan.html">生産計画</a>
     <a href="ship.html">出荷計画</a><a href="confirm.html" class="active">出荷確認書</a>
-    <a href="scan.html">QRスキャン</a><a href="ticket.html">生産現品票</a><a href="master.html">マスター</a>
+    <a href="scan.html">QRスキャン</a><a href="ticket.html">生産現品票</a><a href="charts.html">分析チャート</a><a href="master.html">マスター</a>
   </nav><div class="menu-spacer"></div><button id="burgerBtn" class="burger">☰</button></div></header>
 <div id="loginBar" class="container login-bar"></div>
 
@@ -22,13 +22,8 @@
       <button id="btnExportXlsx" class="btn ghost">Excel出力</button>
     </div>
   </section>
-
-  <section class="card" id="confirmArea">
-    <h3>出荷確認書</h3>
-    <table id="confirmTable" class="table">
-      <thead><tr><th>No</th><th>得意先</th><th>品名</th><th>品番</th><th class="t-right">数量</th><th>備考</th></tr></thead>
-      <tbody id="confirmBody"></tbody>
-    </table>
+  <section class="card">
+    <table id="confirmTable" class="table"><thead><tr><th>No</th><th>得意先</th><th>品名</th><th>品番</th><th class="t-right">数量</th><th>備考</th></tr></thead><tbody id="confirmBody"></tbody></table>
     <div class="space"></div>
     <div class="row wrap"><div>担当：</div><div style="flex:1;border-bottom:1px solid var(--ring)"></div><div style="width:80px"></div><div>確認印：</div><div style="width:160px;border:1px dashed var(--ring);height:60px;border-radius:12px"></div></div>
   </section>
