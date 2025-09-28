@@ -7,7 +7,7 @@
   <nav id="mainNav" class="nav">
     <a href="index.html">ダッシュボード</a><a href="plan.html">生産計画</a>
     <a href="ship.html">出荷計画</a><a href="confirm.html">出荷確認書</a>
-    <a href="scan.html" class="active">QRスキャン</a><a href="ticket.html">生産現品票</a><a href="master.html">マスター</a>
+    <a href="scan.html" class="active">QRスキャン</a><a href="ticket.html">生産現品票</a><a href="charts.html">分析チャート</a><a href="master.html">マスター</a>
   </nav><div class="menu-spacer"></div><button id="burgerBtn" class="burger">☰</button></div></header>
 <div id="loginBar" class="container login-bar"></div>
 
@@ -15,14 +15,14 @@
   <section class="card">
     <h3>スキャン結果（手入力可）</h3>
     <div class="row wrap">
-      <input id="scanText" class="input" placeholder="例）製造番号|品番">
-      <select id="scanProcess" class="input" style="max-width:200px">
+      <input id="scanText" class="input" placeholder="例）製造番号|品番 (QRと同形式)">
+      <select id="scanProcess" class="input" style="max-width:220px">
         <option>レーザ工程</option><option>曲げ工程</option><option>外枠組立工程</option><option>シャッター溶接工程</option><option>コーキング工程</option><option>外枠塗装工程</option><option>組立工程</option><option>検査工程</option><option>外注</option>
       </select>
-      <select id="scanStatus" class="input" style="max-width:200px"><option>進行中</option><option>完了</option></select>
-      <button id="btnApplyScan" class="btn">更新</button>
+      <select id="scanStatus" class="input" style="max-width:220px"><option>進行中</option><option>完了</option><option>不良</option></select>
+      <button id="btnApplyScan" class="btn icon">✅ 更新</button>
     </div>
-    <div class="text-muted">※ カメラでのリアルタイム読み取りは端末権限の都合で省略。手入力で同じ処理ができます。</div>
+    <div class="text-muted">※ 端末カメラ読み取りは権限の都合で省略。紙のQRと同じ内容を手入力でも更新可能です。</div>
   </section>
 </main>
 
