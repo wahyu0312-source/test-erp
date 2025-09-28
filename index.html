@@ -4,50 +4,35 @@
 <link rel="stylesheet" href="style.css"/>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head><body>
-
-<!-- header + login -->
-<header class="topbar">
-  <div class="container wrap">
-    <img src="tsh.png" class="logo" alt="TSH"/>
-    <span class="brand">ERPシステム 東京精密発條株式会社</span>
-    <nav id="mainNav" class="nav">
-      <a href="index.html" class="active">ダッシュボード</a>
-      <a href="plan.html">生産計画</a>
-      <a href="ship.html">出荷計画</a>
-      <a href="confirm.html">出荷確認書</a>
-      <a href="scan.html">QRスキャン</a>
-      <a href="ticket.html">生産現品票</a>
-      <a href="master.html">マスター</a>
-    </nav>
-    <div class="menu-spacer"></div>
-    <button id="burgerBtn" class="burger" aria-label="menu">☰</button>
-  </div>
-</header>
+<header class="topbar"><div class="container wrap">
+  <img src="tsh.png" class="logo" alt="TSH"/><span class="brand">ERPシステム 東京精密発條株式会社</span>
+  <nav id="mainNav" class="nav">
+    <a href="index.html" class="active">ダッシュボード</a>
+    <a href="plan.html">生産計画</a>
+    <a href="ship.html">出荷計画</a>
+    <a href="confirm.html">出荷確認書</a>
+    <a href="scan.html">QRスキャン</a>
+    <a href="ticket.html">生産現品票</a>
+    <a href="charts.html">分析チャート</a>
+    <a href="master.html">マスター</a>
+  </nav><div class="menu-spacer"></div><button id="burgerBtn" class="burger" aria-label="menu">☰</button></div></header>
 <div id="loginBar" class="container login-bar"></div>
 
 <main class="container grid">
   <section class="card"><h3>現在の生産状況</h3><div id="nowList" class="grid"></div></section>
-
   <section class="grid grid-2">
     <div class="card"><h3>在庫の所在（工程別）</h3><canvas id="byProcessChart" height="220"></canvas></div>
     <div class="card"><h3>本日の出荷予定</h3><div id="shipToday" class="grid"></div></div>
   </section>
-
   <section class="card">
     <h3>完成品在庫（完成数量 − 出荷数量）</h3>
-    <table class="table">
-      <thead><tr><th>品名</th><th>品番</th><th class="t-right">完成数量</th><th class="t-right">出荷数量</th><th class="t-right">在庫</th></tr></thead>
-      <tbody id="stockBody"></tbody>
-    </table>
+    <table class="table"><thead><tr><th>品名</th><th>品番</th><th class="t-right">完成数量</th><th class="t-right">出荷数量</th><th class="t-right">在庫</th></tr></thead><tbody id="stockBody"></tbody></table>
   </section>
-
   <section class="card sync-section">
     <h3>同期（Google Sheets）</h3>
     <div class="row wrap">
-      <button id="btnPull" class="btn">シートから取得</button>
-      <button id="btnPush" class="btn outline">シートへ送信</button>
-      <label class="row"><input type="checkbox" id="autoSync"> 自動（30秒毎）</label>
-      <span id="syncLog" class="text-muted"></span>
+      <button id="btnPull" class="btn icon" onclick="App.pullSheet()">🔄 シートから取得</button>
+      <span class="text-muted">※ 送信は登録時に自動</span>
     </div>
   </section>
 </main>
