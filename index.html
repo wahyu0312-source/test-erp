@@ -1,26 +1,46 @@
-<!DOCTYPE html><html lang="ja"><head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>ERP • ログイン</title>
-<link rel="stylesheet" href="style.css"/>
-</head><body class="bg">
-  <main class="container">
-    <div class="card max-w-xl mx-auto">
-      <h1 class="title">ログイン</h1>
-      <form id="loginForm" class="grid space-y-4">
-        <label>ユーザー
-          <input id="loginUser" class="input" placeholder="例: admin" value="admin"/>
-        </label>
-        <label>パスワード
-          <input id="loginPass" class="input" type="password" placeholder="••••"/>
-        </label>
-        <div style="display:flex;gap:8px;align-items:center">
-          <button id="loginBtn" class="btn primary" type="submit">ログイン</button>
-          <button id="checkApi" class="btn" type="button">APIチェック</button>
-          <span id="loginNote" class="text-sm text-slate-600"></span>
-        </div>
-      </form>
-    </div>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>ERPシステム 東京精密発條株式会社 • ログイン</title>
+  <link rel="stylesheet" href="style.css"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 text-slate-800">
+  <header class="app-topbar">
+    <a class="brand" href="index.html"><img src="tsh.png" alt="TSH" class="h-8"/></a>
+  </header>
+
+  <main class="max-w-xl mx-auto px-4 py-12">
+    <form id="loginForm" class="card p-6 space-y-4">
+      <h1 class="text-2xl font-bold">ログイン</h1>
+
+      <div>
+        <label class="label" for="loginUser">ユーザー</label>
+        <input id="loginUser" class="input" placeholder="例：admin" autocomplete="username"/>
+      </div>
+
+      <div>
+        <label class="label" for="loginPass">パスワード</label>
+        <input id="loginPass" class="input" type="password" autocomplete="current-password"/>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button id="btnLogin" type="submit" class="btn btn-primary">ログイン</button>
+        <button id="btnPing" type="button" class="btn">APIチェック</button>
+        <span id="loginMsg" class="text-sm text-slate-500 ml-1"></span>
+      </div>
+
+      <p class="text-xs text-slate-500">
+        Enterでも送信可 / 初回ユーザーはシート <b>USERS</b> で作成
+      </p>
+    </form>
   </main>
+
   <script src="app.js"></script>
-  <script>App.initPage('index');</script>
-</body></html>
+  <script>
+    App.init('login');      // bind form + enable ENTER
+  </script>
+</body>
+</html>
