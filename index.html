@@ -1,0 +1,39 @@
+<!doctype html><html lang="ja"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ERP • ダッシュボード</title>
+<link rel="stylesheet" href="style.css"></head><body>
+<header class="top">
+  <div class="brand">
+    <img src="tsh.png"><strong>ERPシステム</strong>
+    <button id="burger">☰</button>
+    <div class="userchip" id="topUser"></div>
+    <button id="btnLogout" class="btn-outline">ログアウト</button>
+  </div>
+  <nav id="navMenu"><div class="container nav">
+    <a class="active" href="index.html">ダッシュボード</a>
+    <a href="plan.html">生産計画</a>
+    <a href="ship.html">出荷計画</a>
+    <a href="confirm.html">出荷確認書</a>
+    <a href="scan.html">QRスキャン</a>
+    <a href="ticket.html">生産現品票</a>
+    <a href="charts.html">チャート</a>
+    <a href="master.html">マスター</a>
+  </div></nav>
+</header>
+<main class="container">
+  <section class="card"><h3>現在の生産状況</h3><div id="nowList">読み込み中…</div></section>
+  <section class="grid2">
+    <div class="card"><h3>在庫の所在（工程別）</h3><div class="muted">（チャートは後で）</div></div>
+    <div class="card"><h3>本日の出荷予定</h3><div id="shipToday" class="muted">—</div></div>
+  </section>
+  <section class="card">
+    <h3>完成品在庫（完成数量 − 出荷数量）</h3>
+    <table class="table">
+      <thead><tr><th>品名</th><th>図番</th><th>完成数量</th><th>出荷数量</th><th>在庫</th></tr></thead>
+      <tbody id="stockBody"></tbody>
+    </table>
+  </section>
+</main>
+<script src="app.js"></script>
+<script>App.initDashboard();</script>
+</body></html>
