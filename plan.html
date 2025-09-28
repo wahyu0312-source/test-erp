@@ -1,56 +1,58 @@
-<!doctype html><html lang="ja"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ERP • 生産計画</title>
-<link rel="stylesheet" href="style.css"></head><body>
-<header class="top"><div class="brand">
-  <img src="tsh.png"><strong>ERPシステム</strong>
-  <button id="burger">☰</button><div class="userchip" id="topUser"></div>
-  <button id="btnLogout" class="btn-outline">ログアウト</button>
-</div><nav id="navMenu"><div class="container nav">
-  <a href="index.html">ダッシュボード</a><a class="active">生産計画</a>
-  <a href="ship.html">出荷計画</a><a href="confirm.html">出荷確認書</a>
-  <a href="scan.html">QRスキャン</a><a href="ticket.html">生産現品票</a>
-  <a href="charts.html">チャート</a><a href="master.html">マスター</a>
-</div></nav></header>
-
-<main class="container">
+<!DOCTYPE html><html lang="ja"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>ERP • 生産計画</title><link rel="stylesheet" href="style.css"/></head><body>
+<div id="headerMount"></div>
+<main class="container py-6 space-y-4">
   <section class="card">
-    <h3>計画入力（MASTER連動）</h3>
-    <div class="grid2">
-      <label>得意先<select id="selCust" class="select"></select></label>
-      <label>図番<select id="selDraw" class="select"></select></label>
-      <label>品名<input id="itemName" class="input" placeholder="MASTER選択で自動入力"></label>
-      <label>品番<input id="itemNo" class="input" placeholder="MASTER選択で自動入力"></label>
-      <label>製造番号<input id="prodNo" class="input"></label>
-      <label>開始<input id="start" class="date" type="date"></label>
-      <label>工程<select id="process" class="select">
-        <option>レーザ工程</option><option>曲げ工程</option><option>外枠組立工程</option>
-        <option>シャッター組立工程</option><option>シャッター溶接工程</option>
-        <option>コーキング工程</option><option>外枠塗装工程</option><option>組立工程</option>
-      </select></label>
-      <label>場所<input id="loc" class="input" placeholder="PPIC/現場など"></label>
-      <label>ステータス<select id="status" class="select"><option>計画</option><option>進行中</option><option>完了</option></select></label>
+    <h3>生産計画</h3>
+    <div class="grid md:grid-cols-3 gap-3">
+      <label>得意先<input id="pCust" class="input"/></label>
+      <label>図番<input id="pDraw" class="input"/></label>
+      <label>品名<input id="pName" class="input"/></label>
+      <label>品番<input id="pNo" class="input"/></label>
+      <label>開始<input id="pStart" type="date" class="input"/></label>
+      <label>工程<input id="pProc" class="input"/></label>
     </div>
-    <div style="margin-top:10px" class="toolbar">
-      <button id="btnSavePlan" class="btn">保存</button>
-      <span class="muted" style="color:#64748b">保存→Google Sheets（PLAN）へ追加</span>
+    <div class="mt-3 flex gap-2">
+      <button id="btnPlanAdd" class="btn primary">追加</button>
     </div>
   </section>
-
   <section class="card">
-    <div class="toolbar">
-      <h3 style="margin-right:auto">計画一覧</h3>
-      <input id="q" class="input" placeholder="検索（得意先/製造番号/品名/図番/工程/ステータス）">
-    </div>
-    <table class="table">
-      <thead><tr><th>得意先</th><th>製造番号</th><th>品名</th><th>図番</th><th>開始</th><th>工程</th><th>場所</th><th>ステータス</th><th>更新</th></tr></thead>
-      <tbody id="planBody"></tbody>
-    </table>
-    <div class="pager" id="planPager" style="margin-top:8px">
-      <button class="prev">←</button><span class="info">1/1頁</span><button class="next">→</button>
-    </div>
+    <h3>計画一覧</h3>
+    <input id="planSearch" class="input" placeholder="検索（得意先/品名/品番）"/>
+    <table class="table" id="tblPlan"><thead><tr><th>#</th><th>得意先</th><th>品名</th><th>品番</th><th>開始</th><th>工程</th></tr></thead><tbody></tbody></table>
   </section>
 </main>
 <script src="app.js"></script>
-<script>App.initPlan();</script>
+<script>
+fetch('header.html').then(r=>r.text()).then(h=>{document.getElementById('headerMount').outerHTML=h; App.initPage('plan'); init();});
+let PLAN_ALL=[];
+async function init(){
+  document.getElementById('pStart').value = App.todayDate();
+  const all = await App.fetchAll(); PLAN_ALL = all.plan||[];
+  render(PLAN_ALL);
+  document.getElementById('planSearch').addEventListener('input', e=>{
+    const v=e.target.value||''; render(App.searchFilter(PLAN_ALL, v, ['customer','itemName','itemNo']));
+  });
+  document.getElementById('btnPlanAdd').onclick = async ()=>{
+    const row = {
+      customer: $('#pCust').value, itemName: $('#pName').value, itemNo: $('#pNo').value,
+      prodNo: ($('#pDraw').value||''), start: $('#pStart').value, process: $('#pProc').value,
+      location:'PPIC/現場など', status:'計画', updated:new Date().toISOString(), user: App.me().user
+    };
+    await App.appendPlan(row);
+    alert('追加しました'); location.reload();
+  };
+}
+function $(q){return document.querySelector(q)}
+function render(list){
+  const tb=document.querySelector('#tblPlan tbody'); tb.innerHTML='';
+  list.forEach((r,i)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${i+1}</td><td>${App.esc(r.customer)}</td><td>${App.esc(r.itemName)}</td>
+      <td>${App.esc(r.itemNo)}</td><td>${App.esc((r.start||'').slice(0,10))}</td><td>${App.esc(r.process||'')}</td>`;
+    tb.appendChild(tr);
+  });
+}
+</script>
 </body></html>
