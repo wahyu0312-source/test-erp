@@ -1,198 +1,264 @@
-const App = (()=>{
-  /* ====== CONFIG ====== */
-  const API_URL = window.APP_SCRIPT_URL
-    || 'https://script.google.com/macros/s/AKfycbxmpC6UA1ixJLLDy3kCa6RPT9D-s2pV4L2UEsvy21gR5klqLpGGQbfSbYkNqWaHnRId/exec';
+<script>
+/* ========= CONFIG ========= */
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxmpC6UA1ixJLLDy3kCa6RPT9D-s2pV4L2UEsvy21gR5klqLpGGQbfSbYkNqWaHnRId/exec'; // ganti jika perlu
 
-  /* ====== STORAGE AUTH ====== */
-  const authStore = {
-    get(){ try{ return JSON.parse(localStorage.getItem('erp_auth')||'null'); }catch{ return null; } },
-    set(v){ localStorage.setItem('erp_auth', JSON.stringify(v)); },
-    clear(){ localStorage.removeItem('erp_auth'); },
-    isLogin(){ return !!this.get(); },
-    role(){ return this.get()?.role||''; }
-  };
+/* ========= HELPERS ========= */
+const $=(s,r)=> (r||document).querySelector(s);
+const $$=(s,r)=> [...(r||document).querySelectorAll(s)];
+function toast(msg){ const t=document.createElement('div'); t.className='toast'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.classList.add('show')); setTimeout(()=>{t.classList.remove('show'); setTimeout(()=>t.remove(),220)},2600); }
+function today(){ const d=new Date(); return d.toISOString().slice(0,10); }
 
-  /* ====== DOM & helpers ====== */
-  const $  = (s, r=document)=> r.querySelector(s);
-  const $$ = (s, r=document)=> [...r.querySelectorAll(s)];
-  const on = (el, ev, fn)=> el && el.addEventListener(ev, fn, {passive:false});
-  function toast(msg){
-    const x=document.createElement('div');
-    x.textContent=msg;
-    x.style.cssText='position:fixed;left:50%;bottom:14px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 14px;border-radius:10px;font-size:13px;z-index:80;opacity:.98';
-    document.body.appendChild(x); setTimeout(()=>x.remove(),2500);
-  }
-  const fetchJSON = (u)=> fetch(u,{cache:'no-store'}).then(r=>r.json());
+/* ========= API ========= */
+async function apiGet(qs){ const r=await fetch(GAS_URL+(qs?('?'+qs):''),{cache:'no-store'}); return r.json(); }
+async function apiPost(body){ const r=await fetch(GAS_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); return r.json(); }
 
-  /* ====== ROUTE GUARD ====== */
-  function guard(page){
-    const isLogin = authStore.isLogin();
-    if(page==='login'){
-      if(isLogin) location.replace('dashboard.html');
-      return;
+/* ========= AUTH ========= */
+function getSession(){ try{ return JSON.parse(localStorage.getItem('erpUser')||'null'); }catch{return null} }
+function setSession(o){ localStorage.setItem('erpUser', JSON.stringify(o)); }
+function clearSession(){ localStorage.removeItem('erpUser'); }
+function roleAllow(role, allowList){ return allowList.includes(role); }
+
+/* ========= GUARD ========= */
+async function guard(page){
+  const s=getSession();
+  if(!s && page!=='login'){ location.href='login.html'; return false; }
+  if(s){
+    try{
+      const w=await apiGet('action=who&token='+encodeURIComponent(s.token));
+      if(!w.ok) throw 0;
+      // paint header
+      const uEl=$('#topUser'); if(uEl) uEl.textContent = `${w.user}（${w.role}）`;
+      $('#btnLogout')?.addEventListener('click',()=>{ clearSession(); location.href='login.html'; });
+      const b=$('#burger'), m=$('#navMenu'); b?.addEventListener('click', ()=> m?.classList.toggle('open'));
+      // role lock menu Master
+      if(!roleAllow(w.role, ['管理者','生産管理部'])) {
+        $$('a[href="master.html"]').forEach(a=>{ a.classList.add('hidden'); });
+      }
+    }catch{
+      clearSession(); location.href='login.html'; return false;
     }
-    if(!isLogin){
-      location.replace('login.html');
-      return;
-    }
   }
-
-  /* ====== HEADER / DRAWER / LOGOUT ====== */
-  function initShell(){
-    const drawer=$('#drawer'), scrim=$('#scrim'), btn=$('#btnBurger');
-    const headerLogout=$('#btnLogout'), drawerLogout=$('#drawerLogout');
-
-    const open = ()=>{ if(!drawer) return; drawer.classList.add('is-open'); if(scrim) scrim.hidden=false; btn?.setAttribute('aria-expanded','true'); };
-    const close= ()=>{ if(!drawer) return; drawer.classList.remove('is-open'); if(scrim) scrim.hidden=true; btn?.setAttribute('aria-expanded','false'); };
-
-    on(btn,'click', ()=> drawer?.classList.contains('is-open') ? close() : open());
-    on(scrim,'click', close);
-    on(document,'keydown', e=>{ if(e.key==='Escape') close(); });
-
-    const doLogout = ()=>{ authStore.clear(); location.replace('login.html'); };
-    on(headerLogout,'click', doLogout);
-    on(drawerLogout,'click', doLogout);
-  }
-
-  /* ====== LOGIN PAGE ====== */
- async function tryLogin() {
-  const u = document.getElementById('lgUser').value.trim();
-  const p = document.getElementById('lgPass').value.trim();
-  const url = GAS_URL + '?action=login&username=' + encodeURIComponent(u) + '&password=' + encodeURIComponent(p);
-  const res = await fetch(url, { cache: 'no-store' });
-  const data = await res.json();
-
-  if (data.ok) {
-    localStorage.setItem('erpUser', JSON.stringify({user:data.user, role:data.role, token:data.token}));
-    location.href = 'index.html';
-  } else {
-    let msg = 'ログイン失敗';
-    if (data.error === 'WRONG_PASSWORD' && data.debug) {
-      msg += `\n(typed=${data.debug.typed}, stored=${data.debug.stored})`;
-    } else if (data.error === 'USER_INACTIVE') {
-      msg += '（ユーザーが無効です）';
-    } else if (data.error === 'USER_NOT_FOUND') {
-      msg += '（ユーザーが見つかりません）';
-    }
-    toast(msg); // gunakan komponen toast Anda
-  }
+  return true;
 }
-document.getElementById('btnLogin')?.addEventListener('click', tryLogin);
-document.getElementById('lgPass')?.addEventListener('keydown', e => { if (e.key === 'Enter') tryLogin(); });
 
+/* ========= PAGING ========= */
+function makePager(data, pageSize, cbRender, elWrap){
+  let cur=1; const total=Math.max(1, Math.ceil(data.length/pageSize));
+  function render(){
+    const start=(cur-1)*pageSize, end=start+pageSize;
+    cbRender(data.slice(start,end));
+    elWrap.querySelector('.info').textContent = `${cur}/${total}頁（${data.length}件）`;
+  }
+  elWrap.querySelector('.prev').onclick=()=>{ cur=Math.max(1,cur-1); render(); };
+  elWrap.querySelector('.next').onclick=()=>{ cur=Math.min(total,cur+1); render(); };
+  render();
+}
 
-  /* ====== DASHBOARD ====== */
-  async function loadAll(){ const r=await fetchJSON(API_URL); return r.ok?r:{plan:[],ship:[],master:[]}; }
+/* ========= PAGES ========= */
+const App={
+  /* ---------- Login ---------- */
+  async initLogin(){
+    $('#lgPass')?.addEventListener('keydown',e=>{ if(e.key==='Enter') $('#btnLogin')?.click(); });
+    $('#btnLogin')?.addEventListener('click', async ()=>{
+      const u=$('#lgUser').value.trim(), p=$('#lgPass').value.trim();
+      if(!u||!p){ toast('ユーザーとパスワードを入力'); return; }
+      try{
+        const r=await apiGet('action=login&username='+encodeURIComponent(u)+'&password='+encodeURIComponent(p));
+        if(r.ok){ setSession({user:r.user,role:r.role,token:r.token}); location.href='index.html'; }
+        else{
+          const map={USER_OR_PASS_EMPTY:'未入力',USER_NOT_FOUND:'ユーザー無し',USER_INACTIVE:'無効ユーザー',WRONG_PASSWORD:'パスワード違い'};
+          toast('ログイン失敗：'+(map[r.error]||'不明'));
+        }
+      }catch{ toast('サーバー通信エラー'); }
+    });
+  },
 
-  function renderProcessChart(plan){
-    const labels=['レーザ工程','曲げ工程','外枠組立工程','シャッター溶接工程','コーキング工程','外枠塗装工程','組立工程','検査工程'];
-    const counts=new Array(labels.length).fill(0);
-    plan.forEach(r=>{ const p=r['プロセス']||r.process||''; const i=labels.indexOf(p); if(i>=0) counts[i]++; });
-    const el=$('#byProcessChart'); if(!el) return;
-    if(el._chart) el._chart.destroy();
-    el._chart=new Chart(el.getContext('2d'),{
-      type:'bar',
-      data:{labels,datasets:[{label:'在庫',data:counts}]},
-      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}
-    });
-  }
-  function renderNow(plan){
-    const wrap=$('#nowList'); if(!wrap) return;
-    if(!plan.length){ wrap.textContent='データがありません。'; return; }
-    wrap.classList.remove('u-muted'); wrap.innerHTML='';
-    plan.slice(-3).reverse().forEach(x=>{
-      const div=document.createElement('div'); div.className='row wrap';
-      div.innerHTML=`<span class="text-xs u-muted">${x['更新']||x.updated||''}</span>
-        <strong>${x['得意先']||x.customer||''}</strong>
-        <span>${x['品名']||x.itemName||''}</span>
-        <span class="text-xs">[${x['プロセス']||x.process||''}]</span>
-        <span class="text-xs u-muted">${x['場所']||x.location||''}</span>`;
-      wrap.appendChild(div);
-    });
-  }
-  function renderShipToday(ship){
-    const wrap=$('#shipToday'); if(!wrap) return;
-    const today=new Date().toISOString().slice(0,10);
-    const list=ship.filter(s=> String(s['日付']||s.date||'').startsWith(today));
-    if(!list.length){ wrap.textContent='本日の出荷予定はありません。'; return; }
-    wrap.classList.remove('u-muted'); wrap.innerHTML='';
-    list.forEach(s=>{ const li=document.createElement('div'); li.textContent=`${s['得意先']||s.customer||''} ／ ${s['品名']||s.itemName||''} × ${s['数量']||s.qty||0}`; wrap.appendChild(li); });
-  }
-  function renderStock(plan){
-    const tb=$('#stockBody'); if(!tb) return;
-    if(!plan.length){ tb.innerHTML=`<tr><td colspan="5" class="u-muted">データがありません。</td></tr>`; return; }
-    const map=new Map();
-    plan.forEach(r=>{
-      const k=`${r['品名']||r.itemName||''}||${r['品番']||r.itemNo||''}`;
-      const done=Number(r['完成数量']||r.qtyDone||0), ship=Number(r['出荷数量']||r.qtyShip||0);
-      const prev=map.get(k)||{done:0,ship:0}; map.set(k,{done:prev.done+done, ship:prev.ship+ship});
-    });
-    tb.innerHTML=''; [...map.entries()].forEach(([k,v])=>{
-      const [nm,no]=k.split('||'); const tr=document.createElement('tr');
-      tr.innerHTML=`<td>${nm}</td><td>${no}</td><td>${v.done}</td><td>${v.ship}</td><td>${v.done-v.ship}</td>`;
-      tb.appendChild(tr);
-    });
-  }
-  async function initDashboard(){
-    const {plan,ship}=await loadAll(); renderNow(plan||[]); renderShipToday(ship||[]); renderStock(plan||[]); renderProcessChart(plan||[]);
-    // Optional admin-only sync section
-    const det=$('#syncPanel'); if(det) det.style.display = (authStore.role()==='管理者') ? '' : 'none';
-  }
+  /* ---------- Dashboard ---------- */
+  async initDashboard(){
+    if(!(await guard('dashboard'))) return;
+    try{
+      const r=await apiGet('action=data'); if(!r.ok) throw 0;
 
-  /* ====== LIST PAGES (skeleton) ====== */
-  async function initPlan(){
-    const {plan}=await loadAll();
-    const tb=$('#planBody'); if(!tb) return;
-    tb.innerHTML='';
-    (plan||[]).slice(-100).reverse().forEach(r=>{
-      const tr=document.createElement('tr');
-      tr.innerHTML=`<td>${r.customer||r['得意先']||''}</td>
-      <td>${r.prodNo||r['製造番号']||''}</td>
-      <td>${r.itemName||r['品名']||''}</td>
-      <td>${r.itemNo||r['品番']||''}</td>
-      <td>${r.start||r['開始']||''}</td>
-      <td>${r.process||r['プロセス']||''}</td>
-      <td>${r.location||r['場所']||''}</td>
-      <td>${r.status||r['ステータス']||''}</td>
-      <td class="text-xs u-muted">${r.updated||r['更新']||''}</td>
-      <td><button class="btn btn--ghost text-xs">編集</button></td>`;
-      tb.appendChild(tr);
-    });
-    on($('#btnNewPlan'),'click',()=>toast('新規作成ダイアログは次ステップで実装'));
-  }
-  async function initShip(){
-    const {ship}=await loadAll();
-    const tb=$('#shipBody'); if(!tb) return;
-    tb.innerHTML='';
-    (ship||[]).slice(-100).reverse().forEach(s=>{
-      const tr=document.createElement('tr');
-      tr.innerHTML=`<td>${s.date||s['日付']||''}</td><td>${s.customer||s['得意先']||''}</td><td>${s.itemName||s['品名']||''}</td><td>${s.itemNo||s['品番']||''}</td><td>${s.qty||s['数量']||0}</td><td>${s.status||s['ステータス']||''}</td><td>${s.note||s['備考']||''}</td><td class="text-xs u-muted">${s.updated||s['更新']||''}</td>`;
-      tb.appendChild(tr);
-    });
-  }
-  function initConfirm(){ /* layout/print akan kita sesuaikan berkas Anda selanjutnya */ }
-  function initTicket(){ /* generator QR & layout akan kita samakan dgn format yg Anda kirim */ }
-  function initMaster(){ /* CRUD & paging akan kita isi setelah endpoint MASTER Anda siap dipakai */ }
-  function initScan(){ /* kamera/mobile compat akan dilanjutkan step berikut */ }
-  function initCharts(){ /* pie/pareto bulanan-tahunan next step */ }
+      // 生産状況 (進行中 8件)
+      const now=$('#nowList');
+      const running=r.plan.filter(p=>(p.status||'').includes('進行')).slice(0,8);
+      now.innerHTML = running.length ? running.map(p=>`
+        <div class="card" style="margin:8px 0;padding:10px">
+          <div style="display:flex;justify-content:space-between;gap:10px">
+            <div>
+              <div><b>${p.itemName||'-'}</b> <span class="muted" style="color:#64748b">(${p.itemNo||''})</span></div>
+              <div class="muted" style="color:#64748b;font-size:12px">得意先:${p.customer||'-'} ・ 製造番号:${p.prodNo||'-'} ・ 開始:${p.start||'-'}</div>
+            </div>
+            <div style="text-align:right">
+              <span class="badge">${p.process||'-'} / ${p.status||'-'}</span>
+              <div class="muted" style="font-size:12px;color:#64748b">${p.updated||''}</div>
+            </div>
+          </div>
+        </div>
+      `).join('') : 'データがありません。';
 
-  /* ====== PUBLIC ====== */
-  function initPage(page){
-    guard(page);
-    if(page!=='login') initShell();
+      // 本日の出荷
+      const list=$('#shipToday');
+      const t=today();
+      const todayShip=r.ship.filter(s=> (s.date||'').slice(0,10)===t);
+      list.innerHTML = todayShip.length ? todayShip.map(s=>`
+        <div class="card" style="margin:8px 0;padding:10px;display:flex;justify-content:space-between">
+          <div><b>${s.itemName||'-'}</b><div class="muted" style="font-size:12px;color:#64748b">${s.customer||''} ・ 数量:${s.qty||0}</div></div>
+          <div style="text-align:right"><span class="badge">${s.status||''}</span><div class="muted" style="font-size:12px;color:#64748b">${s.updated||''}</div></div>
+        </div>`).join('') : '本日の出荷予定はありません。';
 
-    switch(page){
-      case 'login':     return initLogin();
-      case 'dashboard': return initDashboard();
-      case 'plan':      return initPlan();
-      case 'ship':      return initShip();
-      case 'confirm':   return initConfirm();
-      case 'ticket':    return initTicket();
-      case 'master':    return initMaster();
-      case 'scan':      return initScan();
-      case 'charts':    return initCharts();
+      // 在庫集計
+      const map={};
+      r.plan.forEach(p=>{
+        const k=(p.itemNo||'')+'|'+(p.itemName||'');
+        if(!map[k]) map[k]={name:p.itemName,no:p.itemNo,done:0,ship:0};
+        map[k].done+=Number(p.qtyDone||0);
+        map[k].ship+=Number(p.qtyShip||0);
+      });
+      const tbody=$('#stockBody'); tbody.innerHTML='';
+      Object.values(map).forEach(a=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML=`<td>${a.name||'-'}</td><td>${a.no||'-'}</td><td class="num">${a.done}</td><td class="num">${a.ship}</td><td class="num"><b>${a.done-a.ship}</b></td>`;
+        tbody.appendChild(tr);
+      });
+    }catch{ toast('ダッシュボード読み込み失敗'); }
+  },
+
+  /* ---------- Plan ---------- */
+  async initPlan(){
+    if(!(await guard('plan'))) return;
+
+    // load MASTER
+    let master=[];
+    try{ const m=await apiGet('action=master'); master=m.master||[]; }catch{}
+    const selC=$('#selCust'), selD=$('#selDraw');
+    const cust=[...new Set(master.map(x=>x.customer))];
+    selC.innerHTML='<option value="">選択</option>'+cust.map(c=>`<option>${c}</option>`).join('');
+    selC.addEventListener('change',()=>{
+      const ds=[...new Set(master.filter(x=>x.customer===selC.value).map(x=>x.drawing))];
+      selD.innerHTML='<option value="">選択</option>'+ds.map(d=>`<option>${d}</option>`).join('');
+    });
+    selD.addEventListener('change',()=>{
+      const hit=master.find(x=>x.customer===selC.value && x.drawing===selD.value);
+      if(hit){ $('#itemName').value=hit.itemName||''; $('#itemNo').value=hit.itemNo||''; }
+    });
+
+    // save
+    $('#start').value = today();
+    $('#btnSavePlan')?.addEventListener('click', async ()=>{
+      const s=getSession();
+      const body={
+        action:'PLAN_APPEND',
+        customer:$('#selCust').value, prodNo:$('#prodNo').value,
+        itemName:$('#itemName').value, itemNo:$('#itemNo').value,
+        start:$('#start').value, process:$('#process').value,
+        location:$('#loc').value, status:$('#status').value, user:s?.user||''
+      };
+      if(!body.customer || !body.prodNo){ toast('得意先/製造番号は必須'); return; }
+      const r=await apiPost(body); r.ok?toast('保存しました'):toast('保存エラー');
+    });
+
+    // search + paging (read PLAN)
+    try{
+      const d=await apiGet('action=data'); const all=d.plan||[];
+      const q=$('#q'); const tbody=$('#planBody'); const pager=$('#planPager');
+      function draw(rows){
+        tbody.innerHTML = rows.map(p=>`
+          <tr>
+            <td>${p.customer||''}</td><td>${p.prodNo||''}</td><td>${p.itemName||''}</td><td>${p.itemNo||''}</td>
+            <td>${p.start||''}</td><td>${p.process||''}</td><td>${p.location||''}</td><td>${p.status||''}</td>
+            <td>${p.updated||''}</td>
+          </tr>`).join('') || `<tr><td colspan="9" class="muted">データがありません</td></tr>`;
+      }
+      function filter(){
+        const s=(q.value||'').toLowerCase();
+        return all.filter(p=>[p.customer,p.prodNo,p.itemName,p.itemNo,p.process,p.status].join('|').toLowerCase().includes(s));
+      }
+      makePager(filter(), 10, draw, pager);
+      q.addEventListener('input', ()=> makePager(filter(), 10, draw, pager));
+    }catch{}
+  },
+
+  /* ---------- Ship ---------- */
+  async initShip(){
+    if(!(await guard('ship'))) return;
+    $('#date').value=today();
+    $('#btnSaveShip')?.addEventListener('click', async ()=>{
+      const s=getSession();
+      const body={action:'SHIP_APPEND',date:$('#date').value,customer:$('#scust').value,itemName:$('#sname').value,itemNo:$('#sno').value,qty:$('#sqty').value,status:$('#sstat').value,note:$('#snote').value,user:s?.user||''};
+      if(!body.date||!body.customer){ toast('日付/得意先 必須'); return; }
+      const r=await apiPost(body); r.ok?toast('保存しました'):toast('保存エラー');
+    });
+  },
+
+  /* ---------- Master ---------- */
+  async initMaster(){
+    if(!(await guard('master'))) return;
+    // role protect
+    const s=getSession();
+    if(!s){ location.href='login.html'; return; }
+    const who=await apiGet('action=who&token='+encodeURIComponent(s.token));
+    if(!who.ok || !['管理者','生産管理部'].includes(who.role)){ toast('権限がありません'); location.href='index.html'; return; }
+
+    let cache=[];
+    async function load(){ const r=await apiGet('action=master'); cache=r.master||[]; render(cache); }
+    function render(list){
+      const tbody=$('#mBody');
+      tbody.innerHTML = list.map(x=>`
+        <tr>
+          <td>${x.customer||''}</td><td>${x.drawing||''}</td><td>${x.itemName||''}</td><td>${x.itemNo||''}</td>
+          <td class="w-28">
+            <button class="btn-outline sm" data-ed="${x.id}">編集</button>
+            <button class="btn-danger sm" data-del="${x.id}">削除</button>
+          </td>
+        </tr>`).join('') || `<tr><td colspan="5" class="muted">データがありません</td></tr>`;
     }
-  }
+    // search + paging
+    const q=$('#mq'); const pager=$('#mPager'); const tbody=$('#mBody');
+    function draw(rows){
+      tbody.innerHTML = rows.map(x=>`
+        <tr>
+          <td>${x.customer||''}</td><td>${x.drawing||''}</td><td>${x.itemName||''}</td><td>${x.itemNo||''}</td>
+          <td><button class="btn-outline sm" data-ed="${x.id}">編集</button> <button class="btn-danger sm" data-del="${x.id}">削除</button></td>
+        </tr>`).join('');
+      if(!rows.length) tbody.innerHTML=`<tr><td colspan="5" class="muted">該当なし</td></tr>`;
+    }
+    function filter(){ const s=(q.value||'').toLowerCase(); return cache.filter(x=>[x.customer,x.drawing,x.itemName,x.itemNo].join('|').toLowerCase().includes(s)); }
+    // events
+    $('#mAdd')?.addEventListener('click', async ()=>{
+      const c=prompt('得意先?'); if(!c) return;
+      const d=prompt('図番?')||''; const n=prompt('品名?')||''; const no=prompt('品番?')||'';
+      const r=await apiPost({action:'MASTER_UPSERT',customer:c,drawing:d,itemName:n,itemNo:no});
+      r.ok?toast('追加'):toast('失敗'); load();
+    });
+    $('#mTable')?.addEventListener('click', async e=>{
+      const id=e.target.getAttribute('data-del'); const ed=e.target.getAttribute('data-ed');
+      if(id){ if(confirm('削除しますか？')){ const r=await apiPost({action:'MASTER_DELETE',id}); r.ok?toast('削除'):toast('失敗'); load(); } }
+      if(ed){ const row=cache.find(x=>x.id===ed); if(!row) return;
+        const c=prompt('得意先',row.customer)||row.customer;
+        const d=prompt('図番',row.drawing)||row.drawing;
+        const n=prompt('品名',row.itemName)||row.itemName;
+        const no=prompt('品番',row.itemNo)||row.itemNo;
+        const r=await apiPost({action:'MASTER_UPSERT',id:ed,customer:c,drawing:d,itemName:n,itemNo:no});
+        r.ok?toast('更新'):toast('失敗'); load();
+      }
+    });
+    // initial load + pager
+    await load();
+    makePager(filter(), 10, draw, pager);
+    q.addEventListener('input', ()=> makePager(filter(), 10, draw, pager));
+  },
 
-  return { initPage };
-})();
+  /* ---------- Scan ---------- */
+  async initScan(){
+    if(!(await guard('scan'))) return;
+    // fallback manual
+    $('#prodNo')?.focus();
+    $('#btnApply')?.addEventListener('click', ()=> toast('更新（デモ）'));
+  },
+
+  async initConfirm(){ if(!(await guard('confirm'))) return; /* TODO: implement form + print */ },
+  async initTicket(){ if(!(await guard('ticket'))) return; /* TODO: implement print 票 */ },
+  async initCharts(){ if(!(await guard('charts'))) return; /* TODO: draw charts */ },
+};
+</script>
