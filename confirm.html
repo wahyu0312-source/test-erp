@@ -3,47 +3,152 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>ERPシステム — 出荷確認書</title>
+  <title>出荷確認書 | ERPシステム</title>
   <link rel="stylesheet" href="style.css"/>
-  <style>@media print{ .no-print{display:none} .printable{page-break-inside:auto} }</style>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
+<body class="bg-slate-50 text-slate-800" onload="ConfirmPage.init()">
+  <!-- Topbar -->
   <header class="topbar">
-    <div class="container wrap">
-      <img src="tsh.png" class="logo" alt="TSH">
-      <nav class="nav" id="mainNav">
-        <a href="index.html">ダッシュボード</a><a href="plan.html">生産計画</a>
-        <a href="ship.html">出荷計画</a><a href="confirm.html">出荷確認書</a>
-        <a href="ticket.html">生産現品票</a><a href="charts.html">分析チャート</a>
-        <a href="master.html">マスター</a><a href="scan.html">QRスキャン</a>
-      </nav>
-      <div class="menu-spacer"></div><div id="authSlot"></div>
-      <button id="burgerBtn" class="burger">☰</button>
+    <div class="brand">
+      <img src="tsh.png" alt="TSH" class="h-8"/>
+      <span class="ml-2 font-semibold">ERPシステム</span>
+    </div>
+
+    <nav class="nav desktop">
+      <a href="index.html">ダッシュボード</a>
+      <a href="plan.html">生産計画</a>
+      <a href="ship.html">出荷計画</a>
+      <a href="confirm.html" class="active">出荷確認書</a>
+      <a href="ticket.html">生産現品票</a>
+      <a href="charts.html">分析チャート</a>
+      <a href="master.html">マスター</a>
+      <a href="scan.html">QRスキャン</a>
+    </nav>
+
+    <div class="flex items-center gap-2">
+      <button id="burger" class="burger md:hidden" aria-label="menu">☰</button>
+      <button id="logoutBtn" class="btn-outline" onclick="App.logout()">ログアウト</button>
     </div>
   </header>
 
-  <main class="container" style="padding:16px;display:grid;gap:16px">
-    <section class="card no-print">
-      <div class="row">
-        <div class="col"><label>日付</label><input id="cfDate" type="date" class="input"></div>
-        <div class="col"><label>得意先（空白=全件）</label><input id="cfCustomer" class="input"></div>
+  <!-- Mobile menu -->
+  <nav id="mobileMenu" class="mobile-menu hidden">
+    <a href="index.html">ダッシュボード</a>
+    <a href="plan.html">生産計画</a>
+    <a href="ship.html">出荷計画</a>
+    <a href="confirm.html" class="active">出荷確認書</a>
+    <a href="ticket.html">生産現品票</a>
+    <a href="charts.html">分析チャート</a>
+    <a href="master.html">マスター</a>
+    <a href="scan.html">QRスキャン</a>
+  </nav>
+
+  <main class="container space-y-6">
+    <section class="card">
+      <h3 class="card-title">出荷確認書</h3>
+
+      <div class="grid md:grid-cols-3 gap-3">
+        <label class="form-row">
+          <span>日付</span>
+          <input id="fDate" type="date" class="input"/>
+        </label>
+        <label class="form-row md:col-span-2">
+          <span>得意先（空白=全件）</span>
+          <input id="fCustomer" class="input" placeholder="例：とohatsu"/>
+        </label>
       </div>
-      <div class="row"><div class="col">
-        <button id="btnConfirmMake" class="btn">作成</button>
-        <button id="btnConfirmCsv" class="btn outline">CSV</button>
-        <button id="btnConfirmPrint" class="btn outline">印刷</button>
-      </div></div>
+
+      <div class="flex gap-2 mt-3">
+        <button class="btn" onclick="ConfirmPage.build()">作成</button>
+        <button class="btn-outline" onclick="ConfirmPage.exportCSV()">CSV</button>
+        <button class="btn-outline" onclick="window.print()">印刷</button>
+      </div>
     </section>
 
-    <section class="card">
-      <h3>出荷確認書</h3>
-      <div id="confirmTable" style="margin-top:8px"></div>
-      <div style="margin-top:8px">担当：__________　確認印：__________</div>
+    <section class="card printable">
+      <div class="flex items-center justify-between">
+        <h3 class="card-title">出荷確認書</h3>
+        <div class="text-sm text-slate-500" id="meta"></div>
+      </div>
+
+      <div class="table-wrap mt-3">
+        <table class="gridtbl">
+          <thead>
+            <tr>
+              <th style="width:64px">No</th>
+              <th>得意先</th>
+              <th>品名</th>
+              <th>品番</th>
+              <th style="width:120px">数量</th>
+              <th>備考</th>
+            </tr>
+          </thead>
+          <tbody id="confirmBody">
+            <tr><td colspan="6" class="text-center text-slate-500">作成してください。</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="mt-6 text-sm">
+        <div>担当：<span id="担当"></span></div>
+        <div class="mt-1">確認印：＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿</div>
+      </div>
     </section>
   </main>
 
   <script src="app.js"></script>
-  <script>App.initPage('confirm');</script>
+  <script>
+    const ConfirmPage = {
+      rows: [],
+      init(){
+        App.ensureAuth();          // redirect ke index jika belum login
+        App.mountBurger();         // aktifkan burger
+        document.getElementById('担当').textContent = App.me()?.user || '';
+        // default tanggal = hari ini
+        const d=new Date(), pad=n=>String(n).padStart(2,'0');
+        document.getElementById('fDate').value = d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+      },
+      async build(){
+        const date = document.getElementById('fDate').value.trim();
+        const customer = document.getElementById('fCustomer').value.trim().toLowerCase();
+        const {ship}= await App.fetchAll();       // from GAS (SHIP sheet)
+        // filter
+        const list = (ship||[]).filter(r=>{
+          const sameDate = !date || (r.date||'').slice(0,10)===date;
+          const sameCust = !customer || (r.customer||'').toLowerCase().includes(customer);
+          return sameDate && sameCust;
+        });
+        // render
+        const tb = document.getElementById('confirmBody');
+        tb.innerHTML='';
+        if(!list.length){
+          tb.innerHTML = `<tr><td colspan="6" class="text-center text-slate-500">該当データがありません。</td></tr>`;
+        }else{
+          list.forEach((r,i)=>{
+            const tr=document.createElement('tr');
+            tr.innerHTML = `
+              <td class="text-center">${i+1}</td>
+              <td>${App.esc(r.customer)}</td>
+              <td>${App.esc(r.itemName)}</td>
+              <td>${App.esc(r.itemNo)}</td>
+              <td class="text-right">${Number(r.qty||0).toLocaleString()}</td>
+              <td>${App.esc(r.note||'')}</td>`;
+            tb.appendChild(tr);
+          });
+        }
+        const me = App.me();
+        document.getElementById('meta').textContent = `作成：${me?.user||''} ／ ${new Date().toLocaleString()}`;
+        this.rows=list;
+      },
+      exportCSV(){
+        const rows=this.rows||[];
+        if(!rows.length){ alert('先に「作成」を押してください'); return; }
+        const header=['No','得意先','品名','品番','数量','備考'];
+        const data = rows.map((r,i)=>[i+1,r.customer,r.itemName,r.itemNo,r.qty,r.note]);
+        App.saveCSV('出荷確認書.csv',[header,...data]);
+      }
+    }
+  </script>
 </body>
 </html>
