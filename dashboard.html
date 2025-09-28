@@ -1,0 +1,57 @@
+<!DOCTYPE html><html lang="ja"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>ERP • ダッシュボード</title>
+<link rel="stylesheet" href="style.css"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head><body>
+  <!-- header -->
+  <!--#include file="header.html"-->
+  <div id="headerMount"></div>
+
+  <main class="container space-y-6 py-6">
+    <section class="card"><h3>現在の生産状況</h3><div id="nowList" class="text-sm"></div></section>
+    <section class="grid md:grid-cols-2 gap-4">
+      <div class="card"><h3>在庫の所在（工程別）</h3><canvas id="byProcessChart" height="220"></canvas></div>
+      <div class="card"><h3>本日の出荷予定</h3><div id="shipToday" class="text-sm"></div></div>
+    </section>
+    <section class="card">
+      <h3>完成品在庫（完成数量 − 出荷数量）</h3>
+      <table class="table"><thead><tr><th>品名</th><th>品番</th><th>完成数量</th><th>出荷数量</th><th>在庫</th></tr></thead><tbody id="stockBody"></tbody></table>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    // mount header fragment manual (karena GitHub Pages tak dukung SSI)
+    fetch('header.html').then(r=>r.text()).then(html=>{document.getElementById('headerMount').outerHTML=html; App.initPage('dashboard'); load();});
+    async function load(){
+      const {plan, ship} = await App.fetchAll();
+      // simple render
+      document.getElementById('nowList').textContent = (plan&&plan.length)? `${plan.length} 件` : 'データがありません。';
+      document.getElementById('shipToday').textContent = (ship&&ship.length)? `${ship.length} 件` : '本日の出荷予定はありません。';
+
+      // stock table
+      const map = new Map();
+      (plan||[]).forEach(r=>{
+        const k = `${r.itemName}||${r.itemNo}`;
+        const cur = map.get(k)||{itemName:r.itemName,itemNo:r.itemNo,done:0,ship:0};
+        cur.done += Number(r.qtyDone||0);
+        cur.ship += Number(r.qtyShip||0);
+        map.set(k, cur);
+      });
+      const tbody = document.getElementById('stockBody');
+      tbody.innerHTML = '';
+      [...map.values()].forEach(x=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${App.esc(x.itemName)}</td><td>${App.esc(x.itemNo)}</td><td class="num">${x.done}</td><td class="num">${x.ship}</td><td class="num">${x.done-x.ship}</td>`;
+        tbody.appendChild(tr);
+      });
+
+      // chart demo
+      const byProc = {};
+      (plan||[]).forEach(r=>{ byProc[r.process||'-'] = (byProc[r.process||'-']||0)+1; });
+      const ctx = document.getElementById('byProcessChart');
+      new Chart(ctx,{type:'bar',data:{labels:Object.keys(byProc),datasets:[{label:'件数',data:Object.values(byProc)}]},options:{plugins:{legend:{display:false}}}});
+    }
+  </script>
+</body></html>
