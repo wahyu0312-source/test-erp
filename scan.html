@@ -1,121 +1,53 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>QRスキャン • ERPシステム 東京精密発條株式会社</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>ERPシステム — QRスキャン</title>
   <link rel="stylesheet" href="style.css"/>
-
-  <!-- Tailwind opsional (jika dipakai di halaman lain) -->
   <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Html5-Qrcode (resmi) -->
-  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <!-- ZXing -->
+  <script src="https://unpkg.com/@zxing/library@latest"></script>
 </head>
-<body class="bg-slate-50 text-slate-800">
-  <!-- Topbar & nav -->
+<body>
   <header class="topbar">
     <div class="container wrap">
       <img src="tsh.png" class="logo" alt="TSH">
-      <nav id="mainNav" class="nav">
-        <a href="index.html">ダッシュボード</a>
-        <a href="plan.html">生産計画</a>
-        <a href="ship.html">出荷計画</a>
-        <a href="confirm.html">出荷確認書</a>
-        <a href="ticket.html">生産現品票</a>
-        <a href="charts.html">分析チャート</a>
-        <a href="master.html">マスター</a>
-        <a href="scan.html" class="active">QRスキャン</a>
+      <nav class="nav" id="mainNav">
+        <a href="index.html">ダッシュボード</a><a href="plan.html">生産計画</a>
+        <a href="ship.html">出荷計画</a><a href="confirm.html">出荷確認書</a>
+        <a href="ticket.html">生産現品票</a><a href="charts.html">分析チャート</a>
+        <a href="master.html">マスター</a><a href="scan.html">QRスキャン</a>
       </nav>
-      <div class="menu-spacer"></div>
-      <button id="burgerBtn" class="burger" aria-label="Menu">☰</button>
+      <div class="menu-spacer"></div><div id="authSlot"></div>
+      <button id="burgerBtn" class="burger">☰</button>
     </div>
   </header>
 
-  <div id="loginBar" class="login-bar container"></div>
-
-  <main class="container grid gap-4">
+  <main class="container" style="padding:16px;display:grid;gap:16px">
     <section class="card">
-      <h3>QRスキャン（カメラ）</h3>
-
-      <div class="row wrap gap-2">
-        <label class="text-sm">カメラ</label>
-        <select id="camSelect" class="input" style="min-width:240px"></select>
-
-        <label class="text-sm">フレーム</label>
-        <select id="qrbox" class="input">
-          <option value="220">220</option>
-          <option value="280" selected>280</option>
-          <option value="340">340</option>
-        </select>
-
-        <div class="menu-spacer"></div>
-        <button id="btnStart" class="btn icon">▶ スタート</button>
-        <button id="btnStop"  class="btn outline">■ ストップ</button>
+      <div class="row">
+        <div class="col"><label>カメラ</label><select id="videoSource" class="input"></select></div>
+        <div class="col" style="display:flex;gap:8px;align-items:flex-end">
+          <button id="btnScanStart" class="btn">開始</button>
+          <button id="btnScanStop" class="btn outline">停止</button>
+        </div>
       </div>
-
-      <div id="reader" class="qr-box" style="margin-top:10px; max-width:520px"></div>
-
-      <p id="scanInfo" class="text-sm text-slate-600" style="margin-top:8px">期待フォーマット: <code>製造番号|品番</code> 例: <code>PRD-001|A123</code></p>
-      <div id="scanLast" class="badge gray" style="margin-top:6px"></div>
+      <video id="preview" style="width:100%;margin-top:10px;border:1px solid #e5e7eb;border-radius:10px" muted playsinline></video>
+      <div style="margin-top:10px"><b>結果：</b> <span id="scanResult" class="text-muted">...</span></div>
     </section>
 
     <section class="card">
-      <h3>手入力（カメラ不調時の代替）</h3>
-      <div class="row wrap">
-        <input id="scanText" class="input" placeholder="PRD-001|A123（製造番号|品番）" style="min-width:260px">
-        <label>工程</label>
-        <select id="scanProcess" class="input">
-          <option>レーザ工程</option>
-          <option>曲げ工程</option>
-          <option>外枠組立工程</option>
-          <option>シャッター溶接工程</option>
-          <option>コーキング工程</option>
-          <option>外枠塗装工程</option>
-          <option>組立工程</option>
-          <option>検査工程</option>
-          <option>外注</option>
-        </select>
-        <label>ステータス</label>
-        <select id="scanStatus" class="input">
-          <option>進行中</option>
-          <option>完了</option>
-          <option>不良</option>
-          <option>検査保留</option>
-        </select>
-        <div class="menu-spacer"></div>
-        <button id="btnApplyScan" class="btn icon">💾 反映</button>
+      <h3>手入力（バックアップ）</h3>
+      <div class="row">
+        <div class="col"><label>コード</label><input id="manualCode" class="input"></div>
+        <div class="col" style="display:flex;align-items:flex-end"><button id="btnManualCommit" class="btn">受け取り</button></div>
       </div>
-    </section>
-
-    <section class="card">
-      <h3>ヒント / トラブルシューティング</h3>
-      <ul class="text-sm list-disc pl-5 space-y-1">
-        <li>サイトは <strong>HTTPS</strong> で開いてください（GitHub Pages ならOK）。HTTPだとカメラはブロックされます。</li>
-        <li>初回アクセス時に <strong>カメラ許可</strong> を「許可」にしてください。</li>
-        <li>iPhoneのSafariは、<strong>ボタンクリック</strong>経由でのみカメラ起動が許可されます（自動起動は不可）。</li>
-        <li>リアカメラを使うには、デバイス選択で「Back/環境カメラ」を選んでください。</li>
-        <li>読み取りフォーマットは <code>製造番号|品番</code>。票のQRも同じ形式です（票画面で自動生成）。</li>
-      </ul>
-    </section>
-
-    <section class="card no-print sync-section">
-      <h3>同期（Google Sheets）</h3>
-      <div class="row wrap gap-2">
-        <button id="btnPull" class="btn">シートから取得</button>
-        <button id="btnPush" class="btn">シートへ送信</button>
-        <label class="text-sm flex items-center gap-2">
-          <input type="checkbox" id="autoSync"> 自動（30秒毎）
-        </label>
-        <button id="btnClearLocal" class="btn outline">ローカル削除</button>
-        <span id="syncLog" class="text-xs text-slate-500"></span>
-      </div>
+      <div class="text-muted" style="margin-top:8px">※ ステータス更新APIは未実装。Code.gsにUPDATEエンドポイントを追加後、連動します。</div>
     </section>
   </main>
 
   <script src="app.js"></script>
-  <script>
-    App.initPage('scan');
-  </script>
+  <script>App.initPage('scan');</script>
 </body>
 </html>
