@@ -1,46 +1,30 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>ERPシステム 東京精密発條株式会社 • ログイン</title>
-  <link rel="stylesheet" href="style.css"/>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-slate-50 text-slate-800">
-  <header class="app-topbar">
-    <a class="brand" href="index.html"><img src="tsh.png" alt="TSH" class="h-8"/></a>
-  </header>
+<!DOCTYPE html><html lang="ja"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>ERPシステム • ログイン</title>
+<link rel="stylesheet" href="style.css"/>
+<script src="https://cdn.tailwindcss.com"></script>
+</head><body class="bg-slate-50 text-slate-800">
+<header class="app-topbar">
+  <div class="app-shell" style="display:flex;align-items:center;justify-content:space-between;height:56px">
+    <div class="brand"><img src="tsh.png" alt="TSH"><b>ERPシステム</b><span class="hidden sm:inline" style="color:#64748b">東京精密発條株式会社</span></div>
+  </div>
+</header>
 
-  <main class="max-w-xl mx-auto px-4 py-12">
-    <form id="loginForm" class="card p-6 space-y-4">
-      <h1 class="text-2xl font-bold">ログイン</h1>
+<main class="app-shell" style="min-height:calc(100vh - 56px);display:flex;align-items:center;justify-content:center">
+  <form id="loginForm" class="card" style="width:min(700px,100%);padding:24px">
+    <h2 style="font-weight:800;font-size:1.25rem;margin-bottom:10px">ログイン</h2>
+    <label class="label">ユーザー</label>
+    <input id="loginUser" class="input" placeholder="admin" autocomplete="username"/>
+    <label class="label" style="margin-top:10px">パスワード</label>
+    <input id="loginPass" type="password" class="input" autocomplete="current-password"/>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:12px">
+      <button class="btn btn-primary" id="btnLogin" type="submit">ログイン</button>
+      <span id="loginMsg" class="text-slate-500" style="font-size:.9rem"></span>
+    </div>
+  </form>
+</main>
 
-      <div>
-        <label class="label" for="loginUser">ユーザー</label>
-        <input id="loginUser" class="input" placeholder="例：admin" autocomplete="username"/>
-      </div>
-
-      <div>
-        <label class="label" for="loginPass">パスワード</label>
-        <input id="loginPass" class="input" type="password" autocomplete="current-password"/>
-      </div>
-
-      <div class="flex items-center gap-2">
-        <button id="btnLogin" type="submit" class="btn btn-primary">ログイン</button>
-        <button id="btnPing" type="button" class="btn">APIチェック</button>
-        <span id="loginMsg" class="text-sm text-slate-500 ml-1"></span>
-      </div>
-
-      <p class="text-xs text-slate-500">
-        Enterでも送信可 / 初回ユーザーはシート <b>USERS</b> で作成
-      </p>
-    </form>
-  </main>
-
-  <script src="app.js"></script>
-  <script>
-    App.init('login');      // bind form + enable ENTER
-  </script>
-</body>
-</html>
+<div id="flash" class="flash"></div>
+<script src="app.js"></script>
+<script>App.init('login');</script>
+</body></html>
