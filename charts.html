@@ -1,44 +1,22 @@
 <!DOCTYPE html><html lang="ja"><head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>ERP • 分析チャート</title>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>分析チャート</title>
 <link rel="stylesheet" href="style.css"/>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head><body>
-  <div id="headerMount"></div>
-
-  <main class="container py-6 grid md:grid-cols-2 gap-4">
-    <section class="card"><h3>完成品在庫（Pie）</h3><canvas id="stockPie" height="220"></canvas></section>
-    <section class="card"><h3>月別 出荷数量（Bar）</h3><canvas id="shipBar"  height="220"></canvas></section>
-  </main>
-
-  <script src="app.js"></script>
-  <script>
-    fetch('header.html').then(r=>r.text()).then(h=>{document.getElementById('headerMount').outerHTML=h; App.initPage('charts'); load();});
-    async function load(){
-      const {plan, ship}=await App.fetchAll();
-
-      // stock (done-ship) per item
-      const stockMap=new Map();
-      (plan||[]).forEach(r=>{
-        const k=r.itemName||'-'; const cur=stockMap.get(k)||0;
-        stockMap.set(k, cur + (Number(r.qtyDone||0)-Number(r.qtyShip||0)));
-      });
-      new Chart(document.getElementById('stockPie'),{
-        type:'pie',
-        data:{labels:[...stockMap.keys()],datasets:[{data:[...stockMap.values()]}]},
-        options:{plugins:{legend:{position:'bottom'}}}
-      });
-
-      // monthly ship qty
-      const byMonth={};
-      (ship||[]).forEach(r=>{
-        const m=(r.date||'').slice(0,7); byMonth[m]=(byMonth[m]||0)+Number(r.qty||0);
-      });
-      const labels=Object.keys(byMonth).sort();
-      new Chart(document.getElementById('shipBar'),{
-        type:'bar', data:{labels,datasets:[{label:'出荷',data:labels.map(k=>byMonth[k])}]},
-        options:{plugins:{legend:{display:false}}}
-      });
-    }
-  </script>
+</head><body class="bg-slate-50 text-slate-800">
+<main class="app-shell" style="margin-top:14px">
+  <div class="grid grid-2">
+    <section class="card"><h3 style="font-weight:700;margin-bottom:.6rem">完成品在庫</h3><canvas id="chStock" height="150"></canvas></section>
+    <section class="card"><h3 style="font-weight:700;margin-bottom:.6rem">NG内訳</h3><canvas id="chNg" height="150"></canvas></section>
+  </div>
+</main>
+<div id="flash" class="flash"></div>
+<script src="app.js"></script>
+<script>
+  App.init('charts');
+  // contoh statis; nanti tarik dari Api.pull()
+  const ctx1=$('#chStock'), ctx2=$('#chNg');
+  new Chart(ctx1,{type:'bar',data:{labels:['A','B','C'],datasets:[{label:'在庫',data:[12,8,5]}]}});
+  new Chart(ctx2,{type:'pie',data:{labels:['外観','寸法','キズ'],datasets:[{data:[5,3,2]}]}});
+</script>
 </body></html>
