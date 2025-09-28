@@ -1,56 +1,14 @@
 <!DOCTYPE html><html lang="ja"><head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>ERP • 出荷計画</title><link rel="stylesheet" href="style.css"/></head><body>
-<div id="headerMount"></div>
-<main class="container py-6 space-y-4">
-  <section class="card">
-    <h3>出荷計画 追加</h3>
-    <div class="grid md:grid-cols-3 gap-3">
-      <label>日付<input id="sDate" type="date" class="input"/></label>
-      <label>得意先<input id="sCust" class="input"/></label>
-      <label>品名<input id="sName" class="input"/></label>
-      <label>品番<input id="sNo" class="input"/></label>
-      <label>数量<input id="sQty" type="number" class="input"/></label>
-      <label>備考<input id="sNote" class="input"/></label>
-    </div>
-    <div class="mt-3"><button id="btnShipAdd" class="btn primary">追加</button></div>
-  </section>
-  <section class="card">
-    <h3>出荷一覧</h3>
-    <input id="shipSearch" class="input" placeholder="検索（得意先/品名/品番）"/>
-    <table class="table" id="tblShip"><thead><tr><th>#</th><th>日付</th><th>得意先</th><th>品名</th><th>品番</th><th>数量</th></tr></thead><tbody></tbody></table>
-  </section>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>出荷計画</title>
+<link rel="stylesheet" href="style.css"/>
+</head><body class="bg-slate-50 text-slate-800">
+<main class="app-shell" style="margin-top:14px">
+  <div class="card"><h3 style="font-weight:700;margin-bottom:.6rem">出荷計画（簡易）</h3>
+    <p class="text-slate-600">Placeholder. Data akan sinkron dengan sheet <b>SHIP</b>.</p>
+  </div>
 </main>
+<div id="flash" class="flash"></div>
 <script src="app.js"></script>
-<script>
-fetch('header.html').then(r=>r.text()).then(h=>{document.getElementById('headerMount').outerHTML=h; App.initPage('ship'); init();});
-let SHIP_ALL=[];
-async function init(){
-  document.getElementById('sDate').value = App.todayDate();
-  const all = await App.fetchAll(); SHIP_ALL = all.ship||[];
-  render(SHIP_ALL);
-  document.getElementById('shipSearch').addEventListener('input', e=>{
-    const v=e.target.value||''; render(App.searchFilter(SHIP_ALL, v, ['customer','itemName','itemNo']));
-  });
-  document.getElementById('btnShipAdd').onclick = async ()=>{
-    const row = {
-      date:$('#sDate').value, customer:$('#sCust').value, itemName:$('#sName').value,
-      itemNo:$('#sNo').value, qty:Number($('#sQty').value||0), note:$('#sNote').value,
-      status:'予定', updated:new Date().toISOString(), user: App.me().user
-    };
-    await App.appendShip(row);
-    alert('追加しました'); location.reload();
-  };
-}
-function $(q){return document.querySelector(q)}
-function render(list){
-  const tb=document.querySelector('#tblShip tbody'); tb.innerHTML='';
-  list.forEach((r,i)=>{
-    const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${i+1}</td><td>${App.esc((r.date||'').slice(0,10))}</td><td>${App.esc(r.customer)}</td>
-      <td>${App.esc(r.itemName)}</td><td>${App.esc(r.itemNo)}</td><td class="num">${r.qty||0}</td>`;
-    tb.appendChild(tr);
-  });
-}
-</script>
+<script>App.init('ship');</script>
 </body></html>
