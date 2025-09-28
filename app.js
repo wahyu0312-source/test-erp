@@ -1,162 +1,153 @@
-/* ==================================================
-   ERP Frontend Core – Design by Wahyu (TSH)
-   ================================================== */
-
+/* ===== ERP Core (Auth + Guard + Navbar + Util) ===== */
 const App = (() => {
-  const CFG = {
-    API: 'https://script.google.com/macros/s/AKfycbxdxK93a2UJFKg5mmLi_P7OrAWv4DMUbvWX3bHGEntndIEEHWZc_dqN-iyqarKQvIFS/exec',   // <- GANTI KE WEB APP URL TERBARU
-    LS_USER: 'erp_user_v2',
-    LS_CACHE: 'erp_cache_all',
-    LS_CACHE_TIME: 'erp_cache_time',
-    CACHE_TTL: 15000
-  };
+  // ==== CONFIG (EDIT the GAS URL only) ====
+  const API = 'https://script.google.com/macros/s/AKfycbxdxK93a2UJFKg5mmLi_P7OrAWv4DMUbvWX3bHGEntndIEEHWZc_dqN-iyqarKQvIFS/exec';
 
-  /* ---------- helpers ---------- */
-  const $  = (s, r=document)=>r.querySelector(s);
-  const $$ = (s, r=document)=>[...r.querySelectorAll(s)];
-  const esc = s => String(s ?? '').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-  const pad = n => String(n).padStart(2,'0');
-  const today = () => { const d=new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
+  // ==== Storage Keys ====
+  const K_SESSION = 'erp_session_v1';  // {user,role,token,ts}
 
-  /* ---------- csv ---------- */
-  const toCSV = rows => rows.map(r=>r.map(c=>{
-    const s = String(c ?? '');
-    return (s.includes(',')||s.includes('"')||s.includes('\n')) ? `"${s.replace(/"/g,'""')}"` : s;
-  }).join(',')).join('\n');
-  const saveCSV = (name, rows) => {
-    const a=document.createElement('a');
-    a.href=URL.createObjectURL(new Blob([toCSV(rows)],{type:'text/csv'}));
-    a.download=name; a.click(); URL.revokeObjectURL(a.href);
-  };
+  // ==== Small util ====
+  const $ = (sel, root=document) => root.querySelector(sel);
+  const $$ = (sel, root=document) => [...root.querySelectorAll(sel)];
+  const esc = encodeURIComponent;
 
-  /* ---------- session (localStorage) ---------- */
-  const me = () => { try { return JSON.parse(localStorage.getItem(CFG.LS_USER)||'null'); } catch { return null; } };
-  const setUser = u => localStorage.setItem(CFG.LS_USER, JSON.stringify(u||null));
-  const isAuthed = () => !!me();
-  const logout = () => {
-    try{
-      localStorage.removeItem(CFG.LS_USER);
-      localStorage.removeItem(CFG.LS_CACHE);
-      localStorage.removeItem(CFG.LS_CACHE_TIME);
-      sessionStorage.clear?.();
-    }catch{}
-    location.href = 'index.html';
-  };
+  function readSession(){
+    try { return JSON.parse(localStorage.getItem(K_SESSION) || 'null'); }
+    catch { return null; }
+  }
+  function writeSession(s){ localStorage.setItem(K_SESSION, JSON.stringify(s||{})); }
+  function clearSession(){ localStorage.removeItem(K_SESSION); }
 
-  /* ---------- API ---------- */
-  const ping = async () => {
-    // hit endpoint master (tak ubah data) untuk test koneksi
-    const res = await fetch(`${CFG.API}?action=master`, {cache:'no-store'});
-    return res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`));
-  };
+  function isAuthed(){
+    const s = readSession();
+    if(!s || !s.user || !s.token) return false;
+    // (optional) 24h expiry
+    const DAY = 24*60*60*1000;
+    return (Date.now() - (s.ts||0)) < DAY;
+  }
 
-  const login = async (user, pass) => {
-    const url = `${CFG.API}?action=login&username=${encodeURIComponent(user)}&password=${encodeURIComponent(pass)}`;
-    const res = await fetch(url, {cache:'no-store'});
-    const json = await res.json().catch(()=>({ok:false,error:'BAD_JSON'}));
-    if (!json.ok) throw new Error(json.error||'LOGIN_FAILED');
-    setUser({user: json.user, role: json.role, token: json.token});
-    return json;
-  };
-
-  const ensureAuth = () => { if (!isAuthed()) location.replace('index.html?needLogin=1'); };
-
-  const fetchAll = async ()=>{
-    const now=Date.now(); const last=Number(localStorage.getItem(CFG.LS_CACHE_TIME)||0);
-    if (now-last<CFG.CACHE_TTL){
-      try { return JSON.parse(localStorage.getItem(CFG.LS_CACHE)||'{}'); } catch {}
+  function guard(pageId){
+    // pages that require login
+    const mustLogin = ['dashboard','plan','ship','confirm','ticket','scan','charts','master'];
+    if (mustLogin.includes(pageId) && !isAuthed()){
+      location.replace('index.html?needLogin=1');
+      return false;
     }
-    const res=await fetch(CFG.API, {cache:'no-store'});
-    const json=await res.json();
-    localStorage.setItem(CFG.LS_CACHE, JSON.stringify(json));
-    localStorage.setItem(CFG.LS_CACHE_TIME, String(now));
-    return json;
-  };
-  const fetchMasterOnly = async ()=>{
-    const res=await fetch(`${CFG.API}?action=master`, {cache:'no-store'});
-    return res.json();
-  };
-  const postJSON = async payload=>{
-    const res = await fetch(CFG.API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-    try { return await res.json(); } catch { return await res.text(); }
-  };
-  const appendPlan = row => postJSON(row);
-  const appendShip = row => postJSON(row);
-  const masterUpsert = row => postJSON({action:'MASTER_UPSERT',...row});
-  const masterDelete = id  => postJSON({action:'MASTER_DELETE',id});
+    return true;
+  }
 
-  /* ---------- search & paging ---------- */
-  const searchFilter = (list,q,fields)=>{
-    const s=(q||'').toLowerCase().trim(); if(!s) return list;
-    return list.filter(r=> fields.some(f => String(r[f]??'').toLowerCase().includes(s)));
-  };
-  const paginate = (list,page=1,per=10)=>{
-    const total=list.length, pages=Math.max(1,Math.ceil(total/per));
-    const p=Math.min(Math.max(1,page),pages), start=(p-1)*per;
-    return {page:p,perPage:per,total,pages,items:list.slice(start,start+per)};
-  };
+  // ==== Navbar (also adds working Logout) ====
+  function mountNavbar(){
+    const nav = document.querySelector('.app-topbar');
+    if(!nav) return;
 
-  /* ---------- UI mounts ---------- */
-  const mountBurger = ()=>{
-    const btn=$('#burger'), menu=$('#mobileMenu');
-    if (!btn || !menu) return;
-    btn.addEventListener('click', ()=> menu.classList.toggle('hidden'));
-  };
-  const mountLogout = ()=>{
-    $$('#logoutBtn').forEach(b=> b.addEventListener('click', logout));
-  };
-  const fillUserChip = ()=>{
-    const u=me(), chip=$('#userChip'); if(chip&&u) chip.textContent=`${u.user}（${u.role||''}）`;
-  };
-  const mountLoginForm = ()=>{
-    const form=$('#loginForm'); if(!form) return;
-    const u=$('#loginUser'), p=$('#loginPass'), btn=$('#loginBtn'), note=$('#loginNote'), chk=$('#checkApi');
-    if(isAuthed()) { location.replace('dashboard.html'); return; }
+    const s = readSession();
+    const user = s?.user || '';
 
-    form.addEventListener('submit', async e=>{
-      e.preventDefault(); btn.disabled=true; note.textContent='ログイン中…';
+    nav.innerHTML = `
+      <div class="max-w-7xl mx-auto px-3 h-14 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <a class="brand inline-flex items-center gap-2" href="dashboard.html">
+            <img src="tsh.png" alt="TSH" class="h-7"><span class="font-semibold">ERPシステム</span>
+          </a>
+          <nav class="hidden md:flex items-center gap-4 text-sm">
+            <a href="dashboard.html">ダッシュボード</a>
+            <a href="plan.html">生産計画</a>
+            <a href="ship.html">出荷計画</a>
+            <a href="confirm.html">出荷確認書</a>
+            <a href="charts.html">分析チャート</a>
+            <a href="master.html">マスター</a>
+            <a href="scan.html">QRスキャン</a>
+          </nav>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-sm text-slate-600 hidden sm:inline">${user?`👤 ${user}`:''}</span>
+          <button id="btnBurger" class="md:hidden btn" aria-label="menu">☰</button>
+          <button id="btnLogout" class="btn btn-ghost ${user?'':'hidden'}">ログアウト</button>
+        </div>
+      </div>
+      <div id="mnav" class="md:hidden hidden border-t bg-white">
+        <nav class="max-w-7xl mx-auto px-3 py-3 grid gap-2 text-sm">
+          <a href="dashboard.html">ダッシュボード</a>
+          <a href="plan.html">生産計画</a>
+          <a href="ship.html">出荷計画</a>
+          <a href="confirm.html">出荷確認書</a>
+          <a href="charts.html">分析チャート</a>
+          <a href="master.html">マスター</a>
+          <a href="scan.html">QRスキャン</a>
+        </nav>
+      </div>
+    `;
+
+    $('#btnBurger')?.addEventListener('click', ()=> $('#mnav').classList.toggle('hidden'));
+    $('#btnLogout')?.addEventListener('click', ()=> {
+      clearSession();
+      location.replace('index.html');
+    });
+  }
+
+  // ==== LOGIN ====
+  async function apiLogin(u,p){
+    const url = `${API}?action=login&username=${esc(u)}&password=${esc(p)}`;
+    const res = await fetch(url, {cache:'no-store'});
+    if(!res.ok) throw new Error('NETWORK_'+res.status);
+    return await res.json();
+  }
+
+  function bindLoginForm(){
+    const f = $('#loginForm'); if(!f) return;
+    const iu = $('#loginUser'), ip = $('#loginPass'), msg = $('#loginMsg');
+    const btn = $('#btnLogin'), ping = $('#btnPing');
+
+    // Enter key ok (form submit)
+    f.addEventListener('submit', async (e)=>{
+      e.preventDefault(); e.stopPropagation();
+      const u = (iu.value||'').trim();
+      const p = (ip.value||'').trim();
+      if(!u || !p){ msg.textContent = 'ログイン失敗（USER_OR_PASS_EMPTY）'; return; }
+
+      btn.disabled = true; msg.textContent = 'チェック中…';
       try{
-        const res=await login((u.value||'').trim(), (p.value||'').trim());
-        note.textContent='OK'; location.replace('dashboard.html');
+        const j = await apiLogin(u,p);
+        if(j && j.ok){
+          writeSession({ user:j.user, role:j.role, token:j.token, ts:Date.now() });
+          location.replace('dashboard.html');
+        }else{
+          msg.textContent = 'ログイン失敗';
+        }
       }catch(err){
-        note.textContent = `ログイン失敗（${err.message}）`;
-        btn.disabled=false;
+        msg.textContent = '通信エラー: '+ String(err.message||err);
+      }finally{
+        btn.disabled = false;
       }
     });
-    [u,p].forEach(el=>el?.addEventListener('keydown',e=>{ if(e.key==='Enter') btn?.click(); }));
 
-    if (chk) chk.addEventListener('click', async ()=>{
-      chk.disabled=true; note.textContent='API チェック中…';
+    // API sanity check
+    ping?.addEventListener('click', async ()=>{
+      const u = (iu.value||'admin'); const p = (ip.value||'1234');
       try{
-        const j=await ping();
-        note.textContent = j && j.ok!==false ? 'API OK' : 'API 応答異常';
-      }catch(e){ note.textContent=`API NG: ${e.message}`; }
-      chk.disabled=false;
+        const j = await apiLogin(u,p);
+        msg.textContent = j && j.ok ? 'API OK' : 'NG';
+      }catch(e){ msg.textContent = 'NG('+e.message+')'; }
     });
+  }
 
-    const need=new URL(location.href).searchParams.get('needLogin');
-    if(need==='1') note.textContent='ログインしてください';
-  };
+  // ==== Public init per page ====
+  function init(pageId){
+    if(pageId === 'login'){
+      // if already logged in, go to dashboard
+      if(isAuthed()){ location.replace('dashboard.html'); return; }
+      bindLoginForm();
+      return;
+    }
 
-  /* ---------- page init ---------- */
-  const initPage = (name)=>{
-    mountBurger(); mountLogout(); fillUserChip();
-    if(name==='index'){ mountLoginForm(); return; }
-    ensureAuth();
-  };
+    if(!guard(pageId)) return; // redirects to login if not authed
+    mountNavbar();
+  }
 
-  // close mobile menu on link click
-  document.addEventListener('click',e=>{
-    const a=e.target.closest('#mobileMenu a'); if(!a) return;
-    $('#mobileMenu')?.classList.add('hidden');
-  });
-
+  // expose minimal helpers some pages already use
   return {
-    API: CFG.API,
-    $, $$, esc, today, toCSV, saveCSV,
-    me, isAuthed, ensureAuth, logout, login, ping,
-    fetchAll, fetchMasterOnly, postJSON, appendPlan, appendShip, masterUpsert, masterDelete,
-    searchFilter, paginate,
-    mountBurger, mountLogout, fillUserChip, mountLoginForm, initPage
+    init,
+    session: { read:readSession, clear:clearSession, isAuthed },
   };
 })();
