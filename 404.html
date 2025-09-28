@@ -1,0 +1,15 @@
+<!DOCTYPE html><html lang="ja"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>404 • Redirecting…</title>
+<meta http-equiv="refresh" content="1; url=login.html">
+<style>body{font-family:system-ui,Segoe UI,Arial,sans-serif;padding:24px}a{color:#3344cc}</style>
+</head><body>
+<h1>ページが見つかりません (404)</h1>
+<p>1秒後にログインへ移動します…</p>
+<script>
+  var base = location.pathname.replace(/[^/]+$/, '');
+  setTimeout(function(){ location.replace(base + 'login.html'); }, 200);
+</script>
+<noscript><p><a href="login.html">Login へ</a></p></noscript>
+</body></html>
