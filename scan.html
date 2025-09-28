@@ -1,30 +1,175 @@
-<!doctype html><html lang="ja"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<!DOCTYPE html><html lang="ja"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>ERP • QRスキャン</title>
-<link rel="stylesheet" href="style.css"></head><body>
-<header class="top"><div class="brand">
-  <img src="tsh.png"><strong>ERPシステム</strong>
-  <button id="burger">☰</button><div class="userchip" id="topUser"></div>
-  <button id="btnLogout" class="btn-outline">ログアウト</button>
-</div><nav id="navMenu"><div class="container nav">
-  <a href="index.html">ダッシュボード</a><a href="plan.html">生産計画</a>
-  <a href="ship.html">出荷計画</a><a href="confirm.html">出荷確認書</a>
-  <a class="active">QRスキャン</a><a href="ticket.html">生産現品票</a>
-  <a href="charts.html">チャート</a><a href="master.html">マスター</a>
-</div></nav></header>
+<link rel="stylesheet" href="style.css"/>
+<style>
+  #scanner{ width:100%; max-width:420px; aspect-ratio:4/3; background:#000; border-radius:14px; overflow:hidden }
+  .log{ font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px }
+  .badge{ display:inline-block; padding:2px 8px; border-radius:999px; background:#eef2ff; color:#3730a3; }
+</style>
+</head><body>
+  <div id="headerMount"></div>
 
-<main class="container">
-  <section class="card">
-    <h3>スキャン（手入力フォールバック）</h3>
-    <div class="grid2">
-      <label>読み取りコード<input id="scanCode" class="input" placeholder="例) 製造番号|図番"></label>
-      <label>工程<select class="select"><option>レーザ工程</option><option>曲げ工程</option><option>外枠塗装工程</option></select></label>
-      <label>ステータス<select class="select"><option>進行中</option><option>完了</option></select></label>
-    </div>
-    <div style="margin-top:10px"><button id="btnApply" class="btn">更新</button></div>
-    <p class="muted" style="color:#64748b">※ カメラ許可が無い端末でも運用できるように手入力を用意</p>
-  </section>
-</main>
-<script src="app.js"></script>
-<script>App.initScan();</script>
+  <main class="container py-6 space-y-6">
+    <section class="card">
+      <h3 class="title" style="font-size:20px;margin-bottom:8px">QRスキャン</h3>
+
+      <div class="grid md:grid-cols-2 gap-4">
+        <!-- 左：スキャナ -->
+        <div>
+          <div class="space-y-4">
+            <div id="scanner" class="no-print"></div>
+            <div style="display:flex;gap:8px" class="no-print">
+              <button id="startCam" class="btn">カメラ開始</button>
+              <button id="stopCam" class="btn">停止</button>
+              <button id="clearLog" class="btn">ログ削除</button>
+              <button id="exportCsv" class="btn">CSV</button>
+            </div>
+            <p class="text-sm text-slate-600">カメラが使えない場合は右側で手動入力してください。</p>
+          </div>
+        </div>
+
+        <!-- 右：手動入力 + 更新オプション -->
+        <div>
+          <div class="space-y-4">
+            <label>読み取り結果（JSON/テキスト）
+              <textarea id="raw" class="input log" rows="6" placeholder='{"type":"ticket","prodNo":"..."}'></textarea>
+            </label>
+
+            <div class="grid md:grid-cols-2 gap-3">
+              <label>工程
+                <select id="proc" class="input">
+                  <option>レーザ工程</option><option>曲げ工程</option><option>外枠組立工程</option>
+                  <option>シャッター組立工程</option><option>溶接工程</option><option>コーキング工程</option>
+                  <option>外枠塗装工程</option><option>組立工程</option><option>検査工程</option>
+                </select>
+              </label>
+              <label>ステータス
+                <select id="status" class="input"><option>進行中</option><option>完了</option><option>保留</option></select>
+              </label>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-3">
+              <label>数量（完成）<input id="qtyDone" class="input" type="number" value="0"/></label>
+              <label>備考<input id="note" class="input"/></label>
+            </div>
+
+            <div style="display:flex;gap:8px">
+              <button id="apply" class="btn primary">適用（ログに追加）</button>
+              <span id="applyNote" class="text-sm text-slate-600"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ログ -->
+    <section class="card">
+      <h3>読み取りログ</h3>
+      <table class="table">
+        <thead><tr><th>時刻</th><th>種別</th><th>製造番号</th><th>品番</th><th>工程</th><th>ステータス</th><th class="num">数量</th><th>備考</th></tr></thead>
+        <tbody id="logBody"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <!-- html5-qrcode (scanner) -->
+  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.10/minified/html5-qrcode.min.js"></script>
+  <script src="app.js"></script>
+  <script>
+    fetch('header.html').then(r=>r.text()).then(h=>{
+      document.getElementById('headerMount').outerHTML=h;
+      App.initPage('scan'); init();
+    });
+
+    let html5Q = null, running=false, log=[];
+    const $ = s=>document.querySelector(s);
+
+    function addLog(row){
+      log.unshift(row);
+      const tb = $('#logBody'); tb.innerHTML='';
+      log.slice(0,200).forEach(r=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML = `<td>${App.esc(r.time)}</td>
+                        <td><span class="badge">${App.esc(r.type||'-')}</span></td>
+                        <td>${App.esc(r.prodNo||'-')}</td>
+                        <td>${App.esc(r.itemNo||'-')}</td>
+                        <td>${App.esc(r.proc||'-')}</td>
+                        <td>${App.esc(r.status||'-')}</td>
+                        <td class="num">${Number(r.qty||0)}</td>
+                        <td>${App.esc(r.note||'')}</td>`;
+        tb.appendChild(tr);
+      });
+    }
+
+    function parseRaw(v){
+      try{
+        const o=JSON.parse(v);
+        return {type:o.type||'', prodNo:o.prodNo||'', itemNo:o.itemNo||''};
+      }catch{
+        // fallback: 改行/区切り文字対応（prodNo:xxxx;itemNo:yyyy みたいな）
+        const m1 = /prodNo\s*[:=]\s*([^\s,;]+)/i.exec(v)||[];
+        const m2 = /itemNo\s*[:=]\s*([^\s,;]+)/i.exec(v)||[];
+        return {type:'text', prodNo:m1[1]||'', itemNo:m2[1]||''};
+      }
+    }
+
+    async function init(){
+      // buttons
+      $('#startCam').addEventListener('click', startCam);
+      $('#stopCam').addEventListener('click', stopCam);
+      $('#clearLog').addEventListener('click', ()=>{log=[];$('#logBody').innerHTML='';});
+      $('#exportCsv').addEventListener('click', ()=> {
+        const rows = [['time','type','prodNo','itemNo','proc','status','qty','note']];
+        log.forEach(r=> rows.push([r.time,r.type||'',r.prodNo||'',r.itemNo||'',r.proc||'',r.status||'',r.qty||0,r.note||'']));
+        App.saveCSV(`scan-log-${App.today()}.csv`, rows);
+      });
+
+      $('#apply').addEventListener('click', async ()=>{
+        const src = parseRaw($('#raw').value||'');
+        const row = {
+          time: new Date().toLocaleString(),
+          type: src.type || 'ticket',
+          prodNo: src.prodNo || '',
+          itemNo: src.itemNo || '',
+          proc: $('#proc').value, status: $('#status').value,
+          qty: Number($('#qtyDone').value||0), note: $('#note').value||''
+        };
+        addLog(row);
+        $('#applyNote').textContent = 'ログに追加しました。';
+
+        // ※今はサーバ更新のAPIが「追加」のみ（更新は未定義）なので送る先があればここでPOSTする
+        // 例: 進捗をPLANに追記する用途 → 任意で使用
+        // await App.appendPlan({ customer:'', 製造番号等のマッピング… });
+      });
+    }
+
+    async function startCam(){
+      if (running) return;
+      if (!html5Q) html5Q = new Html5Qrcode("scanner");
+      try{
+        const devices = await Html5Qrcode.getCameras();
+        const camId = devices?.[0]?.id;
+        if(!camId) throw new Error('CAMERA_NOT_FOUND');
+        await html5Q.start(
+          camId,
+          {fps:10, qrbox:{width:240,height:240}},
+          onScanSuccess,
+          _=>{}
+        );
+        running=true;
+      }catch(e){
+        alert('カメラ開始に失敗しました: '+e.message);
+      }
+    }
+    async function stopCam(){
+      try{ await html5Q?.stop(); }catch{} running=false;
+    }
+    function onScanSuccess(decodedText){
+      stopCam();
+      $('#raw').value = decodedText||'';
+      const src = parseRaw(decodedText||'');
+      addLog({ time:new Date().toLocaleString(), type:src.type||'ticket', prodNo:src.prodNo||'', itemNo:src.itemNo||'', proc:'', status:'', qty:0, note:'' });
+    }
+  </script>
 </body></html>
