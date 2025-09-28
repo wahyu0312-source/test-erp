@@ -1,510 +1,221 @@
-/* ===============================
-   ERP Frontend Core (API + UI)
-   =============================== */
+const App = (()=>{
 
-/** Ganti jika Deploy ID berubah */
-const API_BASE = 'https://script.google.com/macros/s/AKfycbxmpC6UA1ixJLLDy3kCa6RPT9D-s2pV4L2UEsvy21gR5klqLpGGQbfSbYkNqWaHnRId/exec';
+  /* ===== Config ===== */
+  const API_URL = window.APP_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbxmpC6UA1ixJLLDy3kCa6RPT9D-s2pV4L2UEsvy21gR5klqLpGGQbfSbYkNqWaHnRId/exec';
 
-const App = {
-  state: { user:null, role:null },
-  cache: { master:[] },
+  /* ===== State ===== */
+  const store = {
+    get(){ try{ return JSON.parse(localStorage.getItem('erp_auth')||'null'); }catch{ return null; } },
+    set(val){ localStorage.setItem('erp_auth', JSON.stringify(val)); },
+    clear(){ localStorage.removeItem('erp_auth'); }
+  };
 
-  initPage(page){
-    // restore session
-    try{ const raw = localStorage.getItem('erp-session'); if(raw) this.state = JSON.parse(raw)||{}; }catch(_){}
-    // header
-    this.wireBurger();
-    this.renderAuthButtons();
-    this.hideLoginBarIfLoggedIn();
-    this.markActiveNav();
+  /* ===== Helpers ===== */
+  const $  = (sel,root=document)=> root.querySelector(sel);
+  const $$ = (sel,root=document)=> [...root.querySelectorAll(sel)];
+  const on = (el,ev,fn)=> el && el.addEventListener(ev,fn,{passive:false});
 
-    // page-specific
-    if(page==='dashboard') this.pageDashboard();
-    if(page==='plan') this.pagePlan();
-  },
+  function toast(msg){
+    const x=document.createElement('div');
+    x.textContent=msg; x.style.cssText='position:fixed;left:50%;bottom:14px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 14px;border-radius:10px;font-size:13px;z-index:70;opacity:.98';
+    document.body.appendChild(x); setTimeout(()=>x.remove(),2500);
+  }
 
-  /* -------- Header UI -------- */
-  wireBurger(){
-    const btn = document.getElementById('burgerBtn');
-    const mobile = document.getElementById('mobileMenu');
-    if(!btn || !mobile) return;
-    btn.onclick = ()=> mobile.classList.toggle('open');
-    mobile.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>mobile.classList.remove('open')));
-  },
-  markActiveNav(){
-    const p = location.pathname.split('/').pop() || 'index.html';
-    document.querySelectorAll('.nav a').forEach(a=>{
-      if(a.getAttribute('href')===p) a.classList.add('active');
+  function fetchJSON(url){
+    return fetch(url,{cache:'no-store'}).then(r=>r.json());
+  }
+
+  /* ===== Header / Drawer ===== */
+  function initHeader(){
+    const drawer = $('#drawer');
+    const scrim  = $('#scrim');
+    const btn    = $('#btnBurger');
+    const logout = $('#btnLogout');
+
+    const open = ()=>{ drawer.classList.add('is-open'); scrim.hidden=false; btn.setAttribute('aria-expanded','true'); };
+    const close= ()=>{ drawer.classList.remove('is-open'); scrim.hidden=true; btn.setAttribute('aria-expanded','false'); };
+
+    on(btn,'click', ()=> drawer.classList.contains('is-open')? close() : open());
+    on(scrim,'click', close);
+    on(document,'keydown', (e)=>{ if(e.key==='Escape') close(); });
+
+    // logout visibility
+    const auth=store.get();
+    if(auth){ logout.hidden=false; } else { logout.hidden=true; }
+    on(logout,'click', ()=>{ store.clear(); location.reload(); });
+  }
+
+  /* ===== Login Bar ===== */
+  function initLoginBar(){
+    const bar = $('#loginBar');
+    const form= $('#loginForm');
+    const u   = $('#lgUser');
+    const p   = $('#lgPass');
+
+    const auth = store.get();
+    if(auth){ bar.style.display='none'; return; }
+
+    on(form,'submit', async (e)=>{
+      e.preventDefault();
+      const user=u.value.trim(), pass=p.value.trim();
+      if(!user||!pass){ toast('ユーザー/パスワードを入力'); return; }
+      $('#btnLogin').disabled=true;
+      try{
+        const q = new URLSearchParams({ action:'login', username:user, password:pass });
+        const r = await fetchJSON(`${API_URL}?${q.toString()}`);
+        if(r.ok){
+          store.set({user:r.user,role:r.role,token:r.token});
+          toast('ログイン成功');
+          bar.style.display='none';
+          $('#btnLogout').hidden=false;
+          // untuk dashboard, langsung muat data
+          if(window.__afterLogin) window.__afterLogin();
+        }else{
+          toast('ログイン失敗');
+        }
+      }catch(_){ toast('サーバー通信エラー'); }
+      finally{ $('#btnLogin').disabled=false; }
     });
-  },
-  renderAuthButtons(){
-    const slot = document.getElementById('authSlot');
-    const slotMob = document.getElementById('authSlotMobile');
-    const html = this.state?.user
-      ? `<button id="btnLogout" class="btn outline">ログアウト</button>`
-      : '';
-    if(slot) slot.innerHTML = html;
-    if(slotMob) slotMob.innerHTML = html;
-    if(this.state?.user){
-      document.getElementById('btnLogout')?.addEventListener('click', ()=>this.logout());
-    }
-  },
-  hideLoginBarIfLoggedIn(){
-    const lb = document.getElementById('loginBar');
-    if(lb && this.state?.user) lb.classList.add('hidden');
-  },
-  logout(){
-    try{ localStorage.removeItem('erp-session'); }catch(_){}
-    this.state = {};
-    location.href='index.html';
-  },
 
-  /* -------- Login -------- */
-  async login(u,p){
-    const url = `${API_BASE}?action=login&username=${encodeURIComponent(u)}&password=${encodeURIComponent(p)}`;
-    const res = await fetch(url, {cache:'no-store'});
-    const js = await res.json();
-    if(js && js.ok){
-      localStorage.setItem('erp-session', JSON.stringify({user:js.user, role:js.role}));
-      return {ok:true};
-    }
-    return {ok:false, error:js?.error||'LOGIN_FAILED'};
-  },
+    // Enter to submit
+    on(p,'keydown', e=>{ if(e.key==='Enter') form.requestSubmit(); });
+  }
 
-  /* -------- Dashboard -------- */
-  async pageDashboard(){
-    // Ambil plan/ship/master (GET default)
-    let data=null;
-    try{
-      const res = await fetch(API_BASE, {cache:'no-store'});
-      data = await res.json();
-    }catch(_){}
-    // Render ringan
-    if(!data?.ok){
-      // biarkan placeholder bawaan HTML
-      return;
-    }
-    // contoh: tampilkan jumlah plan hari ini, dll. (ringkas)
-    // Anda bisa melanjutkan sesuai kebutuhan
-  },
+  /* ===== Role Helpers ===== */
+  function isAdmin(){ return (store.get()?.role||'')==='管理者'; }
+  function showSyncPanel(){
+    const det = $('#syncPanel');
+    if(!det) return;
+    // Sebaiknya hanya Admin yang melihat panel sync
+    det.style.display = isAdmin() ? '' : 'none';
+  }
 
-  /* -------- PLAN -------- */
-  async pagePlan(){
-    // Master untuk dropdown (agar auto-fill stabil)
-    await this.loadMaster();
-    // tombol tambah
-    document.getElementById('btnPlanNew')?.addEventListener('click', ()=> this.openPlanModal());
-    // render table
-    await this.refreshPlanTable();
-  },
+  /* ===== Dashboard data/render ===== */
+  async function loadAll(){
+    const r = await fetchJSON(API_URL);
+    return r.ok ? r : {plan:[],ship:[],master:[]};
+  }
 
-  async loadMaster(){
-    try{
-      const res = await fetch(`${API_BASE}?action=master`, {cache:'no-store'});
-      const js = await res.json();
-      if(js?.ok) this.cache.master = js.master || [];
-    }catch(_){}
-  },
-
-  async refreshPlanTable(){
-    const wrap = document.getElementById('planTableWrap');
+  function renderNow(plan){
+    const wrap = $('#nowList');
     if(!wrap) return;
-    wrap.innerHTML = `<div class="card"><div class="text-muted">読み込み中…</div></div>`;
-    let rows=[];
-    try{
-      const res = await fetch(API_BASE, {cache:'no-store'});
-      const js = await res.json();
-      if(js?.ok) rows = js.plan || [];
-    }catch(_){}
-    wrap.innerHTML = this.renderPlanTable(rows);
-    // Karena Code.gs belum punya edit/delete, tombol tidak ditampilkan
-  },
-
-  renderPlanTable(rows){
-    rows = rows || [];
-    if(!rows.length) return `<div class="card"><div class="text-muted">データがありません。</div></div>`;
-    const tr = rows.map(r=>`
-      <tr>
-        <td>${r.customer||''}</td>
-        <td>${r.itemNo||''}</td>
-        <td>${r.itemName||''}</td>
-        <td>${r.process||''}</td>
-        <td>${r.start||''}</td>
-        <td class="text-muted">${r.updated||''}</td>
-      </tr>
-    `).join('');
-    return `
-      <div class="card">
-        <table class="table">
-          <thead>
-            <tr><th>得意先</th><th>図番</th><th>品名</th><th>工程</th><th>開始</th><th>更新</th></tr>
-          </thead>
-          <tbody>${tr}</tbody>
-        </table>
-      </div>
-    `;
-  },
-
-  /* -------- Modal PLAN (Create only sesuai Code.gs) -------- */
-  openModal(id){ const m=document.getElementById(id); if(!m) return; m.classList.add('open'); document.body.style.overflow='hidden'; }
-  closeModal(id){ const m=document.getElementById(id); if(!m) return; m.classList.remove('open'); document.body.style.overflow=''; }
-
-  ,
-  openPlanModal(){
-    this.openModal('planModal');
-    const host = document.getElementById('planModalBody');
-    host.innerHTML = this.renderPlanFormHtml();
-
-    // isi dropdown MASTER
-    const uniqCustomers = [...new Set(this.cache.master.map(m=>m.customer).filter(Boolean))];
-    const selCust = host.querySelector('#fCustomer');
-    selCust.innerHTML = `<option value="">選択</option>` + uniqCustomers.map(c=>`<option>${c}</option>`).join('');
-
-    const selDraw = host.querySelector('#fItemNo');
-    selCust.addEventListener('change', ()=>{
-      const list = this.cache.master.filter(m=>m.customer===selCust.value);
-      const uniqDraw = [...new Set(list.map(x=>x.drawing).filter(Boolean))];
-      selDraw.innerHTML = `<option value="">選択</option>` + uniqDraw.map(d=>`<option>${d}</option>`).join('');
-      host.querySelector('#fItemName').value='';
+    if(!plan.length){ wrap.textContent='データがありません。'; return; }
+    wrap.classList.remove('u-muted');
+    wrap.innerHTML='';
+    // ringkas: tampilkan 3 terbaru
+    plan.slice(-3).reverse().forEach(x=>{
+      const div=document.createElement('div');
+      div.className='row wrap';
+      div.innerHTML = `
+        <span class="text-xs u-muted">${x['更新']||x.updated||''}</span>
+        <strong>${x['得意先']||x.customer||''}</strong>
+        <span>${x['品名']||x.itemName||''}</span>
+        <span class="text-xs">[${x['プロセス']||x.process||''}]</span>
+        <span class="text-xs u-muted">${x['場所']||x.location||''}</span>
+      `;
+      wrap.appendChild(div);
     });
-    selDraw.addEventListener('change', ()=>{
-      const found = this.cache.master.find(m=>m.customer===selCust.value && m.drawing===selDraw.value);
-      host.querySelector('#fItemName').value = found?.itemName || '';
-    });
-
-    // tombol
-    host.querySelector('[data-close]')?.addEventListener('click', ()=> this.closeModal('planModal'));
-    host.querySelector('#btnPlanSave')?.addEventListener('click', async ()=>{
-      const data = this.readPlanForm(host);
-      const ok = await this.savePlanToServer(data);
-      if(ok){ this.closeModal('planModal'); this.refreshPlanTable(); }
-      else{ alert('保存に失敗しました。'); }
-    });
-  },
-
-  renderPlanFormHtml(){
-    return `
-      <div class="row">
-        <div class="col">
-          <label>得意先（MASTER）</label>
-          <select id="fCustomer" class="input"><option value="">選択</option></select>
-        </div>
-        <div class="col">
-          <label>図番（MASTER）</label>
-          <select id="fItemNo" class="input"><option value="">選択</option></select>
-        </div>
-      </div>
-      <div class="row">
-        <div class="col"><label>品名</label><input id="fItemName" class="input" placeholder="MASTER選択で自動入力"></div>
-        <div class="col"><label>製造番号</label><input id="fProdNo" class="input" placeholder=""></div>
-      </div>
-      <div class="row">
-        <div class="col"><label>開始</label><input id="fStart" type="date" class="input"></div>
-        <div class="col"><label>工程</label><input id="fProcess" class="input" placeholder="例）レーザ工程"></div>
-      </div>
-      <div class="row">
-        <div class="col"><label>場所</label><input id="fLocation" class="input" value="PPIC/現場など"></div>
-        <div class="col"><label>ステータス</label>
-          <select id="fStatus" class="input">
-            <option>計画</option><option>進行中</option><option>完了</option>
-          </select>
-        </div>
-      </div>
-      <div class="row" style="margin-top:10px">
-        <div class="col">
-          <button class="btn" id="btnPlanSave">保存</button>
-          <button class="btn outline" data-close="1">閉じる</button>
-        </div>
-      </div>
-    `;
-  },
-
-  readPlanForm(host){
-    const get = id => host.querySelector(id).value.trim();
-    return {
-      customer: get('#fCustomer'),
-      itemNo:   get('#fItemNo'),
-      itemName: get('#fItemName'),
-      prodNo:   get('#fProdNo'),
-      start:    get('#fStart'),
-      process:  get('#fProcess'),
-      location: get('#fLocation'),
-      status:   get('#fStatus'),
-      updated:  new Date().toISOString(),
-      user:     this.state?.user||''
-    };
-  },
-
-  async savePlanToServer(data){
-    // doPost (kompatibel dgn Code.gs Anda)
-    try{
-      const res = await fetch(API_BASE, {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({
-          '得意先': data.customer,
-          '製造番号': data.prodNo,
-          '品名': data.itemName,
-          '品番': data.itemNo,
-          '開始': data.start,
-          'プロセス': data.process,
-          '場所': data.location,
-          'ステータス': data.status,
-          '更新': data.updated,
-          'ユザー': data.user
-        })
-      });
-      const txt = await res.text();
-      return (txt||'').trim().toLowerCase()==='ok';
-    }catch(_){ return false; }
   }
-};
-/* ====== Tambahan Halaman: ship / confirm / ticket / charts / master / scan ====== */
 
-Object.assign(App, {
-  /* ------------------- SHIP ------------------- */
-  async pageShip(){
-    document.getElementById('btnShipNew')?.addEventListener('click', ()=> this.openShipModal());
-    await this.refreshShipToday();
-  },
-  async refreshShipToday(){
-    const pane = document.getElementById('shipTodayWrap'); if(!pane) return;
-    pane.innerHTML = `<div class="card"><div class="text-muted">読み込み中…</div></div>`;
-    let rows=[];
-    try{
-      const res=await fetch(API_BASE,{cache:'no-store'}); const js=await res.json();
-      if(js?.ok) rows = js.ship||[];
-    }catch(_){}
+  function renderShipToday(ship){
+    const wrap = $('#shipToday');
+    if(!wrap) return;
     const today = new Date().toISOString().slice(0,10);
-    const list = rows.filter(r=>(r.date||'').slice(0,10)===today);
-    if(!list.length){ pane.innerHTML=`<div class="card"><div class="text-muted">本日の出荷予定はありません。</div></div>`; return; }
-    const tr=list.map(r=>`<tr><td>${r.date||''}</td><td>${r.customer||''}</td><td>${r.itemNo||''}</td><td>${r.itemName||''}</td><td>${r.qty||0}</td><td>${r.status||''}</td></tr>`).join('');
-    pane.innerHTML = `
-      <div class="card">
-        <table class="table">
-          <thead><tr><th>日付</th><th>得意先</th><th>図番</th><th>品名</th><th>数量</th><th>ステータス</th></tr></thead>
-          <tbody>${tr}</tbody>
-        </table>
-      </div>`;
-  },
-  openShipModal(){
-    this.openModal('shipModal');
-    const host=document.getElementById('shipModalBody');
-    host.innerHTML=`
-      <div class="row">
-        <div class="col"><label>日付</label><input id="sDate" type="date" class="input"></div>
-        <div class="col"><label>得意先</label><input id="sCustomer" class="input"></div>
-      </div>
-      <div class="row">
-        <div class="col"><label>図番</label><input id="sItemNo" class="input"></div>
-        <div class="col"><label>品名</label><input id="sItemName" class="input"></div>
-      </div>
-      <div class="row">
-        <div class="col"><label>数量</label><input id="sQty" type="number" step="1" class="input" value="0"></div>
-        <div class="col"><label>ステータス</label><select id="sStatus" class="input"><option>出荷予定</option><option>出荷完了</option></select></div>
-      </div>
-      <div class="row"><div class="col"><label>備考</label><input id="sNote" class="input"></div></div>
-      <div class="row" style="margin-top:10px"><div class="col">
-        <button id="btnShipSave" class="btn">保存</button>
-        <button class="btn outline" data-close="1">閉じる</button>
-      </div></div>`;
-    host.querySelector('#btnShipSave').onclick = async ()=>{
-      const payload={
-        '日付': host.querySelector('#sDate').value,
-        '得意先': host.querySelector('#sCustomer').value,
-        '品名': host.querySelector('#sItemName').value,
-        '品番': host.querySelector('#sItemNo').value,
-        '数量': Number(host.querySelector('#sQty').value||0),
-        'ステータス': host.querySelector('#sStatus').value,
-        '備考': host.querySelector('#sNote').value,
-        '更新': new Date().toISOString(),
-        'ユザー': this.state?.user||''
-      };
-      try{
-        const res=await fetch(API_BASE,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-        const txt=await res.text();
-        if((txt||'').trim().toLowerCase()==='ok'){ this.closeModal('shipModal'); this.refreshShipToday(); }
-        else alert('保存に失敗しました。');
-      }catch(_){ alert('通信エラー'); }
-    };
-  },
-
-  /* ------------------- CONFIRM (出荷確認書) ------------------- */
-  async pageConfirm(){
-    document.getElementById('btnConfirmMake')?.addEventListener('click', ()=> this.buildConfirmTable());
-    document.getElementById('btnConfirmPrint')?.addEventListener('click', ()=> window.print());
-    document.getElementById('btnConfirmCsv')?.addEventListener('click', ()=> this.exportConfirmCSV());
-  },
-  async buildConfirmTable(){
-    const d = document.getElementById('cfDate').value;
-    const c = document.getElementById('cfCustomer').value.trim();
-    const wrap = document.getElementById('confirmTable'); wrap.innerHTML='作成中…';
-    let rows=[];
-    try{ const res=await fetch(API_BASE,{cache:'no-store'}); const js=await res.json(); if(js?.ok) rows=js.ship||[]; }catch(_){}
-    const list = rows.filter(r=>{
-      const okDate = !d || (r.date||'').slice(0,10)===d;
-      const okCust = !c || (r.customer||'').includes(c);
-      return okDate && okCust;
+    const list = ship.filter(s => String(s['日付']||s.date||'').startsWith(today));
+    if(!list.length){ wrap.textContent='本日の出荷予定はありません。'; return; }
+    wrap.classList.remove('u-muted');
+    wrap.innerHTML='';
+    list.forEach(s=>{
+      const li=document.createElement('div');
+      li.textContent = `${s['得意先']||s.customer||''} ／ ${s['品名']||s.itemName||''} × ${s['数量']||s.qty||0}`;
+      wrap.appendChild(li);
     });
-    const tr=list.map((r,i)=>`<tr><td>${i+1}</td><td>${r.customer||''}</td><td>${r.itemName||''}</td><td>${r.itemNo||''}</td><td>${r.qty||0}</td><td>${r.note||''}</td></tr>`).join('');
-    wrap.innerHTML = `
-      <table class="table printable">
-        <thead><tr><th>No</th><th>得意先</th><th>品名</th><th>図番</th><th>数量</th><th>備考</th></tr></thead>
-        <tbody>${tr||`<tr><td colspan="6" class="text-muted">作成してください。</td></tr>`}</tbody>
-      </table>
-    `;
-    window._CONFIRM_LAST = list;
-  },
-  exportConfirmCSV(){
-    const list = window._CONFIRM_LAST||[];
-    const header = ['No','得意先','品名','図番','数量','備考'];
-    const rows = [header].concat(list.map((r,i)=>[i+1,r.customer||'',r.itemName||'',r.itemNo||'',r.qty||0,r.note||'']));
-    const csv = rows.map(r=>r.map(x=>`"${String(x).replace(/"/g,'""')}"`).join(',')).join('\n');
-    const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
-    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='出荷確認書.csv'; a.click();
-  },
-
-  /* ------------------- TICKET（生産現品票：テンプレート印刷） ------------------- */
-  pageTicket(){
-    document.getElementById('btnTicketPrint')?.addEventListener('click', ()=> window.print());
-  },
-
-  /* ------------------- CHARTS ------------------- */
-  async pageCharts(){
-    // pakai Chart.js via CDN (sudah di charts.html)
-    let data=null;
-    try{ const res=await fetch(API_BASE,{cache:'no-store'}); data=await res.json(); }catch(_){}
-    if(!data?.ok) return;
-
-    // pie: stok barang jadi (= sum qtyDone-qtyShip per itemName)
-    const mapStock = {};
-    (data.plan||[]).forEach(r=>{
-      const key=r.itemName||'(無題)'; const val=(Number(r.qtyDone||0)-Number(r.qtyShip||0))||0;
-      mapStock[key]=(mapStock[key]||0)+val;
-    });
-    const labels1=Object.keys(mapStock), values1=labels1.map(k=>mapStock[k]);
-    new Chart(document.getElementById('chartStock'),{type:'pie',data:{labels:labels1,datasets:[{data:values1}]}});
-    // pareto: total kirim per customer (descending + kumulatif)
-    const mapShip={}; (data.ship||[]).forEach(s=>{ const k=s.customer||'(無名)'; mapShip[k]=(mapShip[k]||0)+Number(s.qty||0); });
-    const entries=Object.entries(mapShip).sort((a,b)=>b[1]-a[1]);
-    const labels2=entries.map(e=>e[0]); const vals2=entries.map(e=>e[1]);
-    const total=vals2.reduce((a,b)=>a+b,0); let running=0; const cum=vals2.map(v=>{ running+=v; return Math.round(running/Math.max(total,1)*100); });
-    new Chart(document.getElementById('chartPareto'),{
-      type:'bar', data:{labels:labels2,datasets:[{label:'出荷数量',data:vals2}]},
-      options:{scales:{y:{beginAtZero:true}},plugins:{legend:{display:false}}},
-      plugins:[{id:'pareto',afterDatasetsDraw(chart,args,plg){ // garis kumulatif %
-        const {ctx,chartArea:{top,bottom,left,right}}=chart; const y=chart.scales.y;
-        const step=(right-left)/Math.max(vals2.length-1,1); ctx.save(); ctx.strokeStyle='#ef4444'; ctx.beginPath();
-        cum.forEach((p,i)=>{ const xx=left+i*step; const yy=top+(100-p)/100*(bottom-top); if(i) ctx.lineTo(xx,yy); else ctx.moveTo(xx,yy); });
-        ctx.stroke(); ctx.restore();
-      }}]
-    });
-  },
-
-  /* ------------------- MASTER（CRUD シンプル） ------------------- */
-  async pageMaster(){
-    document.getElementById('btnMNew')?.addEventListener('click', ()=> this.openMasterModal());
-    this._mSearch = ''; this._mPage = 1;
-    await this.refreshMaster();
-    document.getElementById('mSearch').addEventListener('input', (e)=>{ this._mSearch=e.target.value.trim(); this._mPage=1; this.refreshMaster(); });
-    document.getElementById('mPrev').addEventListener('click', ()=>{ if(this._mPage>1){ this._mPage--; this.refreshMaster(); }});
-    document.getElementById('mNext').addEventListener('click', ()=>{ this._mPage++; this.refreshMaster(); });
-  },
-  async refreshMaster(){
-    await this.loadMaster();
-    let list=[...this.cache.master];
-    if(this._mSearch){ const q=this._mSearch; list=list.filter(m=>[m.customer,m.drawing,m.itemName,m.itemNo].join(' ').includes(q)); }
-    const pageSize=10, start=(this._mPage-1)*pageSize; const page=list.slice(start,start+pageSize);
-    const tbody=document.getElementById('mBody'); tbody.innerHTML=page.map(m=>`
-      <tr>
-        <td class="text-muted">${m.id||''}</td>
-        <td>${m.customer||''}</td><td>${m.drawing||''}</td><td>${m.itemName||''}</td><td>${m.itemNo||''}</td>
-        <td>
-          <button class="btn outline" data-edit="${m.id}">編集</button>
-          <button class="btn outline" data-del="${m.id}">削除</button>
-        </td>
-      </tr>
-    `).join('') || `<tr><td colspan="6" class="text-muted">データがありません。</td></tr>`;
-    tbody.querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click',()=>this.openMasterModal(b.dataset.edit)));
-    tbody.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',()=>this.deleteMaster(b.dataset.del)));
-    document.getElementById('mPageInfo').textContent=`${this._mPage}`;
-  },
-  openMasterModal(id){
-    this.openModal('mModal');
-    const host=document.getElementById('mModalBody');
-    const cur = id ? this.cache.master.find(x=>String(x.id)===String(id)) : null;
-    host.innerHTML=`
-      <div class="row">
-        <div class="col"><label>得意先</label><input id="mmCustomer" class="input" value="${cur?.customer||''}"></div>
-        <div class="col"><label>図番</label><input id="mmDrawing" class="input" value="${cur?.drawing||''}"></div>
-      </div>
-      <div class="row">
-        <div class="col"><label>品名</label><input id="mmItemName" class="input" value="${cur?.itemName||''}"></div>
-        <div class="col"><label>品番</label><input id="mmItemNo" class="input" value="${cur?.itemNo||''}"></div>
-      </div>
-      <div class="row" style="margin-top:10px"><div class="col">
-        <button id="mmSave" class="btn">保存</button>
-        <button class="btn outline" data-close="1">閉じる</button>
-      </div></div>`;
-    host.querySelector('#mmSave').onclick = async ()=>{
-      const payload={
-        action:'MASTER_UPSERT',
-        id: cur?.id || '',
-        customer: host.querySelector('#mmCustomer').value,
-        drawing:  host.querySelector('#mmDrawing').value,
-        itemName: host.querySelector('#mmItemName').value,
-        itemNo:   host.querySelector('#mmItemNo').value
-      };
-      const ok = await this.postJson(payload);
-      if(ok?.ok){ this.closeModal('mModal'); this.refreshMaster(); } else alert('保存失敗');
-    };
-  },
-  async deleteMaster(id){
-    if(!confirm('削除しますか？')) return;
-    const ok = await this.postJson({action:'MASTER_DELETE', id});
-    if(ok?.ok) this.refreshMaster(); else alert('削除失敗');
-  },
-  async postJson(obj){
-    try{ const res=await fetch(API_BASE,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)}); return await res.json(); }
-    catch(_){ return null; }
-  },
-
-  /* ------------------- SCAN（ZXing + manual） ------------------- */
-  pageScan(){
-    const selDev=document.getElementById('videoSource');
-    const video=document.getElementById('preview');
-    const resBox=document.getElementById('scanResult');
-    const btnStart=document.getElementById('btnScanStart');
-    const btnStop=document.getElementById('btnScanStop');
-    const btnManual=document.getElementById('btnManualCommit');
-
-    // Manual input fallback
-    btnManual?.addEventListener('click', ()=>{
-      const v=document.getElementById('manualCode').value.trim();
-      if(v){ resBox.textContent=`MANUAL: ${v}`; alert('受け取りました（更新API未実装）'); }
-    });
-
-    // ZXing
-    if(!window.ZXing) return; // lib belum dimuat
-    const codeReader = new ZXing.BrowserMultiFormatReader();
-    async function listDevices(){
-      try{
-        const devices = await ZXing.BrowserCodeReader.listVideoInputDevices();
-        selDev.innerHTML = devices.map(d=>`<option value="${d.deviceId}">${d.label||d.deviceId}</option>`).join('');
-      }catch(_){}
-    }
-    btnStart?.addEventListener('click', async ()=>{
-      try{
-        await listDevices();
-        const id = selDev.value;
-        await codeReader.decodeFromVideoDevice(id, 'preview', (result,err)=>{
-          if(result){ resBox.textContent=result.getText(); /* TODO: call update endpoint here */ }
-        });
-      }catch(e){ alert('カメラにアクセスできません: '+e); }
-    });
-    btnStop?.addEventListener('click', ()=>{ try{ codeReader.reset(); }catch(_){} });
-    listDevices();
   }
-});
 
-window.App = App;
+  function renderStock(plan){
+    const tb = $('#stockBody');
+    if(!tb) return;
+    if(!plan.length){ tb.innerHTML = `<tr><td colspan="5" class="u-muted">データがありません。</td></tr>`; return; }
+
+    // aggregate by (itemName,itemNo)
+    const map=new Map();
+    plan.forEach(r=>{
+      const key = `${r['品名']||r.itemName||''}||${r['品番']||r.itemNo||''}`;
+      const done = Number(r['完成数量']||r.qtyDone||0);
+      const ship = Number(r['出荷数量']||r.qtyShip||0);
+      const prev = map.get(key)||{done:0,ship:0};
+      map.set(key,{done:prev.done+done, ship:prev.ship+ship});
+    });
+    tb.innerHTML='';
+    [...map.entries()].forEach(([k,v])=>{
+      const [name,no]=k.split('||');
+      const tr=document.createElement('tr');
+      tr.innerHTML = `<td>${name}</td><td>${no}</td><td>${v.done}</td><td>${v.ship}</td><td>${v.done - v.ship}</td>`;
+      tb.appendChild(tr);
+    });
+  }
+
+  function renderProcessChart(plan){
+    const el = $('#byProcessChart');
+    if(!el) return;
+
+    const labels = ['レーザ工程','曲げ工程','外枠組立工程','シャッター溶接工程','コーキング工程','外枠塗装工程','組立工程','検査工程'];
+    const count = new Array(labels.length).fill(0);
+
+    plan.forEach(r=>{
+      const p = r['プロセス']||r.process||'';
+      const idx = labels.findIndex(s=> s===p);
+      if(idx>=0) count[idx]++;
+    });
+
+    // destroy old
+    if(el._chart){ el._chart.destroy(); }
+
+    el._chart = new Chart(el.getContext('2d'),{
+      type:'bar',
+      data:{ labels, datasets:[{ label:'在庫', data:count, borderWidth:1 }] },
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        scales:{ y:{ beginAtZero:true } },
+        plugins:{ legend:{ display:false } }
+      }
+    });
+  }
+
+  /* ===== Page bootstrap ===== */
+  async function initDashboard(){
+    showSyncPanel();
+    const doLoad = async ()=>{
+      const {plan,ship} = await loadAll();
+      renderNow(plan||[]);
+      renderShipToday(ship||[]);
+      renderStock(plan||[]);
+      renderProcessChart(plan||[]);
+    };
+    // first load
+    await doLoad();
+    // afterLogin hook
+    window.__afterLogin = doLoad;
+
+    // dummy handlers sync
+    on($('#btnPull'),'click', async ()=>{ await doLoad(); toast('取得しました'); });
+    on($('#btnPush'),'click', ()=> toast('送信APIは別途実装/管理者専用です'));
+    on($('#autoSync'),'change', e=>{
+      if(e.target.checked){
+        e.target._timer = setInterval(()=> $('#btnPull')?.click(), 30000);
+      }else{
+        clearInterval(e.target._timer);
+      }
+    });
+  }
+
+  /* ===== Public ===== */
+  function initPage(page){
+    initHeader();
+    initLoginBar();
+    if(page==='dashboard') initDashboard();
+  }
+
+  return { initPage };
+})();
