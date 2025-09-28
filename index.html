@@ -3,19 +3,20 @@
 <title>ERP • ログイン</title>
 <link rel="stylesheet" href="style.css"/>
 </head><body class="bg">
-  <main class="container py-10">
+  <main class="container">
     <div class="card max-w-xl mx-auto">
       <h1 class="title">ログイン</h1>
-      <form id="loginForm" class="grid gap-3">
+      <form id="loginForm" class="grid space-y-4">
         <label>ユーザー
           <input id="loginUser" class="input" placeholder="例: admin" value="admin"/>
         </label>
         <label>パスワード
           <input id="loginPass" class="input" type="password" placeholder="••••"/>
         </label>
-        <div class="flex items-center gap-3">
-          <button id="loginBtn" class="btn primary">ログイン</button>
-          <span id="loginNote" class="text-sm text-slate-600">Enter でも送信可 / 初回ユーザーはシート USERS で作成</span>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button id="loginBtn" class="btn primary" type="submit">ログイン</button>
+          <button id="checkApi" class="btn" type="button">APIチェック</button>
+          <span id="loginNote" class="text-sm text-slate-600"></span>
         </div>
       </form>
     </div>
