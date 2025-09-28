@@ -1,34 +1,56 @@
-<!doctype html><html lang="ja"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ERP • マスター</title>
-<link rel="stylesheet" href="style.css"></head><body>
-<header class="top"><div class="brand">
-  <img src="tsh.png"><strong>ERPシステム</strong>
-  <button id="burger">☰</button><div class="userchip" id="topUser"></div>
-  <button id="btnLogout" class="btn-outline">ログアウト</button>
-</div><nav id="navMenu"><div class="container nav">
-  <a href="index.html">ダッシュボード</a><a href="plan.html">生産計画</a>
-  <a href="ship.html">出荷計画</a><a href="confirm.html">出荷確認書</a>
-  <a href="scan.html">QRスキャン</a><a href="ticket.html">生産現品票</a>
-  <a href="charts.html">チャート</a><a class="active">マスター</a>
-</div></nav></header>
-
-<main class="container">
-  <section class="card">
-    <div class="toolbar">
-      <h3 style="margin-right:auto">製品マスター</h3>
-      <input id="mq" class="input" placeholder="検索（得意先/図番/品名/品番）">
-      <button id="mAdd" class="btn">新規追加</button>
+<!DOCTYPE html><html lang="ja"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>ERP • マスター</title><link rel="stylesheet" href="style.css"/></head><body>
+<div id="headerMount"></div>
+<main class="container py-6 space-y-4">
+  <section class="card"><h3>マスター 登録/更新</h3>
+    <div class="grid md:grid-cols-4 gap-3">
+      <label>ID（空白=新規）<input id="mId" class="input"/></label>
+      <label>得意先<input id="mCust" class="input"/></label>
+      <label>図番<input id="mDraw" class="input"/></label>
+      <label>品名<input id="mName" class="input"/></label>
+      <label>品番<input id="mNo" class="input"/></label>
     </div>
-    <table id="mTable" class="table">
-      <thead><tr><th>得意先</th><th>図番</th><th>品名</th><th>品番</th><th>操作</th></tr></thead>
-      <tbody id="mBody"></tbody>
-    </table>
-    <div class="pager" id="mPager" style="margin-top:8px">
-      <button class="prev">←</button><span class="info">1/1頁</span><button class="next">→</button>
+    <div class="mt-3 flex gap-2">
+      <button id="btnMUp" class="btn primary">保存</button>
+      <button id="btnMDel" class="btn danger">削除</button>
     </div>
+  </section>
+  <section class="card"><h3>マスター一覧</h3>
+    <input id="mSearch" class="input" placeholder="検索（得意先/図番/品名/品番）"/>
+    <table class="table" id="tblMaster"><thead><tr><th>ID</th><th>得意先</th><th>図番</th><th>品名</th><th>品番</th></tr></thead><tbody></tbody></table>
   </section>
 </main>
 <script src="app.js"></script>
-<script>App.initMaster();</script>
+<script>
+fetch('header.html').then(r=>r.text()).then(h=>{document.getElementById('headerMount').outerHTML=h; App.initPage('master'); init();});
+let M_ALL=[];
+async function init(){
+  const data = await App.fetchMasterOnly(); M_ALL=data.master||[];
+  render(M_ALL);
+  document.getElementById('mSearch').addEventListener('input', e=>{
+    const v=e.target.value||''; render(App.searchFilter(M_ALL, v, ['customer','drawing','itemName','itemNo']));
+  });
+  document.getElementById('btnMUp').onclick = async ()=>{
+    const row={id:$('#mId').value, customer:$('#mCust').value, drawing:$('#mDraw').value, itemName:$('#mName').value, itemNo:$('#mNo').value};
+    const r=await App.masterUpsert(row); alert('保存しました'); location.reload();
+  };
+  document.getElementById('btnMDel').onclick = async ()=>{
+    const id=($('#mId').value||'').trim(); if(!id) return alert('IDを入力してください');
+    await App.masterDelete(id); alert('削除しました'); location.reload();
+  };
+}
+function $(q){return document.querySelector(q)}
+function render(list){
+  const tb=document.querySelector('#tblMaster tbody'); tb.innerHTML='';
+  list.forEach(r=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${App.esc(r.id)}</td><td>${App.esc(r.customer)}</td><td>${App.esc(r.drawing)}</td><td>${App.esc(r.itemName)}</td><td>${App.esc(r.itemNo)}</td>`;
+    tr.addEventListener('click',()=>{
+      $('#mId').value=r.id; $('#mCust').value=r.customer; $('#mDraw').value=r.drawing; $('#mName').value=r.itemName; $('#mNo').value=r.itemNo;
+    });
+    tb.appendChild(tr);
+  });
+}
+</script>
 </body></html>
