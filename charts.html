@@ -3,34 +3,154 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>ERPシステム — 分析チャート</title>
+  <title>分析チャート | ERPシステム</title>
   <link rel="stylesheet" href="style.css"/>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body>
+<body class="bg-slate-50 text-slate-800" onload="ChartsPage.init()">
   <header class="topbar">
-    <div class="container wrap">
-      <img src="tsh.png" class="logo" alt="TSH">
-      <nav class="nav" id="mainNav">
-        <a href="index.html">ダッシュボード</a><a href="plan.html">生産計画</a>
-        <a href="ship.html">出荷計画</a><a href="confirm.html">出荷確認書</a>
-        <a href="ticket.html">生産現品票</a><a href="charts.html">分析チャート</a>
-        <a href="master.html">マスター</a><a href="scan.html">QRスキャン</a>
-      </nav>
-      <div class="menu-spacer"></div><div id="authSlot"></div>
-      <button id="burgerBtn" class="burger">☰</button>
+    <div class="brand">
+      <img src="tsh.png" alt="TSH" class="h-8"/>
+      <span class="ml-2 font-semibold">ERPシステム</span>
+    </div>
+    <nav class="nav desktop">
+      <a href="index.html">ダッシュボード</a>
+      <a href="plan.html">生産計画</a>
+      <a href="ship.html">出荷計画</a>
+      <a href="confirm.html">出荷確認書</a>
+      <a href="ticket.html">生産現品票</a>
+      <a href="charts.html" class="active">分析チャート</a>
+      <a href="master.html">マスター</a>
+      <a href="scan.html">QRスキャン</a>
+    </nav>
+    <div class="flex items-center gap-2">
+      <button id="burger" class="burger md:hidden">☰</button>
+      <button class="btn-outline" onclick="App.logout()">ログアウト</button>
     </div>
   </header>
 
-  <main class="container" style="padding:16px;display:grid;gap:16px">
-    <section class="grid-2">
-      <div class="card"><h3>在庫（完成 − 出荷）Pie</h3><canvas id="chartStock" height="220"></canvas></div>
-      <div class="card"><h3>客先別 出荷数量 Pareto</h3><canvas id="chartPareto" height="220"></canvas></div>
+  <nav id="mobileMenu" class="mobile-menu hidden">
+    <a href="index.html">ダッシュボード</a>
+    <a href="plan.html">生産計画</a>
+    <a href="ship.html">出荷計画</a>
+    <a href="confirm.html">出荷確認書</a>
+    <a href="ticket.html">生産現品票</a>
+    <a href="charts.html" class="active">分析チャート</a>
+    <a href="master.html">マスター</a>
+    <a href="scan.html">QRスキャン</a>
+  </nav>
+
+  <main class="container space-y-6">
+    <section class="card">
+      <h3 class="card-title">フィルター</h3>
+      <div class="grid md:grid-cols-3 gap-3">
+        <label class="form-row">
+          <span>月 (出荷集計)</span>
+          <input id="fMonth" type="month" class="input"/>
+        </label>
+        <div class="flex items-end gap-2">
+          <button class="btn" onclick="ChartsPage.refresh()">更新</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid lg:grid-cols-3 gap-4">
+      <div class="card"><h4 class="mb-2 font-semibold">完成在庫（品番別）</h4><canvas id="pieStock" height="200"></canvas></div>
+      <div class="card lg:col-span-2"><h4 class="mb-2 font-semibold">出荷（得意先別・月次）— パレート</h4><canvas id="paretoMonthly" height="200"></canvas></div>
+    </section>
+
+    <section class="card">
+      <h4 class="mb-2 font-semibold">出荷（得意先別・年次合計）</h4>
+      <canvas id="barYearly" height="220"></canvas>
     </section>
   </main>
 
   <script src="app.js"></script>
-  <script>App.initPage('charts');</script>
+  <script>
+    const ChartsPage = {
+      pie:null, pareto:null, bar:null,
+      init(){
+        App.ensureAuth();
+        App.mountBurger();
+        // default bulan = bulan ini
+        const d=new Date(), pad=n=>String(n).padStart(2,'0');
+        document.getElementById('fMonth').value = d.getFullYear()+'-'+pad(d.getMonth()+1);
+        this.refresh();
+      },
+      async refresh(){
+        const {plan, ship} = await App.fetchAll();
+        // 1) stock = 完成数量-出荷数量 per itemNo
+        const stockMap = {};
+        (plan||[]).forEach(r=>{
+          const k=r.itemNo||'(不明)';
+          const s=Number(r.qtyDone||0)-Number(r.qtyShip||0);
+          stockMap[k]=(stockMap[k]||0)+Math.max(0,s);
+        });
+        const stockLabels=Object.keys(stockMap);
+        const stockData  =stockLabels.map(k=>stockMap[k]);
+        this.drawPie('pieStock', stockLabels, stockData);
+
+        // 2) monthly shipments per customer (pareto)
+        const month=document.getElementById('fMonth').value; // yyyy-mm
+        const mList=(ship||[]).filter(r=> (r.date||'').slice(0,7)===month);
+        const mMap={}; mList.forEach(r=>{const k=r.customer||'(不明)'; mMap[k]=(mMap[k]||0)+Number(r.qty||0);});
+        const mLbl=Object.keys(mMap);
+        const mData=mLbl.map(k=>mMap[k]);
+        this.drawPareto('paretoMonthly', mLbl, mData);
+
+        // 3) yearly shipments per customer
+        const year = (month||'').slice(0,4);
+        const yList=(ship||[]).filter(r=>(r.date||'').slice(0,4)===year);
+        const yMap={}; yList.forEach(r=>{const k=r.customer||'(不明)'; yMap[k]=(yMap[k]||0)+Number(r.qty||0);});
+        const yLbl=Object.keys(yMap);
+        const yData=yLbl.map(k=>yMap[k]);
+        this.drawBar('barYearly', yLbl, yData);
+      },
+      drawPie(id, labels, data){
+        this.pie?.destroy();
+        this.pie = new Chart(document.getElementById(id), {
+          type:'pie',
+          data:{labels, datasets:[{data}]},
+          options:{plugins:{legend:{position:'bottom'}}}
+        });
+      },
+      drawPareto(id, labels, data){
+        // sort desc
+        const idx=[...labels.keys()].sort((a,b)=>data[b]-data[a]);
+        const sLabels=idx.map(i=>labels[i]);
+        const sData  =idx.map(i=>data[i]);
+        const total = sData.reduce((a,b)=>a+b,0)||1;
+        let cum=0; const pct=sData.map(v=> (cum+=v)/total*100);
+
+        this.pareto?.destroy();
+        const ctx=document.getElementById(id).getContext('2d');
+        this.pareto = new Chart(ctx,{
+          data:{
+            labels:sLabels,
+            datasets:[
+              {type:'bar', label:'数量', data:sData, yAxisID:'y'},
+              {type:'line', label:'累積%', data:pct, yAxisID:'y1', tension:.3}
+            ]
+          },
+          options:{
+            scales:{
+              y:{beginAtZero:true, position:'left'},
+              y1:{beginAtZero:true, position:'right', min:0, max:100, ticks:{callback:v=>v+'%'}}
+            },
+            plugins:{legend:{position:'bottom'}}
+          }
+        });
+      },
+      drawBar(id, labels, data){
+        this.bar?.destroy();
+        this.bar = new Chart(document.getElementById(id), {
+          type:'bar',
+          data:{labels, datasets:[{label:'年合計 出荷数量', data}]},
+          options:{scales:{y:{beginAtZero:true}}, plugins:{legend:{display:false}}}
+        });
+      }
+    }
+  </script>
 </body>
 </html>
