@@ -1,153 +1,237 @@
-/* ===== ERP Core (Auth + Guard + Navbar + Util) ===== */
-const App = (() => {
-  // ==== CONFIG (EDIT the GAS URL only) ====
-  const API = 'https://script.google.com/macros/s/AKfycbxdxK93a2UJFKg5mmLi_P7OrAWv4DMUbvWX3bHGEntndIEEHWZc_dqN-iyqarKQvIFS/exec';
+<script>
+/* ======= CONFIG ======= */
+const CONFIG = {
+  GAS_URL: 'https://script.google.com/macros/s/AKfycbxdxK93a2UJFKg5mmLi_P7OrAWv4DMUbvWX3bHGEntndIEEHWZc_dqN-iyqarKQvIFS/exec',  // <= << GANTI INI >>
+  BRAND: 'ERPシステム', COMPANY: '東京精密発條株式会社'
+};
 
-  // ==== Storage Keys ====
-  const K_SESSION = 'erp_session_v1';  // {user,role,token,ts}
+/* ======= tiny helpers ======= */
+const $ = (s, r=document)=>r.querySelector(s);
+const $$=(s, r=document)=>[...r.querySelectorAll(s)];
+const qs = o => new URLSearchParams(o).toString();
+const J  = v => JSON.stringify(v);
 
-  // ==== Small util ====
-  const $ = (sel, root=document) => root.querySelector(sel);
-  const $$ = (sel, root=document) => [...root.querySelectorAll(sel)];
-  const esc = encodeURIComponent;
+/* ======= State (localStorage) ======= */
+const Auth = {
+  key: 'erpUser',
+  get(){ try{return JSON.parse(localStorage.getItem(this.key)||'null')}catch{ return null}},
+  set(v){ localStorage.setItem(this.key, J(v)); },
+  clear(){ localStorage.removeItem(this.key); }
+};
 
-  function readSession(){
-    try { return JSON.parse(localStorage.getItem(K_SESSION) || 'null'); }
-    catch { return null; }
+/* ======= API ======= */
+const Api = {
+  async login(user, pass){
+    const url = CONFIG.GAS_URL + '?' + qs({action:'login',username:user,password:pass});
+    const res = await fetch(url, {cache:'no-store'});
+    return res.json();
+  },
+  async pull(){
+    const res = await fetch(CONFIG.GAS_URL, {cache:'no-store'});
+    return res.json();
+  },
+  async masterUpsert(payload){
+    const res = await fetch(CONFIG.GAS_URL, {method:'POST',body:J(payload)});
+    return res.json();
+  },
+  async masterDelete(id){
+    const res = await fetch(CONFIG.GAS_URL,{method:'POST',body:J({action:'MASTER_DELETE',id})});
+    return res.json();
   }
-  function writeSession(s){ localStorage.setItem(K_SESSION, JSON.stringify(s||{})); }
-  function clearSession(){ localStorage.removeItem(K_SESSION); }
+};
 
-  function isAuthed(){
-    const s = readSession();
-    if(!s || !s.user || !s.token) return false;
-    // (optional) 24h expiry
-    const DAY = 24*60*60*1000;
-    return (Date.now() - (s.ts||0)) < DAY;
-  }
+/* ======= UI ======= */
+function flash(msg){
+  let el = $('#flash'); if(!el){ el = document.createElement('div'); el.id='flash'; el.className='flash'; document.body.appendChild(el); }
+  el.textContent = msg; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),1800);
+}
 
-  function guard(pageId){
-    // pages that require login
-    const mustLogin = ['dashboard','plan','ship','confirm','ticket','scan','charts','master'];
-    if (mustLogin.includes(pageId) && !isAuthed()){
-      location.replace('index.html?needLogin=1');
-      return false;
-    }
-    return true;
-  }
+function guard(page){
+  const u = Auth.get();
+  if(page!=='login' && !u){ location.href='index.html?needLogin=1'; return false; }
+  if(page==='login' && u){ location.href='dashboard.html'; return false; }
+  return true;
+}
 
-  // ==== Navbar (also adds working Logout) ====
-  function mountNavbar(){
-    const nav = document.querySelector('.app-topbar');
-    if(!nav) return;
+function navbar(active=''){
+  const u = Auth.get();
+  return `
+  <div class="app-topbar">
+    <div class="app-shell" style="display:flex;align-items:center;justify-content:space-between;height:56px">
+      <div class="brand"><img src="tsh.png" alt="TSH"><b>${CONFIG.BRAND}</b><span class="hidden sm:inline" style="color:#64748b">${CONFIG.COMPANY}</span></div>
+      <button class="burger" id="btnBurger" aria-label="menu">☰</button>
+      <nav class="nav" id="mainNav" style="display:none"></nav>
+    </div>
+  </div>
+  <div class="app-shell">
+    <nav class="nav" id="navDesktop"></nav>
+  </div>
+  `;
+}
 
-    const s = readSession();
-    const user = s?.user || '';
+function buildMenus(active){
+  const links = [
+    ['dashboard.html','ダッシュボード'],
+    ['plan.html','生産計画'],
+    ['ship.html','出荷計画'],
+    ['confirm.html','出荷確認書'],
+    ['ticket.html','生産現品票'],
+    ['scan.html','QRスキャン'],
+    ['charts.html','分析チャート'],
+    ['master.html','マスター']
+  ];
+  const user = Auth.get();
+  const navHtml = links.map(([href,label])=>{
+    const isAct = location.pathname.endsWith(href);
+    return `<a href="${href}" class="${isAct?'active':''}">${label}</a>`;
+  }).join('') + (user? `<a class="btn btn-ghost" id="btnLogout">ログアウト (${user.user})</a>` : '');
+  $('#navDesktop').innerHTML = navHtml;
+  const m = $('#mainNav'); if(m){ m.innerHTML = navHtml; }
 
-    nav.innerHTML = `
-      <div class="max-w-7xl mx-auto px-3 h-14 flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <a class="brand inline-flex items-center gap-2" href="dashboard.html">
-            <img src="tsh.png" alt="TSH" class="h-7"><span class="font-semibold">ERPシステム</span>
-          </a>
-          <nav class="hidden md:flex items-center gap-4 text-sm">
-            <a href="dashboard.html">ダッシュボード</a>
-            <a href="plan.html">生産計画</a>
-            <a href="ship.html">出荷計画</a>
-            <a href="confirm.html">出荷確認書</a>
-            <a href="charts.html">分析チャート</a>
-            <a href="master.html">マスター</a>
-            <a href="scan.html">QRスキャン</a>
-          </nav>
-        </div>
-        <div class="flex items-center gap-2">
-          <span class="text-sm text-slate-600 hidden sm:inline">${user?`👤 ${user}`:''}</span>
-          <button id="btnBurger" class="md:hidden btn" aria-label="menu">☰</button>
-          <button id="btnLogout" class="btn btn-ghost ${user?'':'hidden'}">ログアウト</button>
+  $('#btnBurger')?.addEventListener('click', ()=>{
+    const mn = $('#mainNav');
+    mn.style.display = (mn.style.display==='none'||!mn.style.display)?'flex':'none';
+  });
+  $('#btnLogout')?.addEventListener('click', ()=>{ Auth.clear(); location.href='index.html'; });
+}
+
+/* ======= Renderers per page ======= */
+async function renderDashboard(){
+  const box = $('#dashWrap');
+  try{
+    const data = await Api.pull();
+    if(!data.ok){ box.innerHTML='<div class="card">同期に失敗しました。</div>'; return; }
+    // contoh ringkas
+    $('#nowList').textContent   = (data.plan||[]).length? '' : 'データがありません。';
+    $('#shipToday').textContent = (data.ship||[]).length? '' : '本日の出荷予定はありません。';
+    // stok sederhana
+    const byItem = {};
+    (data.plan||[]).forEach(p=>{
+      const key = (p.itemName||'')+'|'+(p.itemNo||'');
+      if(!byItem[key]) byItem[key]={done:0, ship:0};
+      byItem[key].done += Number(p.qtyDone||0);
+      byItem[key].ship += Number(p.qtyShip||0);
+    });
+    const tbody = $('#stockBody'); tbody.innerHTML='';
+    Object.entries(byItem).forEach(([k,v])=>{
+      const [nm,no] = k.split('|');
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${nm||''}</td><td class="mono">${no||''}</td>
+      <td class="mono">${v.done}</td><td class="mono">${v.ship}</td><td class="mono">${v.done - v.ship}</td>`;
+      tbody.appendChild(tr);
+    });
+  }catch(e){ box.innerHTML = `<div class="card">エラー: ${e}</div>`; }
+}
+
+async function renderMaster(){
+  const box = $('#masterBox');
+  box.innerHTML = '<div class="card">読込中...</div>';
+  try{
+    const data = await Api.pull();
+    if(!data.ok){ box.innerHTML='<div class="card">取得失敗</div>'; return; }
+    const list = data.master||[];
+    const tbody = document.createElement('tbody');
+    list.forEach(r=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML = `<td class="mono">${r.id||''}</td><td>${r.customer||''}</td><td class="mono">${r.drawing||''}</td><td>${r.itemName||''}</td><td class="mono">${r.itemNo||''}</td>
+      <td><button class="btn btn-ghost" data-edit="${r.id}">編集</button><button class="btn btn-danger" data-del="${r.id}">削除</button></td>`;
+      tbody.appendChild(tr);
+    });
+    box.innerHTML = `
+      <div class="card">
+        <h3 style="margin-bottom:.6rem;font-weight:700">マスター</h3>
+        <div class="grid">
+          <div class="grid-2">
+            <div>
+              <label class="label">得意先</label><input id="mCustomer" class="input">
+            </div>
+            <div>
+              <label class="label">図番</label><input id="mDrawing" class="input">
+            </div>
+          </div>
+          <div class="grid-2">
+            <div><label class="label">品名</label><input id="mItemName" class="input"></div>
+            <div><label class="label">品番</label><input id="mItemNo" class="input"></div>
+          </div>
+          <div><button id="btnMasterSave" class="btn btn-primary">登録</button></div>
         </div>
       </div>
-      <div id="mnav" class="md:hidden hidden border-t bg-white">
-        <nav class="max-w-7xl mx-auto px-3 py-3 grid gap-2 text-sm">
-          <a href="dashboard.html">ダッシュボード</a>
-          <a href="plan.html">生産計画</a>
-          <a href="ship.html">出荷計画</a>
-          <a href="confirm.html">出荷確認書</a>
-          <a href="charts.html">分析チャート</a>
-          <a href="master.html">マスター</a>
-          <a href="scan.html">QRスキャン</a>
-        </nav>
+
+      <div class="card" style="margin-top:10px;overflow:auto">
+        <table class="table">
+          <thead><tr><th>ID</th><th>得意先</th><th>図番</th><th>品名</th><th>品番</th><th>操作</th></tr></thead>
+        </table>
       </div>
     `;
+    $('.table').appendChild(tbody);
 
-    $('#btnBurger')?.addEventListener('click', ()=> $('#mnav').classList.toggle('hidden'));
-    $('#btnLogout')?.addEventListener('click', ()=> {
-      clearSession();
-      location.replace('index.html');
+    $('#btnMasterSave').addEventListener('click', async ()=>{
+      const payload = {
+        action:'MASTER_UPSERT',
+        customer:$('#mCustomer').value.trim(),
+        drawing:$('#mDrawing').value.trim(),
+        itemName:$('#mItemName').value.trim(),
+        itemNo:$('#mItemNo').value.trim()
+      };
+      if(!payload.customer){ flash('得意先を入力'); return; }
+      const r = await Api.masterUpsert(payload);
+      if(r.ok){ flash('保存しました'); renderMaster(); } else { flash('保存に失敗'); }
     });
-  }
 
-  // ==== LOGIN ====
-  async function apiLogin(u,p){
-    const url = `${API}?action=login&username=${esc(u)}&password=${esc(p)}`;
-    const res = await fetch(url, {cache:'no-store'});
-    if(!res.ok) throw new Error('NETWORK_'+res.status);
-    return await res.json();
-  }
-
-  function bindLoginForm(){
-    const f = $('#loginForm'); if(!f) return;
-    const iu = $('#loginUser'), ip = $('#loginPass'), msg = $('#loginMsg');
-    const btn = $('#btnLogin'), ping = $('#btnPing');
-
-    // Enter key ok (form submit)
-    f.addEventListener('submit', async (e)=>{
-      e.preventDefault(); e.stopPropagation();
-      const u = (iu.value||'').trim();
-      const p = (ip.value||'').trim();
-      if(!u || !p){ msg.textContent = 'ログイン失敗（USER_OR_PASS_EMPTY）'; return; }
-
-      btn.disabled = true; msg.textContent = 'チェック中…';
-      try{
-        const j = await apiLogin(u,p);
-        if(j && j.ok){
-          writeSession({ user:j.user, role:j.role, token:j.token, ts:Date.now() });
-          location.replace('dashboard.html');
-        }else{
-          msg.textContent = 'ログイン失敗';
+    tbody.addEventListener('click', async e=>{
+      const del = e.target.closest('[data-del]');
+      if(del){ if(!confirm('削除しますか？')) return;
+        const id = del.getAttribute('data-del'); const r = await Api.masterDelete(id);
+        if(r.ok){ flash('削除しました'); renderMaster(); } else { flash('削除に失敗'); }
+      }
+      const ed = e.target.closest('[data-edit]');
+      if(ed){
+        const id=ed.getAttribute('data-edit'); const row=list.find(x=>x.id===id);
+        if(row){ $('#mCustomer').value=row.customer||''; $('#mDrawing').value=row.drawing||'';
+          $('#mItemName').value=row.itemName||''; $('#mItemNo').value=row.itemNo||'';
+          flash('編集モード（上の入力を修正→登録）');
         }
-      }catch(err){
-        msg.textContent = '通信エラー: '+ String(err.message||err);
-      }finally{
-        btn.disabled = false;
       }
     });
+  }catch(e){ box.innerHTML=`<div class="card">エラー: ${e}</div>`; }
+}
 
-    // API sanity check
-    ping?.addEventListener('click', async ()=>{
-      const u = (iu.value||'admin'); const p = (ip.value||'1234');
-      try{
-        const j = await apiLogin(u,p);
-        msg.textContent = j && j.ok ? 'API OK' : 'NG';
-      }catch(e){ msg.textContent = 'NG('+e.message+')'; }
-    });
-  }
+/* ======= Page bootstrap ======= */
+const App = {
+  init(page){
+    if(!guard(page)) return;
 
-  // ==== Public init per page ====
-  function init(pageId){
-    if(pageId === 'login'){
-      // if already logged in, go to dashboard
-      if(isAuthed()){ location.replace('dashboard.html'); return; }
-      bindLoginForm();
-      return;
+    // header (kecuali halaman login sudah punya header super ringkas – tetap boleh render nav)
+    if(page!=='login'){
+      document.body.insertAdjacentHTML('afterbegin', navbar());
+      buildMenus(page);
     }
 
-    if(!guard(pageId)) return; // redirects to login if not authed
-    mountNavbar();
-  }
+    if(page==='login'){
+      const f = $('#loginForm');
+      const u = $('#loginUser'), p = $('#loginPass'), m = $('#loginMsg');
+      const doLogin = async ()=>{
+        m.textContent = 'APIチェック中…';
+        try{
+          if(!u.value.trim() || !p.value.trim()){ m.textContent='ユーザー/パス空'; return; }
+          const r = await Api.login(u.value.trim(), p.value.trim());
+          if(r && r.ok){
+            Auth.set({user:r.user, role:r.role, token:r.token});
+            location.href='dashboard.html';
+          }else{
+            m.textContent = 'ログイン失敗 ('+(r?.error||'')+')';
+            flash('ログイン失敗');
+          }
+        }catch(e){ m.textContent='接続エラー'; }
+      };
+      f?.addEventListener('submit', e=>{ e.preventDefault(); doLogin(); });
+    }
 
-  // expose minimal helpers some pages already use
-  return {
-    init,
-    session: { read:readSession, clear:clearSession, isAuthed },
-  };
-})();
+    if(page==='dashboard') renderDashboard();
+    if(page==='master') renderMaster();
+    // halaman lain boleh diload ringan dulu; nanti tinggal tambah renderer spesifik
+  }
+};
+
+window.App = App;
+</script>
